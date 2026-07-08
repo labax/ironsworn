@@ -1,4 +1,4 @@
-import { Inject, Injectable, InjectionToken, Optional } from '@angular/core';
+import { inject, Injectable, InjectionToken } from '@angular/core';
 import { migrateSaveEnvelope, safeParse, safeStringify } from './json-storage.helpers';
 import type {
   LoadResult,
@@ -23,14 +23,16 @@ export const BROWSER_STORAGE = new InjectionToken<BrowserStorageLike | null>(
 
 @Injectable({ providedIn: 'root' })
 export class LocalStorageAdapter implements PersistenceAdapter {
-  constructor(
-    @Optional() @Inject(BROWSER_STORAGE) private readonly storage: BrowserStorageLike | null,
-  ) {}
+  private readonly storage = inject(BROWSER_STORAGE, { optional: true });
 
   async save<T>(key: string, value: VersionedSaveEnvelope<T>): Promise<SaveResult> {
-    if (!this.storage) return this.storageUnavailable();
+    if (!this.storage) {
+      return this.storageUnavailable();
+    }
     const serialized = safeStringify(value);
-    if (!serialized.success) return { success: false, error: serialized.error };
+    if (!serialized.success) {
+      return { success: false, error: serialized.error };
+    }
 
     try {
       this.storage.setItem(key, serialized.value);
@@ -59,13 +61,19 @@ export class LocalStorageAdapter implements PersistenceAdapter {
 
     try {
       const rawValue = this.storage.getItem(key);
-      if (rawValue === null) return { success: true, found: false };
+      if (rawValue === null) {
+        return { success: true, found: false };
+      }
 
       const parsed = safeParse<unknown>(rawValue);
-      if (!parsed.success) return { success: false, error: parsed.error };
+      if (!parsed.success) {
+        return { success: false, error: parsed.error };
+      }
 
       const migrated = migrateSaveEnvelope<T>(parsed.value);
-      if (!migrated.success) return { success: false, error: migrated.error };
+      if (!migrated.success) {
+        return { success: false, error: migrated.error };
+      }
 
       return { success: true, found: true, data: migrated.value };
     } catch (cause) {
@@ -77,7 +85,9 @@ export class LocalStorageAdapter implements PersistenceAdapter {
   }
 
   async remove(key: string): Promise<SaveResult> {
-    if (!this.storage) return this.storageUnavailable();
+    if (!this.storage) {
+      return this.storageUnavailable();
+    }
     try {
       this.storage.removeItem(key);
       return { success: true };

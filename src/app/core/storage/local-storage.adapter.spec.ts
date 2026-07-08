@@ -1,3 +1,4 @@
+import { TestBed } from '@angular/core/testing';
 import { createDefaultCharacter } from '@domain/character';
 import { createDefaultJournalEntry } from '@domain/journal';
 import { createDefaultProgressTrack } from '@domain/progress';
@@ -5,7 +6,11 @@ import type { RollHistoryEntry } from '@domain/rolls';
 import { createDefaultVow } from '@domain/vows';
 import { createCopyableJsonBackup } from './json-backup';
 import { createSaveEnvelope, CURRENT_SAVE_SCHEMA_VERSION } from './storage.types';
-import { LocalStorageAdapter, type BrowserStorageLike } from './local-storage.adapter';
+import {
+  BROWSER_STORAGE,
+  LocalStorageAdapter,
+  type BrowserStorageLike,
+} from './local-storage.adapter';
 import type { TestCampaignSave } from './test-campaign';
 
 class MemoryStorage implements BrowserStorageLike {
@@ -23,6 +28,14 @@ class MemoryStorage implements BrowserStorageLike {
 
 const createdAt = '2026-07-08T00:00:00.000Z';
 const campaignKey = 'campaign:test';
+
+const createAdapter = (storage: BrowserStorageLike | null): LocalStorageAdapter => {
+  TestBed.configureTestingModule({
+    providers: [{ provide: BROWSER_STORAGE, useValue: storage }],
+  });
+
+  return TestBed.inject(LocalStorageAdapter);
+};
 
 const createTestCampaign = (): TestCampaignSave => {
   const campaignId = 'campaign-1';
@@ -87,9 +100,13 @@ const createTestCampaign = (): TestCampaignSave => {
 };
 
 describe('LocalStorageAdapter', () => {
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+  });
+
   it('saves and loads a typed test campaign envelope with schema metadata', async () => {
     const storage = new MemoryStorage();
-    const adapter = new LocalStorageAdapter(storage);
+    const adapter = createAdapter(storage);
     const envelope = createSaveEnvelope(createTestCampaign(), {
       appVersion: 'test',
       savedAt: createdAt,
@@ -109,7 +126,7 @@ describe('LocalStorageAdapter', () => {
   });
 
   it('returns a safe no-data result for missing saved data', async () => {
-    const adapter = new LocalStorageAdapter(new MemoryStorage());
+    const adapter = createAdapter(new MemoryStorage());
     await expect(adapter.load<TestCampaignSave>(campaignKey)).resolves.toEqual({
       success: true,
       found: false,
@@ -119,7 +136,7 @@ describe('LocalStorageAdapter', () => {
   it('returns a malformed-data result instead of throwing for corrupt JSON', async () => {
     const storage = new MemoryStorage();
     storage.setItem(campaignKey, '{not-json');
-    const adapter = new LocalStorageAdapter(storage);
+    const adapter = createAdapter(storage);
 
     const result = await adapter.load<TestCampaignSave>(campaignKey);
 
@@ -130,7 +147,7 @@ describe('LocalStorageAdapter', () => {
   it('returns a malformed-data result for JSON without version metadata', async () => {
     const storage = new MemoryStorage();
     storage.setItem(campaignKey, JSON.stringify({ payload: createTestCampaign() }));
-    const adapter = new LocalStorageAdapter(storage);
+    const adapter = createAdapter(storage);
 
     const result = await adapter.load<TestCampaignSave>(campaignKey);
 
@@ -158,7 +175,7 @@ describe('LocalStorageAdapter', () => {
 
   it('can remove saved data and report existence through the abstraction', async () => {
     const storage = new MemoryStorage();
-    const adapter = new LocalStorageAdapter(storage);
+    const adapter = createAdapter(storage);
     const envelope = createSaveEnvelope(createTestCampaign(), {
       appVersion: 'test',
       savedAt: createdAt,
