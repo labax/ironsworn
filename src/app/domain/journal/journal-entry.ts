@@ -6,7 +6,12 @@ import {
 } from '../shared';
 
 export type JournalEntryType =
-  'session_note' | 'vow_note' | 'milestone' | 'roll_result' | 'oracle_result' | 'freeform';
+  | 'session_note'
+  | 'vow_note'
+  | 'milestone'
+  | 'roll_result'
+  | 'oracle_result'
+  | 'freeform';
 
 export interface JournalLinks {
   readonly characterId?: EntityId;
