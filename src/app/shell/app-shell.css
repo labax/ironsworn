@@ -45,3 +45,13 @@ h1 {
 .app-main {
   padding: clamp(1rem, 4vw, 4rem);
 }
+
+.uat-banner {
+  margin: 1rem clamp(1rem, 4vw, 4rem) 0;
+  border: 1px solid rgb(255 209 102 / 55%);
+  border-radius: 0.75rem;
+  background: rgb(255 209 102 / 14%);
+  color: #ffe8a3;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+}

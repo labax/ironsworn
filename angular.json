@@ -55,6 +55,20 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "uat": {
+              "optimization": true,
+              "extractLicenses": true,
+              "sourceMap": false,
+              "outputHashing": "all",
+              "baseHref": "/ironsworn/",
+              "deployUrl": "/ironsworn/",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.uat.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"

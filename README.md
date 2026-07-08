@@ -71,6 +71,7 @@ npm ci
 | ---------------------- | ------------------------------------------------------------------------------ |
 | `npm start`            | Start the Angular development server.                                          |
 | `npm run build`        | Build the production application into `dist/`.                                 |
+| `npm run build:uat`    | Build the public GitHub Pages UAT artifact with `/ironsworn/` base path.       |
 | `npm test`             | Run Angular unit tests with the configured test builder.                       |
 | `npm run lint`         | Run a strict development build as the initial scaffold lint/static-check gate. |
 | `npm run format`       | Format repository files with Prettier.                                         |
@@ -90,7 +91,7 @@ The development server defaults to `http://localhost:4200/`.
 npm run build
 ```
 
-Production builds use `src/environments/environment.prod.ts` and emit optimized files under `dist/ironsworn/`.
+Production builds use `src/environments/environment.prod.ts` and emit optimized files under `dist/ironsworn/`. UAT builds use `src/environments/environment.uat.ts`, emit the GitHub Pages artifact under `dist/ironsworn/browser/`, and copy `index.html` to `404.html` for SPA fallback routing. See [`docs/release/uat-github-pages.md`](docs/release/uat-github-pages.md) and [`docs/testing/uat-smoke-test.md`](docs/testing/uat-smoke-test.md) before deploying or sharing UAT.
 
 ## Content and licensing
 

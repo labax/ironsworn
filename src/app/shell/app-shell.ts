@@ -14,4 +14,8 @@ export class AppShell {
 
   protected readonly appName = this.appInfo.appName;
   protected readonly versionLabel = computed(() => `v${this.appInfo.version()}`);
+  protected readonly showUatBanner = this.appInfo.showUatBanner;
+  protected readonly environmentName = this.appInfo.environmentName;
+  protected readonly storageMode = this.appInfo.storageMode;
+  protected readonly contentMode = this.appInfo.contentMode;
 }
