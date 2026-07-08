@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/labax/ironsworn/content/manifest.schema.json",
+  "title": "Ironsworn Digital Companion Content Provenance Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedFor", "lastReviewedAt", "entries"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "type": "string" },
+    "generatedFor": { "const": "Ironsworn Digital Companion" },
+    "lastReviewedAt": { "type": ["string", "null"], "format": "date" },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "category",
+        "contentType",
+        "source",
+        "sourceUrl",
+        "license",
+        "licenseUrl",
+        "attributionRequired",
+        "attributionText",
+        "noticeRef",
+        "releaseStatus",
+        "reviewStatus",
+        "notes"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "title": { "type": "string", "minLength": 1 },
+        "category": {
+          "enum": [
+            "official",
+            "SRD-derived",
+            "original",
+            "custom",
+            "user-authored",
+            "third-party",
+            "unknown"
+          ]
+        },
+        "contentType": {
+          "enum": [
+            "app-helper-text",
+            "oracle-table",
+            "oracle-entry",
+            "move-metadata",
+            "move-text",
+            "asset-reference",
+            "asset-text",
+            "rules-summary",
+            "ui-label",
+            "notice",
+            "third-party-asset",
+            "test-fixture",
+            "other"
+          ]
+        },
+        "source": { "type": "string", "minLength": 1 },
+        "sourceUrl": { "type": ["string", "null"], "format": "uri" },
+        "license": { "type": "string", "minLength": 1 },
+        "licenseUrl": { "type": ["string", "null"], "format": "uri" },
+        "attributionRequired": { "type": "boolean" },
+        "attributionText": { "type": ["string", "null"] },
+        "noticeRef": { "type": ["string", "null"] },
+        "releaseStatus": { "enum": ["allowed", "review-required", "blocked"] },
+        "reviewStatus": { "enum": ["unreviewed", "reviewed", "needs-legal-review", "rejected"] },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

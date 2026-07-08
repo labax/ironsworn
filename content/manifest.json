@@ -1,6 +1,40 @@
 {
-  "version": 1,
-  "status": "placeholder",
-  "description": "Manifest placeholder for approved content packages. No game data is bundled yet.",
-  "packages": []
+  "$schema": "./manifest.schema.json",
+  "schemaVersion": "0.1.0",
+  "generatedFor": "Ironsworn Digital Companion",
+  "lastReviewedAt": null,
+  "entries": [
+    {
+      "id": "example-original-helper-text",
+      "title": "Example Original Helper Text",
+      "category": "original",
+      "contentType": "app-helper-text",
+      "source": "project-original",
+      "sourceUrl": null,
+      "license": "project-content-license",
+      "licenseUrl": null,
+      "attributionRequired": false,
+      "attributionText": null,
+      "noticeRef": null,
+      "releaseStatus": "allowed",
+      "reviewStatus": "reviewed",
+      "notes": "Original placeholder content only. Does not contain official game text."
+    },
+    {
+      "id": "example-original-ui-labels",
+      "title": "Example Original UI Labels",
+      "category": "original",
+      "contentType": "ui-label",
+      "source": "project-original",
+      "sourceUrl": null,
+      "license": "project-content-license",
+      "licenseUrl": null,
+      "attributionRequired": false,
+      "attributionText": null,
+      "noticeRef": null,
+      "releaseStatus": "allowed",
+      "reviewStatus": "reviewed",
+      "notes": "Metadata placeholder for project-authored interface copy, separated from game data entries."
+    }
+  ]
 }
