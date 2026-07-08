@@ -1,0 +1,53 @@
+.hero {
+  max-width: 56rem;
+  border: 1px solid rgb(247 243 232 / 14%);
+  border-radius: 1.5rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: linear-gradient(135deg, rgb(255 255 255 / 8%), rgb(255 255 255 / 2%));
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 24%);
+}
+
+.kicker {
+  margin: 0 0 0.75rem;
+  color: #91c7b1;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 6vw, 4.5rem);
+  line-height: 0.95;
+}
+
+p {
+  max-width: 42rem;
+  color: #d6e2ef;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.status-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin: 2rem 0 0;
+}
+
+.status-list div {
+  border-radius: 1rem;
+  background: rgb(16 24 32 / 70%);
+  padding: 1rem;
+}
+
+dt {
+  color: #b8c7d9;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+dd {
+  margin: 0.35rem 0 0;
+  font-weight: 700;
+}
