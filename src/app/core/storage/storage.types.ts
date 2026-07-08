@@ -23,8 +23,7 @@ export interface VersionedSaveEnvelope<T> {
 }
 
 export type SaveResult =
-  | { readonly success: true }
-  | { readonly success: false; readonly error: StorageError };
+  { readonly success: true } | { readonly success: false; readonly error: StorageError };
 
 export type LoadResult<T> =
   | { readonly success: true; readonly found: true; readonly data: VersionedSaveEnvelope<T> }
