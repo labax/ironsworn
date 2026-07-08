@@ -12,7 +12,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,html,css}\" \"*.{json,md}\"",
     "test:ci": "ng test --watch=false",
     "validate:content-json": "node scripts/validate-content-json.mjs",
-    "build:uat": "ng build --configuration uat && node scripts/copy-spa-fallback.mjs dist/ironsworn/browser"
+    "build:uat": "ng build --configuration uat && node scripts/copy-spa-fallback.mjs dist/ironsworn/browser",
+    "validate:content": "node scripts/validate-content-manifest.mjs"
   },
   "private": true,
   "packageManager": "npm@11.4.2",
