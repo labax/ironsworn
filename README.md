@@ -1,5 +1,7 @@
 # Ironsworn Digital Companion
 
+[![CI](https://github.com/labax/ironsworn/actions/workflows/ci.yml/badge.svg)](https://github.com/labax/ironsworn/actions/workflows/ci.yml)
+
 Ironsworn Digital Companion is a planned web application for managing solo and co-op Ironsworn play at the table. The repository now contains the Angular frontend scaffold for the companion, plus project documentation, licensing notices, and content placeholders.
 
 ## Project purpose
