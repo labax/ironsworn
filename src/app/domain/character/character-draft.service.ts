@@ -7,6 +7,7 @@ import {
   type StatusTracks,
 } from './character';
 import { ActiveCharacterService } from './active-character.service';
+import { ActiveCharacterPersistenceService } from './active-character-persistence.service';
 
 export interface CharacterCreationInput {
   readonly name: string;
@@ -47,8 +48,11 @@ const createCharacterId = (): string =>
 @Injectable({ providedIn: 'root' })
 export class CharacterDraftService {
   private readonly activeCharacterState = inject(ActiveCharacterService);
+  private readonly activeCharacterPersistence = inject(ActiveCharacterPersistenceService);
 
   readonly character = this.activeCharacterState.activeCharacter;
+  readonly saveStatus = this.activeCharacterPersistence.saveStatus;
+  readonly lastSaveResult = this.activeCharacterPersistence.lastSaveResult;
 
   save(input: CharacterCreationInput): Character {
     const baseCharacter = createDefaultCharacter({
@@ -69,6 +73,7 @@ export class CharacterDraftService {
     };
 
     this.activeCharacterState.setActiveCharacter(character);
+    void this.activeCharacterPersistence.saveActiveCharacter(character);
     return character;
   }
 
