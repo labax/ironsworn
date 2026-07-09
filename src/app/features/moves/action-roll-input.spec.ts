@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ActiveCharacterService, createDefaultCharacter } from '@app/domain/character';
-import type { PreparedActionRollInput } from '@app/domain/rolls';
+import { RollHistoryService, type PreparedActionRollInput } from '@app/domain/rolls';
 import type { ActionRollResult, RulesResult } from '@app/rules';
 
 import {
@@ -16,6 +16,7 @@ describe('ActionRollInput', () => {
   let activeCharacter: ActiveCharacterService;
   let resolverResult: RulesResult<ActionRollResult>;
   let resolverInputs: Parameters<ActionRollResolver>[0][];
+  let rollHistory: RollHistoryService;
 
   const resolvedRoll = (overrides: Partial<ActionRollResult> = {}): ActionRollResult => ({
     actionDie: 4,
@@ -53,6 +54,8 @@ describe('ActionRollInput', () => {
       ],
     }).compileComponents();
     activeCharacter = TestBed.inject(ActiveCharacterService);
+    rollHistory = TestBed.inject(RollHistoryService);
+    rollHistory.clear();
     activeCharacter.clearActiveCharacter();
   });
 
@@ -117,6 +120,34 @@ describe('ActionRollInput', () => {
     expect(resolverInputs).toEqual([{ stat: 4, adds: -1 }]);
   });
 
+  it('saves a resolved action roll to roll history with the prepared label', () => {
+    createComponent();
+
+    component['rollForm'].setValue({
+      label: 'Secure the ford',
+      source: 'manual',
+      statKey: 'edge',
+      statValue: 4,
+      adds: 2,
+    });
+    component['prepareRoll']();
+
+    expect(rollHistory.entries()).toHaveLength(1);
+    expect(rollHistory.entries()[0]).toMatchObject({
+      type: 'action',
+      label: 'Secure the ford',
+      outcome: 'weak_hit',
+      isMatch: false,
+      actionRoll: {
+        actionDie: 4,
+        challengeDice: [3, 7],
+        statBonus: 4,
+        adds: 2,
+        actionScore: 7,
+      },
+    });
+  });
+
   it('displays resolved dice, inputs, score, result, and match state', () => {
     resolverResult = {
       ok: true,
@@ -174,6 +205,7 @@ describe('ActionRollInput', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('The roll could not be resolved.');
     expect(component['lastResolvedRoll']()).toBeNull();
+    expect(rollHistory.entries()).toHaveLength(0);
   });
 
   it('shows validation feedback and does not submit invalid numeric input', () => {
