@@ -1,0 +1,145 @@
+:host {
+  display: block;
+}
+
+.character-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.character-header,
+.form-card,
+.empty-state,
+.saved-state {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow: 0 1rem 2rem rgba(2, 6, 23, 0.18);
+}
+
+.character-header,
+.form-card {
+  padding: 1.5rem;
+}
+
+.character-header h2,
+.form-card h3,
+.card-heading h3 {
+  margin: 0;
+}
+
+.character-header p:last-child,
+.card-heading p {
+  margin: 0.5rem 0 0;
+  color: #cbd5e1;
+}
+
+.section-label {
+  margin: 0 0 0.5rem;
+  color: #93c5fd;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.empty-state,
+.saved-state {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem 1.25rem;
+}
+
+.empty-state {
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.saved-state {
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+.character-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.identity-card,
+.card-heading {
+  display: grid;
+  gap: 0.75rem;
+}
+
+label {
+  font-weight: 700;
+}
+
+input,
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 0.65rem;
+  background: #0f172a;
+  color: #f8fafc;
+  font: inherit;
+  padding: 0.75rem;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #93c5fd;
+  outline: 3px solid rgba(147, 197, 253, 0.2);
+}
+
+.number-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  margin-top: 1rem;
+}
+
+.number-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.field-error {
+  color: #fca5a5;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  background: #bfdbfe;
+  color: #0f172a;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 0.8rem 1.25rem;
+}
+
+.secondary-button {
+  background: transparent;
+  border: 1px solid rgba(191, 219, 254, 0.55);
+  color: #dbeafe;
+}
+
+@media (max-width: 42rem) {
+  .character-header,
+  .form-card {
+    padding: 1rem;
+  }
+
+  .form-actions,
+  button {
+    width: 100%;
+  }
+}
