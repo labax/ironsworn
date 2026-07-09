@@ -7,7 +7,10 @@ import {
   type StatusTracks,
 } from './character';
 import { ActiveCharacterService } from './active-character.service';
-import { ActiveCharacterPersistenceService } from './active-character-persistence.service';
+import {
+  ActiveCharacterPersistenceService,
+  type ActiveCharacterLoadResult,
+} from './active-character-persistence.service';
 
 export interface CharacterCreationInput {
   readonly name: string;
@@ -53,6 +56,24 @@ export class CharacterDraftService {
   readonly character = this.activeCharacterState.activeCharacter;
   readonly saveStatus = this.activeCharacterPersistence.saveStatus;
   readonly lastSaveResult = this.activeCharacterPersistence.lastSaveResult;
+
+  async loadSavedCharacter(): Promise<ActiveCharacterLoadResult> {
+    if (this.activeCharacterState.hasActiveCharacter()) {
+      return {
+        success: true,
+        found: true,
+        character: this.activeCharacterState.activeCharacter()!,
+      };
+    }
+
+    const result = await this.activeCharacterPersistence.loadActiveCharacter();
+
+    if (result.success && result.found) {
+      this.activeCharacterState.setActiveCharacter(result.character);
+    }
+
+    return result;
+  }
 
   save(input: CharacterCreationInput): Character {
     const baseCharacter = createDefaultCharacter({

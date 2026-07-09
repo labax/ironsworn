@@ -1,17 +1,42 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+import { BROWSER_STORAGE, createSaveEnvelope, type BrowserStorageLike } from '@app/core/storage';
 import { CharacterDraftService } from '@app/domain/character';
+import {
+  ACTIVE_CHARACTER_STORAGE_KEY,
+  type PersistedActiveCharacter,
+} from '@app/domain/character/active-character-persistence.service';
 
 import { Character } from './character';
+
+class MemoryStorage implements BrowserStorageLike {
+  readonly values = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.values.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key);
+  }
+}
 
 describe('Character', () => {
   let fixture: ComponentFixture<Character>;
   let component: Character;
   let service: CharacterDraftService;
+  let storage: MemoryStorage;
 
   beforeEach(async () => {
+    storage = new MemoryStorage();
+
     await TestBed.configureTestingModule({
       imports: [Character],
+      providers: [{ provide: BROWSER_STORAGE, useValue: storage }],
     }).compileComponents();
 
     service = TestBed.inject(CharacterDraftService);
@@ -75,6 +100,40 @@ describe('Character', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Kara is ready.');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Edge');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Momentum');
+  });
+
+  it('loads a valid persisted character and displays its summary', async () => {
+    service.clear();
+    storage.setItem(
+      ACTIVE_CHARACTER_STORAGE_KEY,
+      JSON.stringify(
+        createSaveEnvelope<PersistedActiveCharacter>(
+          {
+            name: 'Vale',
+            concept: 'Storm watcher',
+            stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 },
+            statusTracks: { health: 4, spirit: 3, supply: 2 },
+            momentum: 4,
+          },
+          { appVersion: 'test' },
+        ),
+      ),
+    );
+
+    fixture = TestBed.createComponent(Character);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    await service.loadSavedCharacter();
+    fixture.detectChanges();
+
+    expect(service.character()).toMatchObject({
+      name: 'Vale',
+      stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 },
+      statusTracks: { health: 4, spirit: 3, supply: 2 },
+      momentum: { current: 4 },
+    });
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Vale is ready.');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('4');
   });
 
   it('updates active character state when edited values are resubmitted', () => {

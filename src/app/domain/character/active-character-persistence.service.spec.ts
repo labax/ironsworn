@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { BROWSER_STORAGE, type BrowserStorageLike } from '@app/core/storage';
+import { BROWSER_STORAGE, createSaveEnvelope, type BrowserStorageLike } from '@app/core/storage';
 import { CURRENT_SAVE_SCHEMA_VERSION } from '@app/core/storage/storage.types';
 
 import { createMinimalCharacterFixture } from './character-fixtures';
@@ -75,6 +75,72 @@ describe('ActiveCharacterPersistenceService', () => {
       stats: { edge: 3, heart: 2, iron: 2, shadow: 1, wits: 1 },
       statusTracks: { health: 5, spirit: 5, supply: 5 },
       momentum: 2,
+    });
+  });
+
+  it('loads a valid saved minimal character from storage', async () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      ACTIVE_CHARACTER_STORAGE_KEY,
+      JSON.stringify(
+        createSaveEnvelope<PersistedActiveCharacter>(
+          {
+            name: 'Vale',
+            concept: 'Storm watcher',
+            stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 },
+            statusTracks: { health: 4, spirit: 3, supply: 2 },
+            momentum: 4,
+          },
+          { appVersion: 'test', savedAt: '2026-02-03T04:05:06.000Z' },
+        ),
+      ),
+    );
+    const service = configureService(storage);
+
+    const result = await service.loadActiveCharacter();
+
+    expect(result).toMatchObject({
+      success: true,
+      found: true,
+      character: {
+        name: 'Vale',
+        concept: 'Storm watcher',
+        stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 },
+        statusTracks: { health: 4, spirit: 3, supply: 2 },
+        momentum: { current: 4 },
+      },
+    });
+  });
+
+  it('reports an empty load when no saved character exists', async () => {
+    const service = configureService(new MemoryStorage());
+
+    await expect(service.loadActiveCharacter()).resolves.toEqual({ success: true, found: false });
+  });
+
+  it('reports malformed saved character payloads without throwing', async () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      ACTIVE_CHARACTER_STORAGE_KEY,
+      JSON.stringify(
+        createSaveEnvelope(
+          {
+            name: '',
+            stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 },
+            statusTracks: { health: 4, spirit: 3, supply: 2 },
+            momentum: 4,
+          },
+          { appVersion: 'test' },
+        ),
+      ),
+    );
+    const service = configureService(storage);
+
+    const result = await service.loadActiveCharacter();
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { code: 'malformed-data' },
     });
   });
 
