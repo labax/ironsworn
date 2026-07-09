@@ -1,8 +1,19 @@
 :host {
+  --shell-background: #f6f7f9;
+  --shell-panel: #ffffff;
+  --shell-panel-soft: #eef2f6;
+  --shell-text: #17202a;
+  --shell-text-muted: #526172;
+  --shell-border: #d8e0e8;
+  --shell-border-strong: #aebdcc;
+  --shell-accent: #476f95;
+  --shell-accent-strong: #315a7d;
+  --shell-accent-soft: #dceaf5;
+
   display: block;
   min-height: 100dvh;
-  background: #101820;
-  color: #f7f3e8;
+  background: var(--shell-background);
+  color: var(--shell-text);
   font-family:
     Inter,
     ui-sans-serif,
@@ -13,18 +24,25 @@
     sans-serif;
 }
 
+.app-shell {
+  display: grid;
+  min-height: 100dvh;
+  grid-template-rows: auto auto 1fr auto;
+}
+
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.5rem clamp(1rem, 4vw, 4rem);
-  border-bottom: 1px solid rgb(247 243 232 / 12%);
+  padding: 1.25rem clamp(1rem, 4vw, 3rem);
+  border-bottom: 1px solid var(--shell-border);
+  background: var(--shell-panel);
 }
 
 .eyebrow {
   margin: 0 0 0.25rem;
-  color: #b8c7d9;
+  color: var(--shell-text-muted);
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -36,22 +54,77 @@ h1 {
 }
 
 .version {
-  border: 1px solid rgb(247 243 232 / 20%);
+  flex: 0 0 auto;
+  border: 1px solid var(--shell-border);
   border-radius: 999px;
   padding: 0.35rem 0.75rem;
-  color: #d6e2ef;
+  color: var(--shell-text-muted);
 }
 
+.app-body {
+  display: grid;
+  gap: clamp(1rem, 3vw, 2rem);
+  padding: clamp(1rem, 4vw, 3rem);
+}
+
+.navigation-panel,
 .app-main {
-  padding: clamp(1rem, 4vw, 4rem);
+  min-width: 0;
+}
+
+.app-main:focus {
+  outline: none;
 }
 
 .uat-banner {
-  margin: 1rem clamp(1rem, 4vw, 4rem) 0;
-  border: 1px solid rgb(255 209 102 / 55%);
+  margin: 1rem clamp(1rem, 4vw, 3rem) 0;
+  border: 1px solid #c99530;
   border-radius: 0.75rem;
-  background: rgb(255 209 102 / 14%);
-  color: #ffe8a3;
+  background: #fff4d6;
+  color: #5d4308;
   padding: 0.75rem 1rem;
   font-weight: 700;
+}
+
+.app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+  border-top: 1px solid var(--shell-border);
+  background: var(--shell-panel);
+  color: var(--shell-text-muted);
+}
+
+.app-footer a {
+  color: var(--shell-accent-strong);
+  font-weight: 700;
+}
+
+@media (min-width: 56rem) {
+  .app-body {
+    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .navigation-panel {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --shell-background: #121820;
+    --shell-panel: #1b2430;
+    --shell-panel-soft: #222e3b;
+    --shell-text: #f3f7fb;
+    --shell-text-muted: #b8c5d4;
+    --shell-border: #354354;
+    --shell-border-strong: #58697c;
+    --shell-accent: #8ab4da;
+    --shell-accent-strong: #b8d7f2;
+    --shell-accent-soft: #243d54;
+  }
 }

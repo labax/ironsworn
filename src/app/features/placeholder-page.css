@@ -1,15 +1,16 @@
-.hero {
-  max-width: 56rem;
+.placeholder-page {
+  max-width: 44rem;
   border: 1px solid var(--shell-border);
-  border-radius: 1.5rem;
-  padding: clamp(1.5rem, 4vw, 3rem);
+  border-radius: 1.25rem;
   background: var(--shell-panel);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
   box-shadow: 0 1rem 2.5rem rgb(15 23 42 / 10%);
 }
 
-.kicker {
+.section-label {
   margin: 0 0 0.75rem;
   color: var(--shell-accent-strong);
+  font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -18,38 +19,23 @@
 h2 {
   margin: 0 0 1rem;
   color: var(--shell-text);
-  font-size: clamp(2rem, 6vw, 4rem);
+  font-size: clamp(2rem, 5vw, 3.25rem);
   line-height: 1;
 }
 
-p {
-  max-width: 42rem;
+.description {
+  max-width: 38rem;
   color: var(--shell-text-muted);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   line-height: 1.7;
 }
 
-.status-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 1rem;
-  margin: 2rem 0 0;
-}
-
-.status-list div {
+.empty-state {
+  margin-top: 1.5rem;
+  border: 1px dashed var(--shell-border-strong);
   border-radius: 1rem;
   background: var(--shell-panel-soft);
-  padding: 1rem;
-}
-
-dt {
-  color: var(--shell-text-muted);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-}
-
-dd {
-  margin: 0.35rem 0 0;
   color: var(--shell-text);
+  padding: 1rem;
   font-weight: 700;
 }

@@ -1,18 +1,31 @@
-<header class="app-header" aria-label="Application header">
-  <div>
-    <p class="eyebrow">Ironsworn Digital Companion</p>
-    <h1>{{ appName() }}</h1>
+<div class="app-shell">
+  <header class="app-header" aria-label="Application header">
+    <div>
+      <p class="eyebrow">Ironsworn Digital Companion</p>
+      <h1>{{ appName() }}</h1>
+    </div>
+    <span class="version">{{ versionLabel() }}</span>
+  </header>
+
+  @if (showUatBanner()) {
+    <aside class="uat-banner" aria-label="UAT build notice">
+      UAT build — use test data only. Environment: {{ environmentName() }}; storage:
+      {{ storageMode() }}; content: {{ contentMode() }}.
+    </aside>
+  }
+
+  <div class="app-body">
+    <aside class="navigation-panel">
+      <app-navigation />
+    </aside>
+
+    <main id="main-content" class="app-main" tabindex="-1">
+      <router-outlet />
+    </main>
   </div>
-  <span class="version">{{ versionLabel() }}</span>
-</header>
 
-@if (showUatBanner()) {
-  <aside class="uat-banner" aria-label="UAT build notice">
-    UAT build — use test data only. Environment: {{ environmentName() }}; storage:
-    {{ storageMode() }}; content: {{ contentMode() }}.
-  </aside>
-}
-
-<main class="app-main">
-  <router-outlet />
-</main>
+  <footer class="app-footer">
+    <span>Unofficial companion placeholder.</span>
+    <a routerLink="/about">About and disclaimer</a>
+  </footer>
+</div>
