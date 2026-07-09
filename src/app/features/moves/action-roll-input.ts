@@ -1,8 +1,14 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, InjectionToken, inject, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { ActiveCharacterService, type StatKey } from '@app/domain/character';
 import type { PreparedActionRollInput } from '@app/domain/rolls';
+import {
+  resolveActionRoll,
+  type ActionRollInput as RulesActionRollInput,
+  type ActionRollResult,
+} from '@app/rules';
+import type { RulesResult } from '@app/rules';
 
 type RollInputSource = PreparedActionRollInput['source'];
 
@@ -20,6 +26,13 @@ let sessionStatKey: StatKey = DEFAULT_STAT_KEY;
 
 const integerPattern = /^-?\d+$/;
 
+export type ActionRollResolver = (input: RulesActionRollInput) => RulesResult<ActionRollResult>;
+
+export const ACTION_ROLL_RESOLVER = new InjectionToken<ActionRollResolver>('ACTION_ROLL_RESOLVER', {
+  providedIn: 'root',
+  factory: () => resolveActionRoll,
+});
+
 @Component({
   selector: 'app-action-roll-input',
   imports: [ReactiveFormsModule],
@@ -29,6 +42,7 @@ const integerPattern = /^-?\d+$/;
 export class ActionRollInput {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly activeCharacter = inject(ActiveCharacterService);
+  private readonly actionRollResolver = inject(ACTION_ROLL_RESOLVER);
 
   readonly prepared = output<PreparedActionRollInput>();
 
@@ -36,6 +50,9 @@ export class ActionRollInput {
   protected readonly characterSummary = this.activeCharacter.activeCharacterSummary;
   protected readonly hasCharacter = this.activeCharacter.hasActiveCharacter;
   protected readonly lastPreparedInput = signal<PreparedActionRollInput | null>(null);
+  protected readonly lastResolvedRoll = signal<ActionRollResult | null>(null);
+  protected readonly rollError = signal<string | null>(null);
+  protected readonly isResolving = signal(false);
   protected readonly selectedSource = signal<RollInputSource>('character-stat');
   protected readonly rollForm = this.formBuilder.group({
     label: [''],
@@ -99,6 +116,8 @@ export class ActionRollInput {
   }
 
   protected prepareRoll(): void {
+    if (this.isResolving()) return;
+
     if (!this.hasCharacter() && this.rollForm.controls.source.value === 'character-stat') {
       this.rollForm.controls.source.setValue('manual');
       this.selectedSource.set('manual');
@@ -126,7 +145,38 @@ export class ActionRollInput {
 
     sessionStatKey = value.statKey;
     this.lastPreparedInput.set(prepared);
+    this.rollError.set(null);
+    this.isResolving.set(true);
+    try {
+      const resolved = this.actionRollResolver({
+        stat: prepared.statValue,
+        adds: prepared.adds,
+      });
+
+      if (resolved.ok) {
+        this.lastResolvedRoll.set(resolved.value);
+      } else {
+        this.lastResolvedRoll.set(null);
+        this.rollError.set('The roll could not be resolved. Check the input and try again.');
+      }
+    } catch {
+      this.lastResolvedRoll.set(null);
+      this.rollError.set('The roll could not be resolved. Check the input and try again.');
+    } finally {
+      this.isResolving.set(false);
+    }
     this.prepared.emit(prepared);
+  }
+
+  protected resultLabel(result: ActionRollResult['outcome']): string {
+    switch (result) {
+      case 'strong_hit':
+        return 'Strong hit';
+      case 'weak_hit':
+        return 'Weak hit';
+      case 'miss':
+        return 'Miss';
+    }
   }
 
   protected showError(controlName: keyof typeof this.rollForm.controls): boolean {

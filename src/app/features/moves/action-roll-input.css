@@ -104,9 +104,57 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .secondary-button {
   background: #e8e0d1;
   color: #283747;
+}
+
+.roll-result {
+  border-top: 1px solid #e3dccf;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+}
+
+.roll-result h4 {
+  font-size: 1.4rem;
+  margin: 0.15rem 0 1rem;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.result-grid div {
+  border: 1px solid #e3dccf;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.result-grid dt {
+  color: #6f6657;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.result-grid dd {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.2rem 0 0;
+}
+
+.calculation-summary {
+  color: #5d5548;
+  margin: 1rem 0 0;
 }
 
 .handoff-note {
@@ -123,5 +171,9 @@ button {
   .mode-toggle,
   .roll-actions {
     margin-top: 1rem;
+  }
+
+  .result-grid {
+    grid-template-columns: 1fr;
   }
 }
