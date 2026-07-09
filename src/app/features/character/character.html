@@ -12,8 +12,49 @@
     </div>
   } @else {
     <div class="saved-state" role="status">
-      <strong>{{ savedCharacter()?.name }} is ready.</strong>
-      <span>Saved in app memory for the next character flow.</span>
+      <div>
+        <strong>{{ savedCharacter()?.name }} is ready.</strong>
+        <span>Saved in app memory for the next character flow.</span>
+      </div>
+
+      <dl class="character-summary" aria-label="Stored character summary">
+        <div>
+          <dt>Edge</dt>
+          <dd>{{ savedCharacter()?.stats?.edge }}</dd>
+        </div>
+        <div>
+          <dt>Heart</dt>
+          <dd>{{ savedCharacter()?.stats?.heart }}</dd>
+        </div>
+        <div>
+          <dt>Iron</dt>
+          <dd>{{ savedCharacter()?.stats?.iron }}</dd>
+        </div>
+        <div>
+          <dt>Shadow</dt>
+          <dd>{{ savedCharacter()?.stats?.shadow }}</dd>
+        </div>
+        <div>
+          <dt>Wits</dt>
+          <dd>{{ savedCharacter()?.stats?.wits }}</dd>
+        </div>
+        <div>
+          <dt>Health</dt>
+          <dd>{{ savedCharacter()?.statusTracks?.health }}</dd>
+        </div>
+        <div>
+          <dt>Spirit</dt>
+          <dd>{{ savedCharacter()?.statusTracks?.spirit }}</dd>
+        </div>
+        <div>
+          <dt>Supply</dt>
+          <dd>{{ savedCharacter()?.statusTracks?.supply }}</dd>
+        </div>
+        <div>
+          <dt>Momentum</dt>
+          <dd>{{ savedCharacter()?.momentum?.current }}</dd>
+        </div>
+      </dl>
     </div>
   }
 

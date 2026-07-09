@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 
 import {
   createDefaultCharacter,
@@ -6,6 +6,7 @@ import {
   type StatKey,
   type StatusTracks,
 } from './character';
+import { ActiveCharacterService } from './active-character.service';
 
 export interface CharacterCreationInput {
   readonly name: string;
@@ -45,7 +46,9 @@ const createCharacterId = (): string =>
 
 @Injectable({ providedIn: 'root' })
 export class CharacterDraftService {
-  readonly character = signal<Character | null>(null);
+  private readonly activeCharacterState = inject(ActiveCharacterService);
+
+  readonly character = this.activeCharacterState.activeCharacter;
 
   save(input: CharacterCreationInput): Character {
     const baseCharacter = createDefaultCharacter({
@@ -65,11 +68,11 @@ export class CharacterDraftService {
       },
     };
 
-    this.character.set(character);
+    this.activeCharacterState.setActiveCharacter(character);
     return character;
   }
 
   clear(): void {
-    this.character.set(null);
+    this.activeCharacterState.clearActiveCharacter();
   }
 }
