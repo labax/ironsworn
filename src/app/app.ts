@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 
+import { CharacterDraftService } from '@app/domain/character';
 import { AppShell } from '@app/shell/app-shell';
 
 @Component({
@@ -7,4 +8,8 @@ import { AppShell } from '@app/shell/app-shell';
   imports: [AppShell],
   template: '<app-shell />',
 })
-export class App {}
+export class App {
+  constructor(characterDraft: CharacterDraftService) {
+    void characterDraft.loadSavedCharacter();
+  }
+}

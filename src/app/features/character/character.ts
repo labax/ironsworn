@@ -65,6 +65,10 @@ export class Character {
     momentum: [defaultCharacterForm.momentum, numberRange(-6, 10)],
   });
 
+  constructor() {
+    void this.characterDraft.loadSavedCharacter();
+  }
+
   protected resetForm(): void {
     this.characterForm.reset(defaultCharacterForm);
   }
