@@ -77,12 +77,61 @@
     </div>
 
     <div class="roll-actions full-width">
-      <button type="submit">Prepare roll</button>
+      <button type="submit" [disabled]="isResolving()">
+        {{ isResolving() ? 'Rolling…' : 'Roll' }}
+      </button>
       <button type="button" class="secondary-button" (click)="resetInput()">Reset input</button>
     </div>
   </form>
 
-  @if (lastPreparedInput(); as input) {
+  @if (rollError(); as error) {
+    <p class="field-error full-width" role="alert">{{ error }}</p>
+  }
+
+  @if (lastResolvedRoll(); as roll) {
+    <section class="roll-result" aria-labelledby="action-roll-result-title" role="status">
+      <div>
+        <p class="section-label">Result</p>
+        <h4 id="action-roll-result-title">{{ resultLabel(roll.outcome) }}</h4>
+      </div>
+
+      <dl class="result-grid">
+        <div>
+          <dt>Action die</dt>
+          <dd>{{ roll.actionDie }}</dd>
+        </div>
+        <div>
+          <dt>Challenge dice</dt>
+          <dd>{{ roll.challengeDice[0] }} / {{ roll.challengeDice[1] }}</dd>
+        </div>
+        <div>
+          <dt>Stat</dt>
+          <dd>{{ roll.statBonus }}</dd>
+        </div>
+        <div>
+          <dt>Adds</dt>
+          <dd>{{ roll.adds }}</dd>
+        </div>
+        <div>
+          <dt>Action score</dt>
+          <dd>{{ roll.cappedScore }}</dd>
+        </div>
+        <div>
+          <dt>Match</dt>
+          <dd>{{ roll.isMatch ? 'Challenge dice match' : 'No match' }}</dd>
+        </div>
+      </dl>
+
+      <p class="calculation-summary">
+        Calculation: {{ roll.actionDie }} + {{ roll.statBonus }} + {{ roll.adds }} =
+        {{ roll.rawScore }}
+        @if (roll.rawScore !== roll.cappedScore) {
+          , capped at {{ roll.cappedScore }}
+        }
+        .
+      </p>
+    </section>
+  } @else if (lastPreparedInput(); as input) {
     <p class="handoff-note" role="status">
       Roll input ready: stat {{ input.statValue }}, adds {{ input.adds }}.
     </p>
