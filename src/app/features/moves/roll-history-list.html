@@ -1,0 +1,75 @@
+<section class="history-panel" aria-labelledby="roll-history-title">
+  <div class="history-heading">
+    <div>
+      <p class="section-label">Roll history</p>
+      <h3 id="roll-history-title">Saved action rolls</h3>
+    </div>
+    @if (actionRolls().length) {
+      <p class="history-order">Newest first</p>
+    }
+  </div>
+
+  @if (actionRolls().length === 0) {
+    <p class="history-empty" role="status">
+      No saved action rolls yet. Make an action roll to start the history.
+    </p>
+  } @else {
+    <ol class="history-list" aria-label="Saved action rolls, newest first">
+      @for (entry of actionRolls(); track entry.id; let index = $index) {
+        @if (entry.actionRoll; as roll) {
+          <li class="history-entry" [class.latest-entry]="index === 0">
+            <article [attr.aria-labelledby]="'roll-history-entry-' + entry.id">
+              <header class="entry-header">
+                <div>
+                  <p class="entry-kicker">
+                    #{{ actionRolls().length - index }}
+                    @if (index === 0) {
+                      <span class="latest-label">Latest</span>
+                    }
+                  </p>
+                  <h4 [id]="'roll-history-entry-' + entry.id">{{ rollLabel(entry, index) }}</h4>
+                </div>
+                <time [attr.datetime]="entry.createdAt">{{ createdAtLabel(entry) }}</time>
+              </header>
+
+              <dl class="history-stats">
+                <div class="result-stat">
+                  <dt>Result</dt>
+                  <dd [attr.aria-label]="'Result: ' + resultLabel(entry.outcome)">
+                    {{ resultLabel(entry.outcome) }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Action die</dt>
+                  <dd [attr.aria-label]="'Action die: ' + roll.actionDie">{{ roll.actionDie }}</dd>
+                </div>
+                <div>
+                  <dt>Challenge dice</dt>
+                  <dd
+                    [attr.aria-label]="
+                      'Challenge dice: ' + roll.challengeDice[0] + ' and ' + roll.challengeDice[1]
+                    "
+                  >
+                    {{ roll.challengeDice[0] }} / {{ roll.challengeDice[1] }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Action score</dt>
+                  <dd [attr.aria-label]="'Action score: ' + roll.actionScore">
+                    {{ roll.actionScore }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Match</dt>
+                  <dd [attr.aria-label]="entry.isMatch ? 'Match: yes' : 'Match: no'">
+                    {{ entry.isMatch ? 'Match' : 'No match' }}
+                  </dd>
+                </div>
+              </dl>
+            </article>
+          </li>
+        }
+      }
+    </ol>
+  }
+</section>
