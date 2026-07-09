@@ -2,7 +2,7 @@ import { Component, InjectionToken, inject, output, signal } from '@angular/core
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { ActiveCharacterService, type StatKey } from '@app/domain/character';
-import type { PreparedActionRollInput } from '@app/domain/rolls';
+import { RollHistoryService, type PreparedActionRollInput } from '@app/domain/rolls';
 import {
   resolveActionRoll,
   type ActionRollInput as RulesActionRollInput,
@@ -43,6 +43,7 @@ export class ActionRollInput {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly activeCharacter = inject(ActiveCharacterService);
   private readonly actionRollResolver = inject(ACTION_ROLL_RESOLVER);
+  private readonly rollHistory = inject(RollHistoryService);
 
   readonly prepared = output<PreparedActionRollInput>();
 
@@ -155,6 +156,7 @@ export class ActionRollInput {
 
       if (resolved.ok) {
         this.lastResolvedRoll.set(resolved.value);
+        this.rollHistory.saveActionRoll({ prepared, result: resolved.value });
       } else {
         this.lastResolvedRoll.set(null);
         this.rollError.set('The roll could not be resolved. Check the input and try again.');

@@ -9,6 +9,7 @@ export interface ActionRollDice {
   readonly challengeDice: readonly [number, number];
   readonly statBonus?: number;
   readonly adds?: number;
+  readonly actionScore?: number;
 }
 
 export interface ProgressRollDice {
@@ -34,6 +35,7 @@ export interface RollHistoryEntry extends DomainEntity {
   readonly progressTrackId?: EntityId;
   readonly oracleTableId?: EntityId;
   readonly outcome: RollOutcome;
+  readonly label?: string;
   readonly actionRoll?: ActionRollDice;
   readonly progressRoll?: ProgressRollDice;
   readonly oracleRoll?: OracleRollDice;
