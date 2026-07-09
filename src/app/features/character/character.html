@@ -1,8 +1,90 @@
-<section class="placeholder-page" aria-labelledby="page-title">
-  <p class="section-label">Placeholder</p>
-  <h2 id="page-title">{{ content.title }}</h2>
-  <p class="description">{{ content.description }}</p>
-  <div class="empty-state" role="status">
-    {{ content.emptyState }}
+<section class="character-page" aria-labelledby="character-title">
+  <div class="character-header">
+    <p class="section-label">Character setup</p>
+    <h2 id="character-title">Create a character</h2>
+    <p>Start with the essentials. You can adjust these values before saving.</p>
   </div>
+
+  @if (!hasCharacter()) {
+    <div class="empty-state" role="status">
+      <strong>No character saved yet.</strong>
+      <span>Fill out this form to prepare the first play step.</span>
+    </div>
+  } @else {
+    <div class="saved-state" role="status">
+      <strong>{{ savedCharacter()?.name }} is ready.</strong>
+      <span>Saved in app memory for the next character flow.</span>
+    </div>
+  }
+
+  <form class="character-form" [formGroup]="characterForm" (ngSubmit)="saveCharacter()" novalidate>
+    <div class="form-card identity-card">
+      <h3>Identity</h3>
+      <label for="character-name">Name <span aria-hidden="true">*</span></label>
+      <input id="character-name" type="text" formControlName="name" autocomplete="off" required />
+      @if (showError('name')) {
+        <p class="field-error">Enter a character name.</p>
+      }
+
+      <label for="character-concept">Concept</label>
+      <textarea
+        id="character-concept"
+        formControlName="concept"
+        rows="3"
+        placeholder="Optional short idea"
+      ></textarea>
+    </div>
+
+    <div class="form-card">
+      <div class="card-heading">
+        <h3>Core stats</h3>
+        <p>Common starting spread: 3, 2, 2, 1, 1.</p>
+      </div>
+      <div class="number-grid">
+        @for (field of statFields; track field.key) {
+          <div class="number-field">
+            <label [for]="field.key">{{ field.label }}</label>
+            <input
+              [id]="field.key"
+              type="number"
+              min="0"
+              max="5"
+              step="1"
+              [formControlName]="field.key"
+            />
+            @if (showError(field.key)) {
+              <p class="field-error">Use a whole number from 0 to 5.</p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>Status</h3>
+      <div class="number-grid">
+        @for (field of statusFields; track field.key) {
+          <div class="number-field">
+            <label [for]="field.key">{{ field.label }}</label>
+            <input
+              [id]="field.key"
+              type="number"
+              [min]="field.min"
+              [max]="field.max"
+              step="1"
+              [formControlName]="field.key"
+            />
+            @if (showError(field.key)) {
+              <p class="field-error">Use a value from {{ field.min }} to {{ field.max }}.</p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit">Save character</button>
+      <button type="button" class="secondary-button" (click)="resetForm()">Reset defaults</button>
+    </div>
+  </form>
 </section>
