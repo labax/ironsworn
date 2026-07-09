@@ -1,0 +1,90 @@
+<section class="roll-panel" aria-labelledby="action-roll-title">
+  <div class="roll-heading">
+    <div>
+      <p class="section-label">Action roll</p>
+      <h3 id="action-roll-title">Prepare a roll</h3>
+    </div>
+    @if (characterSummary(); as character) {
+      <p class="character-note">Using {{ character.name }}.</p>
+    } @else {
+      <p class="character-note">No active character. Use manual values.</p>
+    }
+  </div>
+
+  <form [formGroup]="rollForm" class="roll-form" (ngSubmit)="prepareRoll()" novalidate>
+    <div class="field full-width">
+      <label for="roll-label">Label</label>
+      <input
+        id="roll-label"
+        type="text"
+        formControlName="label"
+        maxlength="60"
+        placeholder="Optional scene note"
+      />
+    </div>
+
+    @if (hasCharacter()) {
+      <fieldset class="mode-toggle">
+        <legend>Stat source</legend>
+        <label>
+          <input
+            type="radio"
+            formControlName="source"
+            value="character-stat"
+            (change)="selectSource('character-stat')"
+          />
+          Character stat
+        </label>
+        <label>
+          <input
+            type="radio"
+            formControlName="source"
+            value="manual"
+            (change)="selectSource('manual')"
+          />
+          Manual value
+        </label>
+      </fieldset>
+    }
+
+    @if (hasCharacter() && selectedSource() === 'character-stat') {
+      <div class="field">
+        <label for="stat-key">Stat</label>
+        <select id="stat-key" formControlName="statKey" (change)="onStatSelectionChange()">
+          @for (stat of statOptions; track stat.key) {
+            <option [value]="stat.key">
+              {{ stat.label }} ({{ characterSummary()?.stats?.[stat.key] }})
+            </option>
+          }
+        </select>
+      </div>
+    } @else {
+      <div class="field">
+        <label for="stat-value">Stat value</label>
+        <input id="stat-value" type="number" min="0" max="5" step="1" formControlName="statValue" />
+        @if (showError('statValue')) {
+          <p class="field-error">Use a whole number from 0 to 5.</p>
+        }
+      </div>
+    }
+
+    <div class="field">
+      <label for="adds">Adds</label>
+      <input id="adds" type="number" min="-5" max="5" step="1" formControlName="adds" />
+      @if (showError('adds')) {
+        <p class="field-error">Use a whole number from -5 to 5.</p>
+      }
+    </div>
+
+    <div class="roll-actions full-width">
+      <button type="submit">Prepare roll</button>
+      <button type="button" class="secondary-button" (click)="resetInput()">Reset input</button>
+    </div>
+  </form>
+
+  @if (lastPreparedInput(); as input) {
+    <p class="handoff-note" role="status">
+      Roll input ready: stat {{ input.statValue }}, adds {{ input.adds }}.
+    </p>
+  }
+</section>
