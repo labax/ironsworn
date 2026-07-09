@@ -1,0 +1,48 @@
+.app-navigation ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-navigation a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  border: 1px solid var(--shell-border);
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  color: var(--shell-text-muted);
+  text-decoration: none;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.app-navigation a:hover,
+.app-navigation a:focus-visible {
+  border-color: var(--shell-accent);
+  color: var(--shell-text);
+}
+
+.app-navigation a.active {
+  border-color: var(--shell-accent);
+  background: var(--shell-accent-soft);
+  color: var(--shell-text);
+  font-weight: 700;
+}
+
+@media (min-width: 56rem) {
+  .app-navigation ul {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .app-navigation a {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
