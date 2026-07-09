@@ -1,0 +1,51 @@
+import { Component, computed, inject } from '@angular/core';
+
+import { RollHistoryService, type RollHistoryEntry, type RollOutcome } from '@app/domain/rolls';
+
+@Component({
+  selector: 'app-roll-history-list',
+  templateUrl: './roll-history-list.html',
+  styleUrl: './roll-history-list.css',
+})
+export class RollHistoryList {
+  private readonly rollHistory = inject(RollHistoryService);
+
+  protected readonly actionRolls = computed(() =>
+    this.rollHistory
+      .entries()
+      .filter((entry) => entry.type === 'action' && entry.actionRoll)
+      .slice()
+      .reverse(),
+  );
+
+  protected resultLabel(outcome: RollOutcome): string {
+    switch (outcome) {
+      case 'strong_hit':
+        return 'Strong hit';
+      case 'weak_hit':
+        return 'Weak hit';
+      case 'miss':
+        return 'Miss';
+      default:
+        return 'Other result';
+    }
+  }
+
+  protected rollLabel(entry: RollHistoryEntry, index: number): string {
+    return entry.label?.trim() || `Action roll ${this.actionRolls().length - index}`;
+  }
+
+  protected createdAtLabel(entry: RollHistoryEntry): string {
+    const date = new Date(entry.createdAt);
+    if (Number.isNaN(date.getTime())) {
+      return entry.createdAt;
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(date);
+  }
+}
