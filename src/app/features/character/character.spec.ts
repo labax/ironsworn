@@ -238,7 +238,7 @@ describe('Character', () => {
       concept: 'Storm watcher',
       stats: { edge: 4, heart: 0, iron: 5, shadow: 2, wits: 3 },
       statusTracks: { health: 4, spirit: 3, supply: 2 },
-      momentum: 5,
+      momentum: { current: 5, max: 10, reset: 2, hasOverride: false },
     });
   });
 
@@ -379,6 +379,64 @@ describe('Character', () => {
     expect(service.character()).toMatchObject({
       id: originalId,
       statusTracks: { health: 6, spirit: 2, supply: 1 },
+    });
+  });
+
+  it('edits Momentum current, reset, and maximum while preserving unrelated fields', async () => {
+    saveDefaultCharacter();
+    const original = service.character();
+
+    component['adjustMomentum'](1);
+    component['commitMomentumInput']('reset', { target: { value: '3' } } as unknown as Event);
+    component['commitMomentumInput']('max', { target: { value: '8' } } as unknown as Event);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()).toMatchObject({
+      id: original?.id,
+      name: 'Kara',
+      stats: original?.stats,
+      statusTracks: { health: 3, spirit: 2, supply: 1 },
+      momentum: { current: 5, reset: 3, max: 8, hasOverride: false },
+    });
+
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload.momentum).toEqual({ current: 5, reset: 3, max: 8, hasOverride: false });
+  });
+
+  it('validates normal Momentum bounds and supports an explicit manual override', async () => {
+    saveDefaultCharacter();
+
+    component['commitMomentumInput']('max', { target: { value: '1' } } as unknown as Event);
+    expect(service.character()?.momentum.max).toBe(10);
+    expect(component['momentumMessage']).toContain('Maximum Momentum');
+
+    component['commitMomentumInput']('current', { target: { value: '11' } } as unknown as Event);
+    expect(service.character()?.momentum.current).toBe(4);
+
+    component['updateMomentumOverride']({ target: { checked: true } } as unknown as Event);
+    component['commitMomentumInput']('max', { target: { value: '1' } } as unknown as Event);
+    component['commitMomentumInput']('current', { target: { value: '11' } } as unknown as Event);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()?.momentum).toEqual({
+      current: 11,
+      reset: 2,
+      max: 1,
+      hasOverride: true,
+    });
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Manual override');
+
+    service.clear();
+    await service.loadSavedCharacter();
+    expect(service.character()?.momentum).toEqual({
+      current: 11,
+      reset: 2,
+      max: 1,
+      hasOverride: true,
     });
   });
 

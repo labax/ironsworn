@@ -5,6 +5,7 @@ import {
   type Character,
   type StatKey,
   type Stats,
+  type MomentumState,
   type StatusTracks,
 } from './character';
 import { ActiveCharacterService } from './active-character.service';
@@ -82,6 +83,16 @@ export class CharacterDraftService {
     }
 
     return result;
+  }
+
+  updateMomentum(momentum: MomentumState): Character | null {
+    const updated = this.activeCharacterState.updateActiveCharacter({ momentum });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
   }
 
   updateStatusTrack(key: StatusTrackKey, value: number): Character | null {

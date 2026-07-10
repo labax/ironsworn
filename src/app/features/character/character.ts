@@ -11,8 +11,11 @@ import {
   CharacterDraftService,
   type CharacterCreationInput,
   type StatusTrackKey,
+  MOMENTUM_MINIMUM,
+  buildMomentumPatch,
+  validateMomentumState,
 } from '@app/domain/character';
-import type { StatKey } from '@app/domain/character/character';
+import type { MomentumState, StatKey } from '@app/domain/character/character';
 
 const statKeys: readonly StatKey[] = ['edge', 'heart', 'iron', 'shadow', 'wits'];
 const standardStartingSpread = [3, 2, 2, 1, 1] as const;
@@ -64,11 +67,19 @@ export class Character {
     supply: false,
   };
   protected readonly statusTrackMessages: Partial<Record<StatusTrackKey, string>> = {};
+  protected momentumMessage = '';
+  protected momentumOverride = false;
   protected readonly statusAnnouncement = computed(() => {
     const character = this.savedCharacter();
     if (!character) return '';
 
     return `Health ${character.statusTracks.health}, Spirit ${character.statusTracks.spirit}, Supply ${character.statusTracks.supply}.`;
+  });
+  protected readonly momentumAnnouncement = computed(() => {
+    const momentum = this.savedCharacter()?.momentum;
+    if (!momentum) return '';
+
+    return `Momentum ${momentum.current}, reset ${momentum.reset}, maximum ${momentum.max}.`;
   });
   protected readonly saveErrorMessage = computed(() => {
     const result = this.characterDraft.lastSaveResult();
@@ -172,6 +183,78 @@ export class Character {
 
   protected statusTrackValue(key: StatusTrackKey): number {
     return this.savedCharacter()?.statusTracks[key] ?? statusTrackMaximum;
+  }
+
+  protected momentumValue(): MomentumState {
+    return this.savedCharacter()?.momentum ?? { current: 2, reset: 2, max: 10, hasOverride: false };
+  }
+
+  protected canDecreaseMomentum(): boolean {
+    const momentum = this.momentumValue();
+    return momentum.hasOverride || momentum.current > MOMENTUM_MINIMUM;
+  }
+
+  protected canIncreaseMomentum(): boolean {
+    const momentum = this.momentumValue();
+    return momentum.hasOverride || momentum.current < momentum.max;
+  }
+
+  protected updateMomentumOverride(event: Event): void {
+    this.momentumOverride = (event.target as HTMLInputElement).checked;
+    this.saveMomentumPatch({ hasOverride: this.momentumOverride });
+  }
+
+  protected adjustMomentum(delta: number): void {
+    const momentum = this.momentumValue();
+    this.saveMomentumPatch({ current: momentum.current + delta });
+  }
+
+  protected resetMomentumToReset(): void {
+    this.saveMomentumPatch({ current: this.momentumValue().reset });
+  }
+
+  protected commitMomentumInput(
+    field: keyof Pick<MomentumState, 'current' | 'reset' | 'max'>,
+    event: Event,
+  ): void {
+    const input = event.target as HTMLInputElement;
+    const value = Number(input.value);
+
+    if (!Number.isInteger(value)) {
+      this.momentumMessage = 'Enter a whole number.';
+      input.value = String(this.momentumValue()[field]);
+      return;
+    }
+
+    this.saveMomentumPatch({ [field]: value });
+  }
+
+  protected handleMomentumKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.adjustMomentum(1);
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.adjustMomentum(-1);
+    }
+  }
+
+  private saveMomentumPatch(patch: Partial<MomentumState>): void {
+    const next = buildMomentumPatch(this.momentumValue(), patch);
+    const validation = validateMomentumState(next, { allowOverride: next.hasOverride });
+
+    if (!validation.valid) {
+      this.momentumMessage = validation.message ?? 'Momentum values are invalid.';
+      return;
+    }
+
+    const updated = this.characterDraft.updateMomentum(next);
+    this.momentumOverride = next.hasOverride;
+    this.momentumMessage = updated
+      ? 'Momentum saved.'
+      : 'No active character is available to update.';
   }
 
   protected canDecreaseStatusTrack(key: StatusTrackKey): boolean {

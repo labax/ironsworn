@@ -12,6 +12,7 @@ import {
   createDefaultCharacter,
   isValidStats,
   type Character,
+  type MomentumState,
   type Stats,
   type StatusTracks,
 } from './character';
@@ -28,7 +29,7 @@ export interface PersistedActiveCharacter {
   readonly concept?: string;
   readonly stats: Stats;
   readonly statusTracks: StatusTracks;
-  readonly momentum: number;
+  readonly momentum: number | MomentumState;
 }
 
 export type ActiveCharacterLoadResult =
@@ -44,14 +45,37 @@ export const toPersistedActiveCharacter = (character: Character): PersistedActiv
   concept: character.concept,
   stats: { ...character.stats },
   statusTracks: { ...character.statusTracks },
-  momentum: character.momentum.current,
+  momentum: { ...character.momentum },
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
-const hasValidMomentum = (value: unknown): value is number =>
+const hasValidMomentumNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= -6 && value <= 10;
+
+const hasValidMomentumState = (value: unknown): value is MomentumState => {
+  if (!isRecord(value)) return false;
+
+  const current = value['current'];
+  const max = value['max'];
+  const reset = value['reset'];
+  const hasOverride = value['hasOverride'];
+
+  return (
+    Number.isInteger(current) &&
+    Number.isInteger(max) &&
+    Number.isInteger(reset) &&
+    typeof hasOverride === 'boolean' &&
+    (hasOverride ||
+      ((current as number) >= -6 &&
+        (current as number) <= (max as number) &&
+        (max as number) >= (reset as number)))
+  );
+};
+
+const hasValidMomentum = (value: unknown): value is PersistedActiveCharacter['momentum'] =>
+  hasValidMomentumNumber(value) || hasValidMomentumState(value);
 
 const isPersistedStats = (value: unknown): value is Stats =>
   isRecord(value) &&
@@ -100,10 +124,10 @@ const toCharacter = (persisted: PersistedActiveCharacter, savedAt: string): Char
     ...baseCharacter,
     stats: { ...persisted.stats },
     statusTracks: { ...persisted.statusTracks },
-    momentum: {
-      ...baseCharacter.momentum,
-      current: persisted.momentum,
-    },
+    momentum:
+      typeof persisted.momentum === 'number'
+        ? { ...baseCharacter.momentum, current: persisted.momentum }
+        : { ...persisted.momentum },
   };
 };
 

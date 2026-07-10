@@ -126,6 +126,106 @@
         }
       </dl>
 
+      <section class="momentum-controls" aria-labelledby="momentum-controls-title">
+        <div class="card-heading">
+          <h3 id="momentum-controls-title">Momentum</h3>
+          <p>
+            Track current Momentum, reset, and maximum. Override is for variants or corrections.
+          </p>
+        </div>
+        <p class="sr-only" aria-live="polite">{{ momentumAnnouncement() }}</p>
+        <div class="momentum-editor" [class.manual-override]="momentumValue().hasOverride">
+          <div class="momentum-current">
+            <span class="section-label">Current</span>
+            <strong>{{ momentumValue().current }}</strong>
+            @if (momentumValue().hasOverride) {
+              <span class="override-badge">Manual override</span>
+            }
+          </div>
+          <div class="track-actions" role="group" aria-label="Current Momentum controls">
+            <button
+              type="button"
+              class="secondary-button track-button"
+              [disabled]="!canDecreaseMomentum()"
+              aria-label="Decrease Momentum"
+              (click)="adjustMomentum(-1)"
+            >
+              −
+            </button>
+            <label class="sr-only" for="momentum-current-input">Current Momentum</label>
+            <input
+              id="momentum-current-input"
+              class="status-input"
+              type="number"
+              step="1"
+              [attr.min]="momentumValue().hasOverride ? null : -6"
+              [attr.max]="momentumValue().hasOverride ? null : momentumValue().max"
+              [value]="momentumValue().current"
+              aria-describedby="momentum-help momentum-message"
+              (change)="commitMomentumInput('current', $event)"
+              (keydown)="handleMomentumKeydown($event)"
+            />
+            <button
+              type="button"
+              class="secondary-button track-button"
+              [disabled]="!canIncreaseMomentum()"
+              aria-label="Increase Momentum"
+              (click)="adjustMomentum(1)"
+            >
+              +
+            </button>
+          </div>
+          <div class="momentum-secondary-grid">
+            <div class="number-field">
+              <label for="momentum-reset-input">Momentum Reset</label>
+              <input
+                id="momentum-reset-input"
+                type="number"
+                step="1"
+                [value]="momentumValue().reset"
+                aria-describedby="momentum-help momentum-message"
+                (change)="commitMomentumInput('reset', $event)"
+              />
+            </div>
+            <div class="number-field">
+              <label for="momentum-max-input">Maximum Momentum</label>
+              <input
+                id="momentum-max-input"
+                type="number"
+                step="1"
+                [value]="momentumValue().max"
+                aria-describedby="momentum-help momentum-message"
+                (change)="commitMomentumInput('max', $event)"
+              />
+            </div>
+          </div>
+          <div class="momentum-range" aria-hidden="true">
+            <span>-6</span
+            ><meter min="-6" [max]="momentumValue().max" [value]="momentumValue().current"></meter
+            ><span>{{ momentumValue().max }}</span>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="secondary-button" (click)="resetMomentumToReset()">
+              Reset current to reset
+            </button>
+            <label class="override-toggle">
+              <input
+                type="checkbox"
+                [checked]="momentumValue().hasOverride"
+                (change)="updateMomentumOverride($event)"
+              />
+              Allow manual Momentum override
+            </label>
+          </div>
+          <p id="momentum-help" class="helper-text">
+            Normally current stays from -6 to maximum, and maximum is at least reset.
+          </p>
+          @if (momentumMessage) {
+            <p id="momentum-message" class="field-warning" role="status">{{ momentumMessage }}</p>
+          }
+        </div>
+      </section>
+
       <section class="status-controls" aria-labelledby="status-controls-title">
         <div class="card-heading">
           <h3 id="status-controls-title">In-session status</h3>
