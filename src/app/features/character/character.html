@@ -20,9 +20,17 @@
       <div class="form-card identity-card">
         <h3>Identity</h3>
         <label for="character-name">Name <span aria-hidden="true">*</span></label>
-        <input id="character-name" type="text" formControlName="name" autocomplete="off" required />
+        <input
+          id="character-name"
+          type="text"
+          formControlName="name"
+          autocomplete="off"
+          required
+          [attr.aria-invalid]="showError('name')"
+          aria-describedby="character-name-error"
+        />
         @if (showError('name')) {
-          <p class="field-error">Enter a character name.</p>
+          <p id="character-name-error" class="field-error">Enter a character name.</p>
         }
 
         <label for="character-concept">Concept</label>
@@ -125,6 +133,100 @@
           </div>
         }
       </dl>
+
+      <section class="status-controls" aria-labelledby="status-controls-title">
+        <div class="card-heading">
+          <h3 id="status-controls-title">In-session status</h3>
+          <p>Adjust Health, Spirit, and Supply during play. Normal controls stay within 0 to 5.</p>
+        </div>
+        <p class="sr-only" aria-live="polite">{{ statusAnnouncement() }}</p>
+        <div class="status-control-grid">
+          @for (field of playableStatusFields; track field.key) {
+            <article
+              class="status-control-card"
+              [attr.aria-labelledby]="field.key + '-status-title'"
+            >
+              <div class="status-control-heading">
+                <h4 [id]="field.key + '-status-title'">{{ field.label }}</h4>
+                <strong>{{ statusTrackValue(field.key) }}</strong>
+              </div>
+              <div class="track-actions" role="group" [attr.aria-label]="field.label + ' controls'">
+                <button
+                  type="button"
+                  class="secondary-button track-button"
+                  [disabled]="!canDecreaseStatusTrack(field.key)"
+                  [attr.aria-label]="'Decrease ' + field.label"
+                  [attr.title]="
+                    canDecreaseStatusTrack(field.key)
+                      ? 'Decrease ' + field.label
+                      : field.label + ' is already at 0'
+                  "
+                  (click)="adjustStatusTrack(field.key, -1)"
+                >
+                  −
+                </button>
+                <label class="sr-only" [for]="field.key + '-status-input'">
+                  {{ field.label }} value
+                </label>
+                <input
+                  class="status-input"
+                  [id]="field.key + '-status-input'"
+                  type="number"
+                  min="0"
+                  step="1"
+                  [attr.max]="statusTrackOverrides[field.key] ? null : 5"
+                  [value]="statusTrackValue(field.key)"
+                  [attr.aria-label]="field.label + ' value'"
+                  [attr.aria-describedby]="
+                    field.key + '-status-help ' + field.key + '-status-message'
+                  "
+                  (change)="commitStatusTrackInput(field.key, $event)"
+                  (keydown)="handleStatusTrackKeydown(field.key, $event)"
+                />
+                <button
+                  type="button"
+                  class="secondary-button track-button"
+                  [disabled]="!canIncreaseStatusTrack(field.key)"
+                  [attr.aria-label]="'Increase ' + field.label"
+                  [attr.title]="
+                    canIncreaseStatusTrack(field.key)
+                      ? 'Increase ' + field.label
+                      : field.label + ' is already at 5'
+                  "
+                  (click)="adjustStatusTrack(field.key, 1)"
+                >
+                  +
+                </button>
+              </div>
+              <label class="override-toggle">
+                <input
+                  type="checkbox"
+                  [checked]="statusTrackOverrides[field.key]"
+                  (change)="updateStatusTrackOverride(field.key, $event)"
+                />
+                Allow manual value above 5
+              </label>
+              <p [id]="field.key + '-status-help'" class="helper-text">
+                Use override only for variants or corrections. Values below 0 are not saved.
+              </p>
+              @if (statusTrackMessages[field.key]) {
+                <p [id]="field.key + '-status-message'" class="field-warning" role="status">
+                  {{ statusTrackMessages[field.key] }}
+                </p>
+              }
+            </article>
+          }
+        </div>
+        @if (characterDraft.saveStatus() === 'failed') {
+          <p class="field-error" role="alert">
+            Save failed:
+            {{ saveErrorMessage() }}
+            The current in-memory value is still shown.
+          </p>
+        } @else if (characterDraft.saveStatus() === 'saved') {
+          <p class="helper-text" role="status">Character changes saved locally.</p>
+        }
+      </section>
 
       <section class="experience-controls" aria-labelledby="experience-controls-title">
         <div class="card-heading">
@@ -495,11 +597,17 @@
                       type="button"
                       class="secondary-button"
                       [attr.data-asset-edit]="asset.id"
+                      [attr.aria-label]="'Edit asset ' + asset.name"
                       (click)="beginEditAsset(asset)"
                     >
                       Edit
                     </button>
-                    <button type="button" class="danger-button" (click)="confirmRemoveAsset(asset)">
+                    <button
+                      type="button"
+                      class="danger-button"
+                      [attr.aria-label]="'Remove asset ' + asset.name"
+                      (click)="confirmRemoveAsset(asset)"
+                    >
                       Remove
                     </button>
                   </div>
@@ -525,9 +633,17 @@
             {{ editingAssetId ? 'Edit asset reference' : 'Add an asset reference' }}
           </h4>
           <label for="asset-name">Name <span aria-hidden="true">*</span></label>
-          <input #assetNameInput id="asset-name" type="text" formControlName="name" required />
+          <input
+            #assetNameInput
+            id="asset-name"
+            type="text"
+            formControlName="name"
+            required
+            [attr.aria-invalid]="showAssetError('name')"
+            aria-describedby="asset-name-error asset-editor-message"
+          />
           @if (showAssetError('name')) {
-            <p class="field-error">Enter an asset name.</p>
+            <p id="asset-name-error" class="field-error">Enter an asset name.</p>
           }
 
           <div class="asset-optional-grid">
@@ -555,7 +671,7 @@
             </button>
           </div>
           @if (assetMessage) {
-            <p class="helper-text" role="status">{{ assetMessage }}</p>
+            <p id="asset-editor-message" class="helper-text" role="status">{{ assetMessage }}</p>
           }
         </form>
       </section>
@@ -587,11 +703,17 @@
                       type="button"
                       class="secondary-button"
                       [attr.data-bond-edit]="bond.id"
+                      [attr.aria-label]="'Edit bond ' + bond.name"
                       (click)="beginEditBond(bond)"
                     >
                       Edit
                     </button>
-                    <button type="button" class="danger-button" (click)="confirmRemoveBond(bond)">
+                    <button
+                      type="button"
+                      class="danger-button"
+                      [attr.aria-label]="'Remove bond ' + bond.name"
+                      (click)="confirmRemoveBond(bond)"
+                    >
                       Remove
                     </button>
                   </div>
@@ -615,9 +737,17 @@
         >
           <h4 id="bond-editor-title">{{ editingBondId ? 'Edit bond' : 'Add a bond' }}</h4>
           <label for="bond-name">Name <span aria-hidden="true">*</span></label>
-          <input #bondNameInput id="bond-name" type="text" formControlName="name" required />
+          <input
+            #bondNameInput
+            id="bond-name"
+            type="text"
+            formControlName="name"
+            required
+            [attr.aria-invalid]="showBondError('name')"
+            aria-describedby="bond-name-error bond-editor-message"
+          />
           @if (showBondError('name')) {
-            <p class="field-error">Enter a bond name.</p>
+            <p id="bond-name-error" class="field-error">Enter a bond name.</p>
           }
 
           <label for="bond-note">Note</label>
@@ -634,103 +764,9 @@
             </button>
           </div>
           @if (bondMessage) {
-            <p class="helper-text" role="status">{{ bondMessage }}</p>
+            <p id="bond-editor-message" class="helper-text" role="status">{{ bondMessage }}</p>
           }
         </form>
-      </section>
-
-      <section class="status-controls" aria-labelledby="status-controls-title">
-        <div class="card-heading">
-          <h3 id="status-controls-title">In-session status</h3>
-          <p>Adjust Health, Spirit, and Supply during play. Normal controls stay within 0 to 5.</p>
-        </div>
-        <p class="sr-only" aria-live="polite">{{ statusAnnouncement() }}</p>
-        <div class="status-control-grid">
-          @for (field of playableStatusFields; track field.key) {
-            <article
-              class="status-control-card"
-              [attr.aria-labelledby]="field.key + '-status-title'"
-            >
-              <div class="status-control-heading">
-                <h4 [id]="field.key + '-status-title'">{{ field.label }}</h4>
-                <strong>{{ statusTrackValue(field.key) }}</strong>
-              </div>
-              <div class="track-actions" role="group" [attr.aria-label]="field.label + ' controls'">
-                <button
-                  type="button"
-                  class="secondary-button track-button"
-                  [disabled]="!canDecreaseStatusTrack(field.key)"
-                  [attr.aria-label]="'Decrease ' + field.label"
-                  [attr.title]="
-                    canDecreaseStatusTrack(field.key)
-                      ? 'Decrease ' + field.label
-                      : field.label + ' is already at 0'
-                  "
-                  (click)="adjustStatusTrack(field.key, -1)"
-                >
-                  −
-                </button>
-                <label class="sr-only" [for]="field.key + '-status-input'">
-                  {{ field.label }} value
-                </label>
-                <input
-                  class="status-input"
-                  [id]="field.key + '-status-input'"
-                  type="number"
-                  min="0"
-                  step="1"
-                  [attr.max]="statusTrackOverrides[field.key] ? null : 5"
-                  [value]="statusTrackValue(field.key)"
-                  [attr.aria-label]="field.label + ' value'"
-                  [attr.aria-describedby]="
-                    field.key + '-status-help ' + field.key + '-status-message'
-                  "
-                  (change)="commitStatusTrackInput(field.key, $event)"
-                  (keydown)="handleStatusTrackKeydown(field.key, $event)"
-                />
-                <button
-                  type="button"
-                  class="secondary-button track-button"
-                  [disabled]="!canIncreaseStatusTrack(field.key)"
-                  [attr.aria-label]="'Increase ' + field.label"
-                  [attr.title]="
-                    canIncreaseStatusTrack(field.key)
-                      ? 'Increase ' + field.label
-                      : field.label + ' is already at 5'
-                  "
-                  (click)="adjustStatusTrack(field.key, 1)"
-                >
-                  +
-                </button>
-              </div>
-              <label class="override-toggle">
-                <input
-                  type="checkbox"
-                  [checked]="statusTrackOverrides[field.key]"
-                  (change)="updateStatusTrackOverride(field.key, $event)"
-                />
-                Allow manual value above 5
-              </label>
-              <p [id]="field.key + '-status-help'" class="helper-text">
-                Use override only for variants or corrections. Values below 0 are not saved.
-              </p>
-              @if (statusTrackMessages[field.key]) {
-                <p [id]="field.key + '-status-message'" class="field-warning" role="status">
-                  {{ statusTrackMessages[field.key] }}
-                </p>
-              }
-            </article>
-          }
-        </div>
-        @if (characterDraft.saveStatus() === 'failed') {
-          <p class="field-error" role="alert">
-            Save failed:
-            {{ saveErrorMessage() }}
-            The current in-memory value is still shown.
-          </p>
-        } @else if (characterDraft.saveStatus() === 'saved') {
-          <p class="helper-text" role="status">Character changes saved locally.</p>
-        }
       </section>
     </section>
 
@@ -752,9 +788,11 @@
             formControlName="name"
             autocomplete="off"
             required
+            [attr.aria-invalid]="showEditError('name')"
+            aria-describedby="edit-character-name-error"
           />
           @if (showEditError('name')) {
-            <p class="field-error">Enter a character name.</p>
+            <p id="edit-character-name-error" class="field-error">Enter a character name.</p>
           }
 
           <label for="edit-character-concept">Concept</label>

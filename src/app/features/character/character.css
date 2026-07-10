@@ -540,15 +540,92 @@ button {
   }
 }
 
-.assets-section {
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 1rem;
-  background: rgba(15, 23, 42, 0.72);
-  padding: 1.25rem;
-}
-
 .asset-optional-grid {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.character-page,
+.character-page * {
+  min-width: 0;
+}
+
+.character-page * {
+  overflow-wrap: anywhere;
+}
+
+button,
+input,
+textarea,
+.override-toggle,
+.debility-option {
+  min-height: 2.75rem;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.override-toggle:focus-within,
+.debility-option:focus-within {
+  outline: 3px solid rgba(147, 197, 253, 0.85);
+  outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.field-error,
+.field-warning {
+  border-inline-start: 0.25rem solid currentColor;
+}
+
+.field-error::before,
+.field-warning::before {
+  content: 'Warning: ';
+  font-weight: 800;
+}
+
+.bond-card-heading > *,
+.status-control-heading > *,
+.momentum-current > *,
+.card-heading > * {
+  min-width: 0;
+}
+
+@media (max-width: 42rem) {
+  .character-page {
+    gap: 1rem;
+  }
+
+  .character-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .number-grid,
+  .status-control-grid,
+  .experience-grid,
+  .debility-grid,
+  .momentum-secondary-grid,
+  .asset-optional-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .track-actions {
+    grid-template-columns: minmax(2.75rem, 3.25rem) minmax(0, 1fr) minmax(2.75rem, 3.25rem);
+  }
+
+  .bond-actions,
+  .form-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .override-toggle,
+  .debility-option {
+    align-items: center;
+    border-radius: 0.75rem;
+    padding-block: 0.25rem;
+  }
 }

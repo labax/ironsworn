@@ -475,6 +475,53 @@ describe('Character', () => {
     expect(compiled.querySelector('button[aria-label="Increase Supply"]')).toBeTruthy();
   });
 
+  it('keeps prominent status controls before secondary character sections in the stacked sheet order', () => {
+    saveDefaultCharacter();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const status = compiled.querySelector('#status-controls-title');
+    const experience = compiled.querySelector('#experience-controls-title');
+    const notes = compiled.querySelector('#equipment-notes-title');
+
+    expect(status).toBeTruthy();
+    expect(experience).toBeTruthy();
+    expect(notes).toBeTruthy();
+    expect(
+      status!.compareDocumentPosition(experience!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(status!.compareDocumentPosition(notes!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('associates required-field validation messages and named item actions for assistive tech', async () => {
+    saveDefaultCharacter();
+
+    component['assetForm'].setValue({
+      name: 'Raven companion',
+      category: 'Companion',
+      source: '',
+      notes: 'Long note',
+    });
+    component['saveAsset']();
+    component['bondForm'].setValue({ name: 'Brynn', description: 'Ally note' });
+    component['saveBond']();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#asset-name')?.getAttribute('aria-describedby')).toContain(
+      'asset-name-error',
+    );
+    expect(compiled.querySelector('#bond-name')?.getAttribute('aria-describedby')).toContain(
+      'bond-name-error',
+    );
+    expect(compiled.querySelector('button[aria-label="Edit asset Raven companion"]')).toBeTruthy();
+    expect(
+      compiled.querySelector('button[aria-label="Remove asset Raven companion"]'),
+    ).toBeTruthy();
+    expect(compiled.querySelector('button[aria-label="Edit bond Brynn"]')).toBeTruthy();
+    expect(compiled.querySelector('button[aria-label="Remove bond Brynn"]')).toBeTruthy();
+  });
+
   it('increments and decrements each status track without changing unrelated fields', async () => {
     saveDefaultCharacter();
     const original = service.character();
