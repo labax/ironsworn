@@ -178,23 +178,31 @@
           <div class="momentum-secondary-grid">
             <div class="number-field">
               <label for="momentum-reset-input">Momentum Reset</label>
+              @if (!momentumValue().hasOverride) {
+                <span class="derived-badge">Derived</span>
+              }
               <input
                 id="momentum-reset-input"
                 type="number"
                 step="1"
                 [value]="momentumValue().reset"
                 aria-describedby="momentum-help momentum-message"
+                [readonly]="!momentumValue().hasOverride"
                 (change)="commitMomentumInput('reset', $event)"
               />
             </div>
             <div class="number-field">
               <label for="momentum-max-input">Maximum Momentum</label>
+              @if (!momentumValue().hasOverride) {
+                <span class="derived-badge">Derived</span>
+              }
               <input
                 id="momentum-max-input"
                 type="number"
                 step="1"
                 [value]="momentumValue().max"
                 aria-describedby="momentum-help momentum-message"
+                [readonly]="!momentumValue().hasOverride"
                 (change)="commitMomentumInput('max', $event)"
               />
             </div>
@@ -218,12 +226,44 @@
             </label>
           </div>
           <p id="momentum-help" class="helper-text">
-            Normally current stays from -6 to maximum, and maximum is at least reset.
+            Normally current stays from -6 to maximum. Reset and maximum are derived from marked
+            debilities unless manual override is enabled.
           </p>
           @if (momentumMessage) {
             <p id="momentum-message" class="field-warning" role="status">{{ momentumMessage }}</p>
           }
         </div>
+      </section>
+
+      <section class="debilities-section" aria-labelledby="debilities-title">
+        <div class="card-heading">
+          <h3 id="debilities-title">Debilities</h3>
+          <p>Mark concise debility labels. Marked count: {{ markedDebilityCount() }}.</p>
+        </div>
+        <div class="debility-grid">
+          @for (group of debilityGroups; track group.category) {
+            <fieldset class="debility-group">
+              <legend>{{ group.label }}</legend>
+              @for (option of group.options; track option.id) {
+                <label class="debility-option">
+                  <input
+                    type="checkbox"
+                    [checked]="isDebilityMarked(option.id)"
+                    (change)="toggleDebility(option, $event)"
+                  />
+                  {{ option.label }}
+                </label>
+              }
+            </fieldset>
+          }
+        </div>
+        <p class="helper-text">
+          Standard Momentum values are recalculated from marked debilities: maximum is 10 minus
+          marked debilities; reset is 2, 1, then 0.
+        </p>
+        @if (debilityMessage) {
+          <p class="field-warning" role="status">{{ debilityMessage }}</p>
+        }
       </section>
 
       <section class="bonds-section" aria-labelledby="bonds-title">

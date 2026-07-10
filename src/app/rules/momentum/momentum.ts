@@ -57,3 +57,26 @@ export const previewMomentumBurn = (
     ],
   });
 };
+
+export const STANDARD_MOMENTUM_RESET = 2;
+export const STANDARD_MOMENTUM_MAXIMUM = 10;
+
+export interface DerivedMomentumValues {
+  readonly max: number;
+  readonly reset: number;
+}
+
+export const deriveMomentumValuesFromDebilityCount = (
+  debilityCount: number,
+): DerivedMomentumValues => {
+  const markedDebilities = Math.max(0, Math.trunc(debilityCount));
+
+  return {
+    max: STANDARD_MOMENTUM_MAXIMUM - markedDebilities,
+    reset: markedDebilities === 0 ? STANDARD_MOMENTUM_RESET : markedDebilities === 1 ? 1 : 0,
+  };
+};
+
+export const deriveMomentumValuesFromDebilities = (
+  debilities: readonly unknown[],
+): DerivedMomentumValues => deriveMomentumValuesFromDebilityCount(debilities.length);

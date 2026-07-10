@@ -7,7 +7,8 @@ import {
 
 export type StatKey = 'edge' | 'heart' | 'iron' | 'shadow' | 'wits';
 export type DebilityCategory = 'condition' | 'bane' | 'burden';
-export type DebilityType = 'wounded' | 'shaken' | 'unprepared' | 'custom';
+export type DebilityType =
+  'wounded' | 'shaken' | 'unprepared' | 'maimed' | 'corrupted' | 'cursed' | 'tormented' | 'custom';
 
 export type Stats = Record<StatKey, number>;
 

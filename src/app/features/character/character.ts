@@ -15,9 +15,58 @@ import {
   buildMomentumPatch,
   validateMomentumState,
 } from '@app/domain/character';
-import type { Bond, MomentumState, StatKey } from '@app/domain/character/character';
+import type {
+  Bond,
+  CharacterDebility,
+  DebilityCategory,
+  DebilityType,
+  MomentumState,
+  StatKey,
+} from '@app/domain/character/character';
+import { deriveMomentumValuesFromDebilities } from '@app/rules/momentum';
 
 const statKeys: readonly StatKey[] = ['edge', 'heart', 'iron', 'shadow', 'wits'];
+
+interface DebilityOption {
+  readonly id: DebilityType;
+  readonly label: string;
+  readonly category: DebilityCategory;
+}
+
+interface DebilityGroup {
+  readonly category: DebilityCategory;
+  readonly label: string;
+  readonly options: readonly DebilityOption[];
+}
+
+const debilityGroups: readonly DebilityGroup[] = [
+  {
+    category: 'condition',
+    label: 'Conditions',
+    options: [
+      { id: 'wounded', label: 'Wounded', category: 'condition' },
+      { id: 'shaken', label: 'Shaken', category: 'condition' },
+      { id: 'unprepared', label: 'Unprepared', category: 'condition' },
+    ],
+  },
+  {
+    category: 'bane',
+    label: 'Banes',
+    options: [
+      { id: 'maimed', label: 'Maimed', category: 'bane' },
+      { id: 'corrupted', label: 'Corrupted', category: 'bane' },
+    ],
+  },
+  {
+    category: 'burden',
+    label: 'Burdens',
+    options: [
+      { id: 'cursed', label: 'Cursed', category: 'burden' },
+      { id: 'tormented', label: 'Tormented', category: 'burden' },
+    ],
+  },
+];
+
 const standardStartingSpread = [3, 2, 2, 1, 1] as const;
 const statusTrackMinimum = 0;
 const statusTrackMaximum = 5;
@@ -70,6 +119,7 @@ export class Character {
   };
   protected readonly statusTrackMessages: Partial<Record<StatusTrackKey, string>> = {};
   protected momentumMessage = '';
+  protected debilityMessage = '';
   protected momentumOverride = false;
   protected editingBondId: string | null = null;
   protected bondMessage = '';
@@ -98,6 +148,7 @@ export class Character {
     { key: 'wits', label: 'Wits' },
   ] as const;
 
+  protected readonly debilityGroups = debilityGroups;
   protected readonly statusFields = [
     { key: 'health', label: 'Health', min: 0, max: 5 },
     { key: 'spirit', label: 'Spirit', min: 0, max: 5 },
@@ -198,6 +249,14 @@ export class Character {
     return this.savedCharacter()?.momentum ?? { current: 2, reset: 2, max: 10, hasOverride: false };
   }
 
+  protected markedDebilityCount(): number {
+    return this.savedCharacter()?.debilities.length ?? 0;
+  }
+
+  protected isDebilityMarked(id: DebilityType): boolean {
+    return this.savedCharacter()?.debilities.some((debility) => debility.type === id) ?? false;
+  }
+
   protected canDecreaseMomentum(): boolean {
     const momentum = this.momentumValue();
     return momentum.hasOverride || momentum.current > MOMENTUM_MINIMUM;
@@ -209,8 +268,88 @@ export class Character {
   }
 
   protected updateMomentumOverride(event: Event): void {
-    this.momentumOverride = (event.target as HTMLInputElement).checked;
-    this.saveMomentumPatch({ hasOverride: this.momentumOverride });
+    const checked = (event.target as HTMLInputElement).checked;
+
+    if (!checked) {
+      this.returnMomentumToDerived();
+      return;
+    }
+
+    this.momentumOverride = true;
+    this.saveMomentumPatch({ hasOverride: true });
+  }
+
+  protected toggleDebility(option: DebilityOption, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const character = this.savedCharacter();
+    if (!character) return;
+
+    const marked = character.debilities.some((debility) => debility.type === option.id);
+    const debilities = marked
+      ? character.debilities.filter((debility) => debility.type !== option.id)
+      : [
+          ...character.debilities,
+          {
+            id: option.id,
+            type: option.id,
+            category: option.category,
+            label: option.label,
+          },
+        ];
+    const derived = deriveMomentumValuesFromDebilities(debilities);
+    let momentum: MomentumState = { ...character.momentum };
+
+    if (momentum.hasOverride) {
+      const useDerived = confirm(
+        'Momentum is in manual override mode. Return to standard derived Momentum for this debility change?',
+      );
+      if (useDerived) {
+        momentum = {
+          ...momentum,
+          ...derived,
+          hasOverride: false,
+          current: Math.min(momentum.current, derived.max),
+        };
+      }
+    } else {
+      if (momentum.current > derived.max) {
+        const applyClamp = confirm(
+          `${option.label} changes Maximum Momentum to ${derived.max}. Current Momentum ${momentum.current} will be lowered to ${derived.max}. Continue?`,
+        );
+        if (!applyClamp) {
+          input.checked = marked;
+          this.debilityMessage = 'Debility change canceled; Momentum was unchanged.';
+          return;
+        }
+      }
+      momentum = {
+        ...momentum,
+        ...derived,
+        current: Math.min(momentum.current, derived.max),
+        hasOverride: false,
+      };
+    }
+
+    const updated = this.characterDraft.updateDebilitiesAndMomentum(debilities, momentum);
+    this.debilityMessage = updated
+      ? `${option.label} ${marked ? 'cleared' : 'marked'}. Momentum ${momentum.hasOverride ? 'override preserved' : 'derived values updated'}.`
+      : 'No active character is available to update.';
+  }
+
+  protected returnMomentumToDerived(): void {
+    const character = this.savedCharacter();
+    if (!character) return;
+
+    const derived = deriveMomentumValuesFromDebilities(character.debilities);
+    const momentum = {
+      ...character.momentum,
+      ...derived,
+      hasOverride: false,
+      current: Math.min(character.momentum.current, derived.max),
+    };
+    this.characterDraft.updateMomentum(momentum);
+    this.momentumOverride = false;
+    this.momentumMessage = 'Momentum returned to standard derived values.';
   }
 
   protected adjustMomentum(delta: number): void {
