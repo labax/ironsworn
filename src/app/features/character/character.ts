@@ -15,7 +15,7 @@ import {
   buildMomentumPatch,
   validateMomentumState,
 } from '@app/domain/character';
-import type { MomentumState, StatKey } from '@app/domain/character/character';
+import type { Bond, MomentumState, StatKey } from '@app/domain/character/character';
 
 const statKeys: readonly StatKey[] = ['edge', 'heart', 'iron', 'shadow', 'wits'];
 const standardStartingSpread = [3, 2, 2, 1, 1] as const;
@@ -57,6 +57,8 @@ export class Character {
   protected readonly characterDraft = inject(CharacterDraftService);
   private readonly editButton = viewChild<ElementRef<HTMLButtonElement>>('editButton');
   private readonly editNameInput = viewChild<ElementRef<HTMLInputElement>>('editNameInput');
+  private readonly addBondButton = viewChild<ElementRef<HTMLButtonElement>>('addBondButton');
+  private readonly bondNameInput = viewChild<ElementRef<HTMLInputElement>>('bondNameInput');
 
   protected readonly savedCharacter = this.characterDraft.character;
   protected readonly hasCharacter = computed(() => this.savedCharacter() !== null);
@@ -69,6 +71,8 @@ export class Character {
   protected readonly statusTrackMessages: Partial<Record<StatusTrackKey, string>> = {};
   protected momentumMessage = '';
   protected momentumOverride = false;
+  protected editingBondId: string | null = null;
+  protected bondMessage = '';
   protected readonly statusAnnouncement = computed(() => {
     const character = this.savedCharacter();
     if (!character) return '';
@@ -119,6 +123,11 @@ export class Character {
     spirit: [defaultCharacterForm.spirit, numberRange(0, 5)],
     supply: [defaultCharacterForm.supply, numberRange(0, 5)],
     momentum: [defaultCharacterForm.momentum, numberRange(-6, 10)],
+  });
+
+  protected readonly bondForm = this.formBuilder.group({
+    name: ['', [Validators.required, Validators.pattern(/\S/)]],
+    description: [''],
   });
 
   protected readonly identityStatsForm = this.formBuilder.group({
@@ -324,6 +333,100 @@ export class Character {
     this.statusTrackMessages[key] = updated
       ? `${this.playableStatusFields.find((field) => field.key === key)?.label} set to ${value}.`
       : 'No active character is available to update.';
+  }
+
+  protected beginAddBond(): void {
+    if (this.hasUnsavedBondChanges() && !confirm('Discard unsaved bond changes?')) return;
+
+    this.editingBondId = null;
+    this.bondForm.reset({ name: '', description: '' });
+    this.bondMessage = '';
+    queueMicrotask(() => this.bondNameInput()?.nativeElement.focus());
+  }
+
+  protected beginEditBond(bond: Bond): void {
+    if (this.hasUnsavedBondChanges() && !confirm('Discard unsaved bond changes?')) return;
+
+    this.editingBondId = bond.id;
+    this.bondForm.reset({ name: bond.name, description: bond.description ?? '' });
+    this.bondMessage = '';
+    queueMicrotask(() => this.bondNameInput()?.nativeElement.focus());
+  }
+
+  protected saveBond(): void {
+    if (this.bondForm.invalid) {
+      this.bondForm.markAllAsTouched();
+      return;
+    }
+
+    const formValue = this.bondForm.getRawValue();
+    const input = {
+      name: formValue.name.trim(),
+      description: formValue.description.trim() || undefined,
+    };
+
+    const updated = this.editingBondId
+      ? this.characterDraft.updateBond({ id: this.editingBondId, ...input })
+      : this.characterDraft.addBond(input);
+
+    if (updated) {
+      const returnId = this.editingBondId;
+      this.editingBondId = null;
+      this.bondForm.reset({ name: '', description: '' });
+      this.bondForm.markAsPristine();
+      this.bondMessage = 'Bond saved.';
+      queueMicrotask(() => this.focusBondAction(returnId));
+    }
+  }
+
+  protected cancelBondEdit(): void {
+    if (this.hasUnsavedBondChanges() && !confirm('Discard unsaved bond changes?')) return;
+
+    const returnId = this.editingBondId;
+    this.editingBondId = null;
+    this.bondForm.reset({ name: '', description: '' });
+    this.bondForm.markAsPristine();
+    this.bondMessage = '';
+    queueMicrotask(() => this.focusBondAction(returnId));
+  }
+
+  protected confirmRemoveBond(bond: Bond): void {
+    const warning = bond.description
+      ? `Remove ${bond.name} and discard its notes?`
+      : `Remove ${bond.name}?`;
+
+    if (!confirm(warning)) {
+      this.focusBondAction(bond.id);
+      return;
+    }
+
+    const updated = this.characterDraft.removeBond(bond.id);
+    if (updated) {
+      if (this.editingBondId === bond.id) {
+        this.editingBondId = null;
+        this.bondForm.reset({ name: '', description: '' });
+      }
+      this.bondMessage = 'Bond removed.';
+      queueMicrotask(() => this.addBondButton()?.nativeElement.focus());
+    }
+  }
+
+  protected showBondError(controlName: keyof typeof this.bondForm.controls): boolean {
+    const control = this.bondForm.controls[controlName];
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  private hasUnsavedBondChanges(): boolean {
+    return this.bondForm.dirty;
+  }
+
+  private focusBondAction(bondId: string | null): void {
+    if (!bondId) {
+      this.addBondButton()?.nativeElement.focus();
+      return;
+    }
+
+    document.querySelector<HTMLButtonElement>(`[data-bond-edit="${bondId}"]`)?.focus();
   }
 
   protected saveIdentityStats(): void {
