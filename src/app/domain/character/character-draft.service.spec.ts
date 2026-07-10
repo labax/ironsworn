@@ -112,6 +112,41 @@ describe('CharacterDraftService saved character loading', () => {
     });
   });
 
+  it('updates equipment and character notes independently while preserving unrelated active character fields', async () => {
+    const storage = new MemoryStorage();
+    const service = configureService(storage);
+    const activeCharacter = TestBed.inject(ActiveCharacterService);
+    activeCharacter.setActiveCharacter(
+      createMinimalCharacterFixture({ id: 'kept-note-id', notes: 'Original' }),
+    );
+
+    service.updateEquipmentNotes('Rope\nTorch; cloak');
+    await Promise.resolve();
+    expect(service.character()).toMatchObject({
+      id: 'kept-note-id',
+      name: 'Kara',
+      notes: 'Original',
+      equipmentNotes: 'Rope\nTorch; cloak',
+    });
+
+    service.updateNotes('Question? Answer: not yet.');
+    await Promise.resolve();
+    expect(service.character()).toMatchObject({
+      id: 'kept-note-id',
+      equipmentNotes: 'Rope\nTorch; cloak',
+      notes: 'Question? Answer: not yet.',
+    });
+
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload).toMatchObject({
+      id: 'kept-note-id',
+      equipmentNotes: 'Rope\nTorch; cloak',
+      notes: 'Question? Answer: not yet.',
+    });
+  });
+
   it('stores a blank edited concept as omitted optional data', async () => {
     const storage = new MemoryStorage();
     const service = configureService(storage);

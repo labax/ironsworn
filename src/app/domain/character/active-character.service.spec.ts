@@ -84,6 +84,23 @@ describe('ActiveCharacterService', () => {
     });
   });
 
+  it('patches equipment and character notes without replacing unrelated fields', () => {
+    service.setActiveCharacter(createMinimalCharacterFixture({ id: 'note-id', notes: 'Old note' }));
+
+    const updated = service.updateActiveCharacter({
+      equipmentNotes: 'Rope\nTorch; cloak',
+      notes: 'Idea: stay wary.',
+    });
+
+    expect(updated).toMatchObject({
+      id: 'note-id',
+      name: 'Kara',
+      stats: { edge: 3, heart: 2, iron: 2, shadow: 1, wits: 1 },
+      equipmentNotes: 'Rope\nTorch; cloak',
+      notes: 'Idea: stay wary.',
+    });
+  });
+
   it('returns null when patching an empty active character state', () => {
     expect(service.updateActiveCharacter({ name: 'No one' })).toBeNull();
     expect(service.activeCharacter()).toBeNull();

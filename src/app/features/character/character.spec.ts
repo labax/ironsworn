@@ -156,6 +156,95 @@ describe('Character', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('4');
   });
 
+  it('edits equipment and character notes independently with multiline text and preserves other fields', async () => {
+    saveDefaultCharacter();
+    const original = service.character();
+
+    component['saveEquipmentNotes']({
+      target: { value: `Rope, torch; cloak.\nKeepsake?` },
+    } as unknown as Event);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()).toMatchObject({
+      id: original?.id,
+      name: 'Kara',
+      notes: '',
+      equipmentNotes: `Rope, torch; cloak.\nKeepsake?`,
+      stats: original?.stats,
+    });
+
+    component['saveCharacterNotes']({
+      target: { value: `Question: who left the mark?\nTrust Brynn.` },
+    } as unknown as Event);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()).toMatchObject({
+      id: original?.id,
+      equipmentNotes: `Rope, torch; cloak.\nKeepsake?`,
+      notes: `Question: who left the mark?\nTrust Brynn.`,
+      statusTracks: original?.statusTracks,
+    });
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Equipment notes saved locally.',
+    );
+
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload.equipmentNotes).toBe(`Rope, torch; cloak.\nKeepsake?`);
+    expect(saved.payload.notes).toBe(`Question: who left the mark?\nTrust Brynn.`);
+  });
+
+  it('keeps current notes visible when local save fails', async () => {
+    saveDefaultCharacter();
+    storage.failWrites = true;
+
+    component['saveCharacterNotes']({
+      target: { value: 'Unsaved but visible' },
+    } as unknown as Event);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()?.notes).toBe('Unsaved but visible');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Save failed:');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'The current in-memory value is still shown.',
+    );
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLTextAreaElement>(
+        '#character-notes-editor',
+      )?.value,
+    ).toBe('Unsaved but visible');
+  });
+
+  it('restores saved equipment and character notes after reload', async () => {
+    saveDefaultCharacter();
+    component['saveEquipmentNotes']({ target: { value: `Bedroll\nMap.` } } as unknown as Event);
+    component['saveCharacterNotes']({
+      target: { value: 'Remember the oath.' },
+    } as unknown as Event);
+    await Promise.resolve();
+
+    service.clear();
+    fixture = TestBed.createComponent(Character);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    await service.loadSavedCharacter();
+    fixture.detectChanges();
+
+    expect(service.character()).toMatchObject({
+      equipmentNotes: `Bedroll\nMap.`,
+      notes: 'Remember the oath.',
+    });
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLTextAreaElement>(
+        '#equipment-notes-editor',
+      )?.value,
+    ).toBe(`Bedroll\nMap.`);
+  });
+
   it('opens the identity and stats editor with current active character values', () => {
     component['characterForm'].setValue({
       name: 'Kara',
