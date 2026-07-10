@@ -1011,6 +1011,99 @@ describe('Character', () => {
     );
   });
 
+  it('CS-12 completes a full character-sheet create-edit-reload regression journey', async () => {
+    component['characterForm'].setValue({
+      name: 'Rowan Vale',
+      concept: 'Wandering oathkeeper',
+      edge: 3,
+      heart: 2,
+      iron: 2,
+      shadow: 1,
+      wits: 1,
+      health: 5,
+      spirit: 5,
+      supply: 5,
+      momentum: 2,
+    });
+    component['saveCharacter']();
+    const originalId = service.character()?.id;
+
+    component['openIdentityStatsEditor']();
+    component['identityStatsForm'].setValue({
+      name: 'Rowan Vale',
+      concept: 'Wandering oathkeeper of the hills',
+      edge: 2,
+      heart: 3,
+      iron: 2,
+      shadow: 1,
+      wits: 1,
+    });
+    component['saveIdentityStats']();
+    component['commitStatusTrackInput']('health', { target: { value: '4' } } as unknown as Event);
+    component['commitStatusTrackInput']('spirit', { target: { value: '3' } } as unknown as Event);
+    component['commitStatusTrackInput']('supply', { target: { value: '2' } } as unknown as Event);
+    component['toggleDebility']({ id: 'wounded', label: 'Wounded', category: 'condition' }, {
+      target: { checked: true },
+    } as unknown as Event);
+    component['commitMomentumInput']('current', { target: { value: '6' } } as unknown as Event);
+    component['bondForm'].setValue({ name: 'Brynn', description: 'Met at the ford\nOwes a favor' });
+    component['saveBond']();
+    component['assetForm'].setValue({
+      name: 'Raven companion',
+      category: 'Companion',
+      source: 'My table',
+      notes: 'Trusted scout',
+    });
+    component['saveAsset']();
+    component['commitExperienceInput']('earned', { target: { value: '6' } } as unknown as Event);
+    component['commitExperienceInput']('spent', { target: { value: '2' } } as unknown as Event);
+    component['saveEquipmentNotes']({
+      target: { value: 'Rope, torch, keepsake\nSpare cloak' },
+    } as unknown as Event);
+    component['saveCharacterNotes']({
+      target: { value: 'Question: who left the mark?\nTrust Brynn.' },
+    } as unknown as Event);
+    await Promise.resolve();
+
+    service.clear();
+    fixture = TestBed.createComponent(Character);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    await service.loadSavedCharacter();
+    fixture.detectChanges();
+
+    expect(service.character()).toMatchObject({
+      id: originalId,
+      name: 'Rowan Vale',
+      concept: 'Wandering oathkeeper of the hills',
+      stats: { edge: 2, heart: 3, iron: 2, shadow: 1, wits: 1 },
+      statusTracks: { health: 4, spirit: 3, supply: 2 },
+      momentum: { current: 6, max: 9, reset: 1, hasOverride: false },
+      debilities: [{ id: 'wounded', type: 'wounded', category: 'condition', label: 'Wounded' }],
+      bonds: [{ name: 'Brynn', description: 'Met at the ford\nOwes a favor' }],
+      assets: [
+        {
+          name: 'Raven companion',
+          category: 'Companion',
+          source: 'My table',
+          notes: 'Trusted scout',
+          provenance: 'user_authored',
+        },
+      ],
+      experience: { earned: 6, spent: 2 },
+      equipmentNotes: 'Rope, torch, keepsake\nSpare cloak',
+      notes: 'Question: who left the mark?\nTrust Brynn.',
+    });
+    expect(service.character()?.bonds[0]?.id).toEqual(expect.any(String));
+    expect(service.character()?.assets[0]?.id).toEqual(expect.any(String));
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Rowan Vale is ready.');
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLTextAreaElement>(
+        '#equipment-notes-editor',
+      )?.value,
+    ).toBe('Rope, torch, keepsake\nSpare cloak');
+  });
+
   it('cancels identity and stat edits without changing the active character', () => {
     component['characterForm'].setValue({
       name: 'Kara',
