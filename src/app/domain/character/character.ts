@@ -40,11 +40,16 @@ export interface Bond {
   readonly progressTrackId?: EntityId;
 }
 
+export type AssetReferenceProvenance = 'user_authored' | 'approved_content';
+
 export interface AssetReference {
   readonly id: EntityId;
   readonly contentId?: EntityId;
   readonly name: string;
+  readonly category?: string;
   readonly notes?: string;
+  readonly source?: string;
+  readonly provenance: AssetReferenceProvenance;
 }
 
 export interface CharacterExperience {

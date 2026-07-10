@@ -11,6 +11,7 @@ import { environment } from '@environments/environment';
 import {
   createDefaultCharacter,
   isValidStats,
+  type AssetReference,
   type Bond,
   type Character,
   type CharacterDebility,
@@ -35,6 +36,7 @@ export interface PersistedActiveCharacter {
   readonly momentum: number | MomentumState;
   readonly debilities?: readonly CharacterDebility[];
   readonly bonds?: readonly Bond[];
+  readonly assets?: readonly AssetReference[];
   readonly experience?: CharacterExperience;
 }
 
@@ -54,6 +56,10 @@ export const toPersistedActiveCharacter = (character: Character): PersistedActiv
   momentum: { ...character.momentum },
   debilities: character.debilities.map((debility) => ({ ...debility })),
   bonds: character.bonds.map((bond) => ({ ...bond })),
+  assets: character.assets.map((asset) => ({
+    ...asset,
+    provenance: asset.provenance ?? 'user_authored',
+  })),
   experience: { ...character.experience },
 });
 
@@ -117,6 +123,30 @@ const isPersistedBond = (value: unknown): value is Bond => {
   );
 };
 
+const isPersistedAssetReference = (value: unknown): value is AssetReference => {
+  if (!isRecord(value)) return false;
+
+  const contentId = value['contentId'];
+  const category = value['category'];
+  const notes = value['notes'];
+  const source = value['source'];
+  const provenance = value['provenance'];
+
+  return (
+    typeof value['id'] === 'string' &&
+    value['id'].trim().length > 0 &&
+    (contentId === undefined || typeof contentId === 'string') &&
+    typeof value['name'] === 'string' &&
+    value['name'].trim().length > 0 &&
+    (category === undefined || typeof category === 'string') &&
+    (notes === undefined || typeof notes === 'string') &&
+    (source === undefined || typeof source === 'string') &&
+    (provenance === undefined ||
+      provenance === 'user_authored' ||
+      provenance === 'approved_content')
+  );
+};
+
 const isPersistedDebility = (value: unknown): value is CharacterDebility => {
   if (!isRecord(value)) return false;
 
@@ -149,6 +179,9 @@ const isPersistedDebilities = (value: unknown): value is readonly CharacterDebil
 const isPersistedBonds = (value: unknown): value is readonly Bond[] =>
   value === undefined || (Array.isArray(value) && value.every(isPersistedBond));
 
+const isPersistedAssets = (value: unknown): value is readonly AssetReference[] =>
+  value === undefined || (Array.isArray(value) && value.every(isPersistedAssetReference));
+
 const isPersistedExperience = (value: unknown): value is CharacterExperience =>
   value === undefined ||
   (isRecord(value) &&
@@ -170,6 +203,7 @@ const isPersistedActiveCharacter = (value: unknown): value is PersistedActiveCha
     hasValidMomentum(value['momentum']) &&
     isPersistedDebilities(value['debilities']) &&
     isPersistedBonds(value['bonds']) &&
+    isPersistedAssets(value['assets']) &&
     isPersistedExperience(value['experience'])
   );
 };
@@ -207,6 +241,15 @@ const toCharacter = (persisted: PersistedActiveCharacter, savedAt: string): Char
         ...bond,
         name: bond.name.trim(),
         description: bond.description?.trim() || undefined,
+      })) ?? [],
+    assets:
+      persisted.assets?.map((asset) => ({
+        ...asset,
+        name: asset.name.trim(),
+        category: asset.category?.trim() || undefined,
+        notes: asset.notes?.trim() || undefined,
+        source: asset.source?.trim() || undefined,
+        provenance: asset.provenance ?? 'user_authored',
       })) ?? [],
     experience: persisted.experience ? { ...persisted.experience } : baseCharacter.experience,
   };

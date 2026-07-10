@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 
 import {
   createDefaultCharacter,
+  type AssetReference,
   type Bond,
   type Character,
   type CharacterDebility,
@@ -63,6 +64,7 @@ const createEntityId = (prefix: string): string =>
 
 const createCharacterId = (): string => createEntityId('character');
 const createBondId = (): string => createEntityId('bond');
+const createAssetReferenceId = (): string => createEntityId('asset-reference');
 
 @Injectable({ providedIn: 'root' })
 export class CharacterDraftService {
@@ -224,6 +226,77 @@ export class CharacterDraftService {
 
     const updated = this.activeCharacterState.updateActiveCharacter({
       bonds: character.bonds.filter((bond) => bond.id !== id),
+    });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
+  }
+
+  addAssetReference(input: {
+    readonly name: string;
+    readonly category?: string;
+    readonly notes?: string;
+    readonly source?: string;
+  }): Character | null {
+    const character = this.activeCharacterState.activeCharacter();
+    if (!character) return null;
+
+    const asset: AssetReference = {
+      id: createAssetReferenceId(),
+      name: input.name.trim(),
+      category: input.category?.trim() || undefined,
+      notes: input.notes?.trim() || undefined,
+      source: input.source?.trim() || undefined,
+      provenance: 'user_authored',
+    };
+
+    const updated = this.activeCharacterState.updateActiveCharacter({
+      assets: [...character.assets, asset],
+    });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
+  }
+
+  updateAssetReference(input: AssetReference): Character | null {
+    const character = this.activeCharacterState.activeCharacter();
+    if (!character) return null;
+
+    const updatedAssets = character.assets.map((asset) =>
+      asset.id === input.id
+        ? {
+            ...asset,
+            name: input.name.trim(),
+            category: input.category?.trim() || undefined,
+            notes: input.notes?.trim() || undefined,
+            source: input.source?.trim() || undefined,
+            contentId: input.contentId,
+            provenance: input.provenance ?? 'user_authored',
+          }
+        : asset,
+    );
+
+    const updated = this.activeCharacterState.updateActiveCharacter({ assets: updatedAssets });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
+  }
+
+  removeAssetReference(id: string): Character | null {
+    const character = this.activeCharacterState.activeCharacter();
+    if (!character) return null;
+
+    const updated = this.activeCharacterState.updateActiveCharacter({
+      assets: character.assets.filter((asset) => asset.id !== id),
     });
 
     if (updated) {

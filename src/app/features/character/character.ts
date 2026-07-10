@@ -16,6 +16,7 @@ import {
   validateMomentumState,
 } from '@app/domain/character';
 import type {
+  AssetReference,
   Bond,
   CharacterDebility,
   CharacterExperience,
@@ -108,6 +109,8 @@ export class Character {
   private readonly editButton = viewChild<ElementRef<HTMLButtonElement>>('editButton');
   private readonly editNameInput = viewChild<ElementRef<HTMLInputElement>>('editNameInput');
   private readonly addBondButton = viewChild<ElementRef<HTMLButtonElement>>('addBondButton');
+  private readonly addAssetButton = viewChild<ElementRef<HTMLButtonElement>>('addAssetButton');
+  private readonly assetNameInput = viewChild<ElementRef<HTMLInputElement>>('assetNameInput');
   private readonly bondNameInput = viewChild<ElementRef<HTMLInputElement>>('bondNameInput');
 
   protected readonly savedCharacter = this.characterDraft.character;
@@ -123,6 +126,8 @@ export class Character {
   protected debilityMessage = '';
   protected momentumOverride = false;
   protected editingBondId: string | null = null;
+  protected editingAssetId: string | null = null;
+  protected assetMessage = '';
   protected bondMessage = '';
   protected experienceMessage = '';
   protected experienceManualOverride = false;
@@ -187,6 +192,13 @@ export class Character {
   protected readonly bondForm = this.formBuilder.group({
     name: ['', [Validators.required, Validators.pattern(/\S/)]],
     description: [''],
+  });
+
+  protected readonly assetForm = this.formBuilder.group({
+    name: ['', [Validators.required, Validators.pattern(/\S/)]],
+    category: [''],
+    source: [''],
+    notes: [''],
   });
 
   protected readonly identityStatsForm = this.formBuilder.group({
@@ -557,6 +569,114 @@ export class Character {
     this.statusTrackMessages[key] = updated
       ? `${this.playableStatusFields.find((field) => field.key === key)?.label} set to ${value}.`
       : 'No active character is available to update.';
+  }
+
+  protected beginAddAsset(): void {
+    if (this.hasUnsavedAssetChanges() && !confirm('Discard unsaved asset changes?')) return;
+
+    this.editingAssetId = null;
+    this.assetForm.reset({ name: '', category: '', source: '', notes: '' });
+    this.assetMessage = '';
+    queueMicrotask(() => this.assetNameInput()?.nativeElement.focus());
+  }
+
+  protected beginEditAsset(asset: AssetReference): void {
+    if (this.hasUnsavedAssetChanges() && !confirm('Discard unsaved asset changes?')) return;
+
+    this.editingAssetId = asset.id;
+    this.assetForm.reset({
+      name: asset.name,
+      category: asset.category ?? '',
+      source: asset.source ?? '',
+      notes: asset.notes ?? '',
+    });
+    this.assetMessage = '';
+    queueMicrotask(() => this.assetNameInput()?.nativeElement.focus());
+  }
+
+  protected saveAsset(): void {
+    if (this.assetForm.invalid) {
+      this.assetForm.markAllAsTouched();
+      return;
+    }
+
+    const formValue = this.assetForm.getRawValue();
+    const input = {
+      name: formValue.name.trim(),
+      category: formValue.category.trim() || undefined,
+      source: formValue.source.trim() || undefined,
+      notes: formValue.notes.trim() || undefined,
+    };
+
+    const current = this.savedCharacter()?.assets.find((asset) => asset.id === this.editingAssetId);
+    const updated = this.editingAssetId
+      ? this.characterDraft.updateAssetReference({
+          id: this.editingAssetId,
+          contentId: current?.contentId,
+          provenance: current?.provenance ?? 'user_authored',
+          ...input,
+        })
+      : this.characterDraft.addAssetReference(input);
+
+    if (updated) {
+      const returnId = this.editingAssetId;
+      this.editingAssetId = null;
+      this.assetForm.reset({ name: '', category: '', source: '', notes: '' });
+      this.assetForm.markAsPristine();
+      this.assetMessage = 'Asset reference saved.';
+      queueMicrotask(() => this.focusAssetAction(returnId));
+    }
+  }
+
+  protected cancelAssetEdit(): void {
+    if (this.hasUnsavedAssetChanges() && !confirm('Discard unsaved asset changes?')) return;
+
+    const returnId = this.editingAssetId;
+    this.editingAssetId = null;
+    this.assetForm.reset({ name: '', category: '', source: '', notes: '' });
+    this.assetForm.markAsPristine();
+    this.assetMessage = '';
+    queueMicrotask(() => this.focusAssetAction(returnId));
+  }
+
+  protected confirmRemoveAsset(asset: AssetReference): void {
+    if (asset.notes && !confirm(`Remove ${asset.name} and discard its notes?`)) {
+      this.focusAssetAction(asset.id);
+      return;
+    }
+
+    if (!asset.notes && !confirm(`Remove ${asset.name}?`)) {
+      this.focusAssetAction(asset.id);
+      return;
+    }
+
+    const updated = this.characterDraft.removeAssetReference(asset.id);
+    if (updated) {
+      if (this.editingAssetId === asset.id) {
+        this.editingAssetId = null;
+        this.assetForm.reset({ name: '', category: '', source: '', notes: '' });
+      }
+      this.assetMessage = 'Asset reference removed.';
+      queueMicrotask(() => this.addAssetButton()?.nativeElement.focus());
+    }
+  }
+
+  protected showAssetError(controlName: keyof typeof this.assetForm.controls): boolean {
+    const control = this.assetForm.controls[controlName];
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  private hasUnsavedAssetChanges(): boolean {
+    return this.assetForm.dirty;
+  }
+
+  private focusAssetAction(assetId: string | null): void {
+    if (!assetId) {
+      this.addAssetButton()?.nativeElement.focus();
+      return;
+    }
+
+    document.querySelector<HTMLButtonElement>(`[data-asset-edit="${assetId}"]`)?.focus();
   }
 
   protected beginAddBond(): void {
