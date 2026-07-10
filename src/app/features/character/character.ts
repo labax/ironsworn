@@ -7,11 +7,17 @@ import {
   Validators,
 } from '@angular/forms';
 
-import { CharacterDraftService, type CharacterCreationInput } from '@app/domain/character';
+import {
+  CharacterDraftService,
+  type CharacterCreationInput,
+  type StatusTrackKey,
+} from '@app/domain/character';
 import type { StatKey } from '@app/domain/character/character';
 
 const statKeys: readonly StatKey[] = ['edge', 'heart', 'iron', 'shadow', 'wits'];
 const standardStartingSpread = [3, 2, 2, 1, 1] as const;
+const statusTrackMinimum = 0;
+const statusTrackMaximum = 5;
 
 const wholeNumber = (control: AbstractControl): ValidationErrors | null =>
   Number.isInteger(control.value) ? null : { wholeNumber: true };
@@ -52,6 +58,22 @@ export class Character {
   protected readonly savedCharacter = this.characterDraft.character;
   protected readonly hasCharacter = computed(() => this.savedCharacter() !== null);
   protected editingIdentityStats = false;
+  protected readonly statusTrackOverrides: Record<StatusTrackKey, boolean> = {
+    health: false,
+    spirit: false,
+    supply: false,
+  };
+  protected readonly statusTrackMessages: Partial<Record<StatusTrackKey, string>> = {};
+  protected readonly statusAnnouncement = computed(() => {
+    const character = this.savedCharacter();
+    if (!character) return '';
+
+    return `Health ${character.statusTracks.health}, Spirit ${character.statusTracks.spirit}, Supply ${character.statusTracks.supply}.`;
+  });
+  protected readonly saveErrorMessage = computed(() => {
+    const result = this.characterDraft.lastSaveResult();
+    return result?.success === false ? result.error.message : 'Unable to save character.';
+  });
 
   protected readonly statFields = [
     { key: 'edge', label: 'Edge' },
@@ -66,6 +88,12 @@ export class Character {
     { key: 'spirit', label: 'Spirit', min: 0, max: 5 },
     { key: 'supply', label: 'Supply', min: 0, max: 5 },
     { key: 'momentum', label: 'Momentum', min: -6, max: 10 },
+  ] as const;
+
+  protected readonly playableStatusFields = [
+    { key: 'health', label: 'Health' },
+    { key: 'spirit', label: 'Spirit' },
+    { key: 'supply', label: 'Supply' },
   ] as const;
 
   protected readonly characterForm = this.formBuilder.group({
@@ -140,6 +168,79 @@ export class Character {
     this.editingIdentityStats = false;
     this.identityStatsForm.markAsPristine();
     queueMicrotask(() => this.editButton()?.nativeElement.focus());
+  }
+
+  protected statusTrackValue(key: StatusTrackKey): number {
+    return this.savedCharacter()?.statusTracks[key] ?? statusTrackMaximum;
+  }
+
+  protected canDecreaseStatusTrack(key: StatusTrackKey): boolean {
+    return this.statusTrackValue(key) > statusTrackMinimum;
+  }
+
+  protected canIncreaseStatusTrack(key: StatusTrackKey): boolean {
+    return this.statusTrackValue(key) < statusTrackMaximum;
+  }
+
+  protected updateStatusTrackOverride(key: StatusTrackKey, event: Event): void {
+    this.statusTrackOverrides[key] = (event.target as HTMLInputElement).checked;
+    this.statusTrackMessages[key] = this.statusTrackOverrides[key]
+      ? 'Override enabled. Values above 5 can be saved for variants or corrections.'
+      : undefined;
+  }
+
+  protected adjustStatusTrack(key: StatusTrackKey, delta: number): void {
+    const nextValue = this.statusTrackValue(key) + delta;
+    if (nextValue < statusTrackMinimum || nextValue > statusTrackMaximum) {
+      this.statusTrackMessages[key] = 'Use manual override to save values outside 0 to 5.';
+      return;
+    }
+
+    this.saveStatusTrackValue(key, nextValue);
+  }
+
+  protected commitStatusTrackInput(key: StatusTrackKey, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = Number(input.value);
+
+    if (!Number.isInteger(value)) {
+      this.statusTrackMessages[key] = 'Enter a whole number.';
+      input.value = String(this.statusTrackValue(key));
+      return;
+    }
+
+    if (value < statusTrackMinimum) {
+      this.statusTrackMessages[key] = 'Status tracks cannot be below 0.';
+      input.value = String(this.statusTrackValue(key));
+      return;
+    }
+
+    if (value > statusTrackMaximum && !this.statusTrackOverrides[key]) {
+      this.statusTrackMessages[key] = 'Turn on manual override before saving a value above 5.';
+      input.value = String(this.statusTrackValue(key));
+      return;
+    }
+
+    this.saveStatusTrackValue(key, value);
+  }
+
+  protected handleStatusTrackKeydown(key: StatusTrackKey, event: KeyboardEvent): void {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.adjustStatusTrack(key, 1);
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.adjustStatusTrack(key, -1);
+    }
+  }
+
+  private saveStatusTrackValue(key: StatusTrackKey, value: number): void {
+    const updated = this.characterDraft.updateStatusTrack(key, value);
+    this.statusTrackMessages[key] = updated
+      ? `${this.playableStatusFields.find((field) => field.key === key)?.label} set to ${value}.`
+      : 'No active character is available to update.';
   }
 
   protected saveIdentityStats(): void {
