@@ -108,7 +108,7 @@ describe('CharacterDraftService saved character loading', () => {
       concept: 'Storm watcher',
       stats: { edge: 4, heart: 0, iron: 5, shadow: 2, wits: 3 },
       statusTracks: { health: 5, spirit: 5, supply: 5 },
-      momentum: 2,
+      momentum: { current: 2, max: 10, reset: 2, hasOverride: false },
     });
   });
 

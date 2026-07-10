@@ -77,7 +77,7 @@ describe('ActiveCharacterPersistenceService', () => {
       concept: 'Wandering scout',
       stats: { edge: 3, heart: 2, iron: 2, shadow: 1, wits: 1 },
       statusTracks: { health: 5, spirit: 5, supply: 5 },
-      momentum: 2,
+      momentum: { current: 2, max: 10, reset: 2, hasOverride: false },
     });
   });
 
@@ -208,7 +208,7 @@ describe('ActiveCharacterPersistenceService', () => {
       name: 'Vale',
       stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 },
       statusTracks: { health: 4, spirit: 3, supply: 2 },
-      momentum: 4,
+      momentum: { current: 4, max: 10, reset: 2, hasOverride: false },
     });
   });
 
