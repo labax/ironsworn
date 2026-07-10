@@ -130,6 +130,8 @@ export class Character {
   protected assetMessage = '';
   protected bondMessage = '';
   protected experienceMessage = '';
+  protected equipmentNotesMessage = '';
+  protected characterNotesMessage = '';
   protected experienceManualOverride = false;
   protected readonly statusAnnouncement = computed(() => {
     const character = this.savedCharacter();
@@ -568,6 +570,24 @@ export class Character {
     const updated = this.characterDraft.updateStatusTrack(key, value);
     this.statusTrackMessages[key] = updated
       ? `${this.playableStatusFields.find((field) => field.key === key)?.label} set to ${value}.`
+      : 'No active character is available to update.';
+  }
+
+  protected saveEquipmentNotes(source: Event | HTMLTextAreaElement): void {
+    const input =
+      source instanceof HTMLTextAreaElement ? source : (source.target as HTMLTextAreaElement);
+    const updated = this.characterDraft.updateEquipmentNotes(input.value);
+    this.equipmentNotesMessage = updated
+      ? 'Equipment notes saved locally.'
+      : 'No active character is available to update.';
+  }
+
+  protected saveCharacterNotes(source: Event | HTMLTextAreaElement): void {
+    const input =
+      source instanceof HTMLTextAreaElement ? source : (source.target as HTMLTextAreaElement);
+    const updated = this.characterDraft.updateNotes(input.value);
+    this.characterNotesMessage = updated
+      ? 'Character notes saved locally.'
       : 'No active character is available to update.';
   }
 

@@ -357,7 +357,8 @@ button {
 }
 
 .bonds-section,
-.assets-section {
+.assets-section,
+.notes-section {
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 1rem;
   background: rgba(15, 23, 42, 0.72);
@@ -375,6 +376,7 @@ button {
 }
 
 .bond-empty-state,
+.note-empty-state,
 .bond-card,
 .bond-form {
   border: 1px solid rgba(147, 197, 253, 0.2);
@@ -406,6 +408,17 @@ button {
   white-space: pre-wrap;
 }
 
+.notes-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.notes-editor {
+  min-height: 10rem;
+  resize: vertical;
+  width: 100%;
+}
+
 .danger-button {
   background: #fecaca;
   color: #7f1d1d;
@@ -413,7 +426,8 @@ button {
 
 @media (max-width: 42rem) {
   .bonds-section,
-  .assets-section {
+  .assets-section,
+  .notes-section {
     padding: 1rem;
   }
 

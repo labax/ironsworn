@@ -374,6 +374,88 @@
         }
       </section>
 
+      <section class="notes-section" aria-labelledby="equipment-notes-title">
+        <div class="card-heading">
+          <div>
+            <h3 id="equipment-notes-title">Equipment</h3>
+            <p>Plain-text notes for carried gear, supplies, or other user-authored reminders.</p>
+          </div>
+        </div>
+        @if (!savedCharacter()?.equipmentNotes) {
+          <div class="note-empty-state" role="status">
+            <strong>No equipment notes yet.</strong>
+            <span
+              >Add your own gear notes here; this sheet does not manage quantities or rules.</span
+            >
+          </div>
+        }
+        <label for="equipment-notes-editor">Equipment notes</label>
+        <textarea
+          #equipmentNotesEditor
+          id="equipment-notes-editor"
+          class="notes-editor"
+          rows="6"
+          [value]="savedCharacter()?.equipmentNotes ?? ''"
+          aria-describedby="equipment-notes-help equipment-notes-message"
+          placeholder="Type user-authored equipment notes"
+          (change)="saveEquipmentNotes($event)"
+        ></textarea>
+        <div class="form-actions">
+          <button type="button" (click)="saveEquipmentNotes(equipmentNotesEditor)">
+            Save equipment notes
+          </button>
+        </div>
+        <p id="equipment-notes-help" class="helper-text">
+          Line breaks and punctuation are saved as plain text through the character save path.
+        </p>
+        @if (equipmentNotesMessage) {
+          <p id="equipment-notes-message" class="helper-text" role="status">
+            {{ equipmentNotesMessage }}
+          </p>
+        }
+      </section>
+
+      <section class="notes-section" aria-labelledby="character-notes-title">
+        <div class="card-heading">
+          <div>
+            <h3 id="character-notes-title">Character Notes</h3>
+            <p>Freeform, user-authored notes for this character.</p>
+          </div>
+        </div>
+        @if (!savedCharacter()?.notes) {
+          <div class="note-empty-state" role="status">
+            <strong>No character notes yet.</strong>
+            <span
+              >Add personal reminders, questions, or ideas without creating a campaign wiki.</span
+            >
+          </div>
+        }
+        <label for="character-notes-editor">Character notes</label>
+        <textarea
+          #characterNotesEditor
+          id="character-notes-editor"
+          class="notes-editor"
+          rows="6"
+          [value]="savedCharacter()?.notes ?? ''"
+          aria-describedby="character-notes-help character-notes-message"
+          placeholder="Type user-authored character notes"
+          (change)="saveCharacterNotes($event)"
+        ></textarea>
+        <div class="form-actions">
+          <button type="button" (click)="saveCharacterNotes(characterNotesEditor)">
+            Save character notes
+          </button>
+        </div>
+        <p id="character-notes-help" class="helper-text">
+          Saved separately from equipment so each area can be edited independently.
+        </p>
+        @if (characterNotesMessage) {
+          <p id="character-notes-message" class="helper-text" role="status">
+            {{ characterNotesMessage }}
+          </p>
+        }
+      </section>
+
       <section class="assets-section" aria-labelledby="assets-title">
         <div class="card-heading bonds-heading">
           <div>

@@ -93,6 +93,26 @@ export class CharacterDraftService {
     return result;
   }
 
+  updateEquipmentNotes(equipmentNotes: string): Character | null {
+    const updated = this.activeCharacterState.updateActiveCharacter({ equipmentNotes });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
+  }
+
+  updateNotes(notes: string): Character | null {
+    const updated = this.activeCharacterState.updateActiveCharacter({ notes });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
+  }
+
   updateExperience(experience: CharacterExperience): Character | null {
     const updated = this.activeCharacterState.updateActiveCharacter({ experience });
 

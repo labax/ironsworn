@@ -79,7 +79,36 @@ describe('ActiveCharacterPersistenceService', () => {
       statusTracks: { health: 5, spirit: 5, supply: 5 },
       momentum: { current: 2, max: 10, reset: 2, hasOverride: false },
       bonds: [],
+      equipmentNotes: '',
+      notes: '',
       experience: { earned: 0, spent: 0 },
+    });
+  });
+
+  it('saves and loads multiline equipment and character notes exactly', async () => {
+    const storage = new MemoryStorage();
+    const service = configureService(storage);
+    const character = createMinimalCharacterFixture({
+      equipmentNotes: 'Rope, torch; keepsake.\nSpare cloak',
+      notes: 'Question: who left the mark?\nRemember: trust Brynn.',
+    });
+
+    await service.saveActiveCharacter(character);
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload.equipmentNotes).toBe(character.equipmentNotes);
+    expect(saved.payload.notes).toBe(character.notes);
+
+    const loadResult = await service.loadActiveCharacter();
+    expect(loadResult).toMatchObject({
+      success: true,
+      found: true,
+      character: {
+        id: 'character-fixture-1',
+        equipmentNotes: character.equipmentNotes,
+        notes: character.notes,
+      },
     });
   });
 

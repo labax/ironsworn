@@ -37,6 +37,8 @@ export interface PersistedActiveCharacter {
   readonly debilities?: readonly CharacterDebility[];
   readonly bonds?: readonly Bond[];
   readonly assets?: readonly AssetReference[];
+  readonly equipmentNotes?: string;
+  readonly notes?: string;
   readonly experience?: CharacterExperience;
 }
 
@@ -60,6 +62,8 @@ export const toPersistedActiveCharacter = (character: Character): PersistedActiv
     ...asset,
     provenance: asset.provenance ?? 'user_authored',
   })),
+  equipmentNotes: character.equipmentNotes,
+  notes: character.notes,
   experience: { ...character.experience },
 });
 
@@ -194,10 +198,14 @@ const isPersistedActiveCharacter = (value: unknown): value is PersistedActiveCha
   if (!isRecord(value)) return false;
 
   const concept = value['concept'];
+  const equipmentNotes = value['equipmentNotes'];
+  const notes = value['notes'];
   return (
     typeof value['name'] === 'string' &&
     value['name'].trim().length > 0 &&
     (concept === undefined || typeof concept === 'string') &&
+    (equipmentNotes === undefined || typeof equipmentNotes === 'string') &&
+    (notes === undefined || typeof notes === 'string') &&
     isPersistedStats(value['stats']) &&
     isPersistedStatusTracks(value['statusTracks']) &&
     hasValidMomentum(value['momentum']) &&
@@ -251,6 +259,8 @@ const toCharacter = (persisted: PersistedActiveCharacter, savedAt: string): Char
         source: asset.source?.trim() || undefined,
         provenance: asset.provenance ?? 'user_authored',
       })) ?? [],
+    equipmentNotes: persisted.equipmentNotes ?? '',
+    notes: persisted.notes ?? '',
     experience: persisted.experience ? { ...persisted.experience } : baseCharacter.experience,
   };
 };

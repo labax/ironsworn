@@ -12,6 +12,8 @@ export type ActiveCharacter = Pick<
   | 'debilities'
   | 'bonds'
   | 'assets'
+  | 'equipmentNotes'
+  | 'notes'
   | 'experience'
 >;
 
