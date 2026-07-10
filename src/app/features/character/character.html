@@ -1,8 +1,8 @@
 <section class="character-page" aria-labelledby="character-title">
   <div class="character-header">
-    <p class="section-label">Character setup</p>
-    <h2 id="character-title">Create a character</h2>
-    <p>Start with the essentials. You can adjust these values before saving.</p>
+    <p class="section-label">Character sheet</p>
+    <h2 id="character-title">Character</h2>
+    <p>Create a character, then manage identity and core stats from the sheet.</p>
   </div>
 
   @if (!hasCharacter()) {
@@ -10,122 +10,187 @@
       <strong>No character saved yet.</strong>
       <span>Fill out this form to prepare the first play step.</span>
     </div>
+
+    <form
+      class="character-form"
+      [formGroup]="characterForm"
+      (ngSubmit)="saveCharacter()"
+      novalidate
+    >
+      <div class="form-card identity-card">
+        <h3>Identity</h3>
+        <label for="character-name">Name <span aria-hidden="true">*</span></label>
+        <input id="character-name" type="text" formControlName="name" autocomplete="off" required />
+        @if (showError('name')) {
+          <p class="field-error">Enter a character name.</p>
+        }
+
+        <label for="character-concept">Concept</label>
+        <textarea
+          id="character-concept"
+          formControlName="concept"
+          rows="3"
+          placeholder="Optional short idea"
+        ></textarea>
+      </div>
+
+      <div class="form-card">
+        <div class="card-heading">
+          <h3>Core stats</h3>
+          <p>Common starting spread: 3, 2, 2, 1, 1.</p>
+        </div>
+        <div class="number-grid">
+          @for (field of statFields; track field.key) {
+            <div class="number-field">
+              <label [for]="field.key">{{ field.label }}</label>
+              <input
+                [id]="field.key"
+                type="number"
+                min="0"
+                max="5"
+                step="1"
+                [formControlName]="field.key"
+              />
+              @if (showError(field.key)) {
+                <p class="field-error">Use a whole number from 0 to 5.</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>Status</h3>
+        <div class="number-grid">
+          @for (field of statusFields; track field.key) {
+            <div class="number-field">
+              <label [for]="field.key">{{ field.label }}</label>
+              <input
+                [id]="field.key"
+                type="number"
+                [min]="field.min"
+                [max]="field.max"
+                step="1"
+                [formControlName]="field.key"
+              />
+              @if (showError(field.key)) {
+                <p class="field-error">
+                  Use a whole number from {{ field.min }} to {{ field.max }}.
+                </p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit">Save character</button>
+        <button type="button" class="secondary-button" (click)="resetForm()">Reset defaults</button>
+      </div>
+    </form>
   } @else {
-    <div class="saved-state" role="status">
-      <div>
-        <strong>{{ savedCharacter()?.name }} is ready.</strong>
-        <span>Saved in app memory for the next character flow.</span>
+    <section class="sheet-shell" aria-labelledby="sheet-title">
+      <div class="saved-state" role="status">
+        <div>
+          <strong id="sheet-title">{{ savedCharacter()?.name }} is ready.</strong>
+          <span>{{ savedCharacter()?.concept || 'No concept added.' }}</span>
+        </div>
+        <button
+          #editButton
+          type="button"
+          class="secondary-button"
+          (click)="openIdentityStatsEditor()"
+        >
+          Edit identity and stats
+        </button>
       </div>
 
       <dl class="character-summary" aria-label="Stored character summary">
-        <div>
-          <dt>Edge</dt>
-          <dd>{{ savedCharacter()?.stats?.edge }}</dd>
-        </div>
-        <div>
-          <dt>Heart</dt>
-          <dd>{{ savedCharacter()?.stats?.heart }}</dd>
-        </div>
-        <div>
-          <dt>Iron</dt>
-          <dd>{{ savedCharacter()?.stats?.iron }}</dd>
-        </div>
-        <div>
-          <dt>Shadow</dt>
-          <dd>{{ savedCharacter()?.stats?.shadow }}</dd>
-        </div>
-        <div>
-          <dt>Wits</dt>
-          <dd>{{ savedCharacter()?.stats?.wits }}</dd>
-        </div>
-        <div>
-          <dt>Health</dt>
-          <dd>{{ savedCharacter()?.statusTracks?.health }}</dd>
-        </div>
-        <div>
-          <dt>Spirit</dt>
-          <dd>{{ savedCharacter()?.statusTracks?.spirit }}</dd>
-        </div>
-        <div>
-          <dt>Supply</dt>
-          <dd>{{ savedCharacter()?.statusTracks?.supply }}</dd>
-        </div>
-        <div>
-          <dt>Momentum</dt>
-          <dd>{{ savedCharacter()?.momentum?.current }}</dd>
-        </div>
-      </dl>
-    </div>
-  }
-
-  <form class="character-form" [formGroup]="characterForm" (ngSubmit)="saveCharacter()" novalidate>
-    <div class="form-card identity-card">
-      <h3>Identity</h3>
-      <label for="character-name">Name <span aria-hidden="true">*</span></label>
-      <input id="character-name" type="text" formControlName="name" autocomplete="off" required />
-      @if (showError('name')) {
-        <p class="field-error">Enter a character name.</p>
-      }
-
-      <label for="character-concept">Concept</label>
-      <textarea
-        id="character-concept"
-        formControlName="concept"
-        rows="3"
-        placeholder="Optional short idea"
-      ></textarea>
-    </div>
-
-    <div class="form-card">
-      <div class="card-heading">
-        <h3>Core stats</h3>
-        <p>Common starting spread: 3, 2, 2, 1, 1.</p>
-      </div>
-      <div class="number-grid">
         @for (field of statFields; track field.key) {
-          <div class="number-field">
-            <label [for]="field.key">{{ field.label }}</label>
-            <input
-              [id]="field.key"
-              type="number"
-              min="0"
-              max="5"
-              step="1"
-              [formControlName]="field.key"
-            />
-            @if (showError(field.key)) {
-              <p class="field-error">Use a whole number from 0 to 5.</p>
-            }
+          <div>
+            <dt>{{ field.label }}</dt>
+            <dd>{{ savedCharacter()?.stats?.[field.key] }}</dd>
           </div>
         }
-      </div>
-    </div>
-
-    <div class="form-card">
-      <h3>Status</h3>
-      <div class="number-grid">
         @for (field of statusFields; track field.key) {
-          <div class="number-field">
-            <label [for]="field.key">{{ field.label }}</label>
-            <input
-              [id]="field.key"
-              type="number"
-              [min]="field.min"
-              [max]="field.max"
-              step="1"
-              [formControlName]="field.key"
-            />
-            @if (showError(field.key)) {
-              <p class="field-error">Use a value from {{ field.min }} to {{ field.max }}.</p>
-            }
+          <div>
+            <dt>{{ field.label }}</dt>
+            <dd>
+              @if (field.key === 'momentum') {
+                {{ savedCharacter()?.momentum?.current }}
+              } @else {
+                {{ savedCharacter()?.statusTracks?.[field.key] }}
+              }
+            </dd>
           </div>
         }
-      </div>
-    </div>
+      </dl>
+    </section>
 
-    <div class="form-actions">
-      <button type="submit">Save character</button>
-      <button type="button" class="secondary-button" (click)="resetForm()">Reset defaults</button>
-    </div>
-  </form>
+    @if (editingIdentityStats) {
+      <form
+        class="character-form edit-form"
+        [formGroup]="identityStatsForm"
+        (ngSubmit)="saveIdentityStats()"
+        aria-labelledby="identity-stats-editor-title"
+        novalidate
+      >
+        <div class="form-card identity-card">
+          <h3 id="identity-stats-editor-title">Edit identity and stats</h3>
+          <label for="edit-character-name">Name <span aria-hidden="true">*</span></label>
+          <input
+            #editNameInput
+            id="edit-character-name"
+            type="text"
+            formControlName="name"
+            autocomplete="off"
+            required
+          />
+          @if (showEditError('name')) {
+            <p class="field-error">Enter a character name.</p>
+          }
+
+          <label for="edit-character-concept">Concept</label>
+          <textarea id="edit-character-concept" formControlName="concept" rows="3"></textarea>
+        </div>
+
+        <div class="form-card">
+          <div class="card-heading">
+            <h3>Core stats</h3>
+            <p>Common starting spread: 3, 2, 2, 1, 1.</p>
+          </div>
+          <div class="number-grid">
+            @for (field of statFields; track field.key) {
+              <div class="number-field">
+                <label [for]="'edit-' + field.key">{{ field.label }}</label>
+                <input
+                  [id]="'edit-' + field.key"
+                  type="number"
+                  min="0"
+                  max="5"
+                  step="1"
+                  [formControlName]="field.key"
+                />
+                @if (showEditError(field.key)) {
+                  <p class="field-error">Use a whole number from 0 to 5.</p>
+                }
+              </div>
+            }
+          </div>
+          @if (!usesStandardSpread()) {
+            <p class="field-warning" role="status">
+              These stats differ from 3, 2, 2, 1, 1. You can save them if intentional.
+            </p>
+          }
+        </div>
+
+        <div class="form-actions">
+          <button type="submit">Save changes</button>
+          <button type="button" class="secondary-button" (click)="cancelIdentityStatsEditor()">
+            Cancel
+          </button>
+        </div>
+      </form>
+    }
+  }
 </section>
