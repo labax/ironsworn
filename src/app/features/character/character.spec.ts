@@ -11,12 +11,14 @@ import { Character } from './character';
 
 class MemoryStorage implements BrowserStorageLike {
   readonly values = new Map<string, string>();
+  failWrites = false;
 
   getItem(key: string): string | null {
     return this.values.get(key) ?? null;
   }
 
   setItem(key: string, value: string): void {
+    if (this.failWrites) throw new DOMException('Test save failure', 'QuotaExceededError');
     this.values.set(key, value);
   }
 
@@ -30,6 +32,24 @@ describe('Character', () => {
   let component: Character;
   let service: CharacterDraftService;
   let storage: MemoryStorage;
+
+  const saveDefaultCharacter = () => {
+    component['characterForm'].setValue({
+      name: 'Kara',
+      concept: 'Wandering scout',
+      edge: 3,
+      heart: 2,
+      iron: 2,
+      shadow: 1,
+      wits: 1,
+      health: 3,
+      spirit: 2,
+      supply: 1,
+      momentum: 4,
+    });
+    component['saveCharacter']();
+    fixture.detectChanges();
+  };
 
   beforeEach(async () => {
     storage = new MemoryStorage();
@@ -275,6 +295,106 @@ describe('Character', () => {
 
     component['saveIdentityStats']();
     expect(service.character()?.stats).toEqual({ edge: 5, heart: 4, iron: 3, shadow: 2, wits: 1 });
+  });
+
+  it('renders prominent in-session Health, Spirit, and Supply controls', () => {
+    saveDefaultCharacter();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.textContent).toContain('In-session status');
+    expect(compiled.querySelector('#health-status-input')?.getAttribute('aria-label')).toBe(
+      'Health value',
+    );
+    expect(compiled.querySelector('button[aria-label="Decrease Spirit"]')).toBeTruthy();
+    expect(compiled.querySelector('button[aria-label="Increase Supply"]')).toBeTruthy();
+  });
+
+  it('increments and decrements each status track without changing unrelated fields', async () => {
+    saveDefaultCharacter();
+    const original = service.character();
+
+    component['adjustStatusTrack']('health', 1);
+    component['adjustStatusTrack']('spirit', -1);
+    component['adjustStatusTrack']('supply', 1);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()).toMatchObject({
+      id: original?.id,
+      name: 'Kara',
+      concept: 'Wandering scout',
+      stats: original?.stats,
+      momentum: { current: 4 },
+      statusTracks: { health: 4, spirit: 1, supply: 2 },
+    });
+
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload.statusTracks).toEqual({ health: 4, spirit: 1, supply: 2 });
+    expect(saved.payload.name).toBe('Kara');
+  });
+
+  it('does not let normal increment or decrement controls move outside 0 to 5', () => {
+    saveDefaultCharacter();
+    component['commitStatusTrackInput']('health', { target: { value: '5' } } as unknown as Event);
+    component['commitStatusTrackInput']('spirit', { target: { value: '0' } } as unknown as Event);
+
+    component['adjustStatusTrack']('health', 1);
+    component['adjustStatusTrack']('spirit', -1);
+
+    expect(service.character()?.statusTracks).toMatchObject({ health: 5, spirit: 0, supply: 1 });
+    expect(component['statusTrackMessages'].health).toContain('manual override');
+    expect(component['statusTrackMessages'].spirit).toContain('manual override');
+  });
+
+  it('directly edits a selected status track and rejects invalid values without changing state', () => {
+    saveDefaultCharacter();
+
+    component['commitStatusTrackInput']('supply', { target: { value: '4' } } as unknown as Event);
+    component['commitStatusTrackInput']('supply', { target: { value: '-1' } } as unknown as Event);
+    component['commitStatusTrackInput']('supply', { target: { value: '2.5' } } as unknown as Event);
+
+    expect(service.character()?.statusTracks).toEqual({ health: 3, spirit: 2, supply: 4 });
+    expect(component['statusTrackMessages'].supply).toBe('Enter a whole number.');
+  });
+
+  it('requires explicit manual override for values above 5 and preserves the override after reload', async () => {
+    saveDefaultCharacter();
+    const originalId = service.character()?.id;
+
+    component['commitStatusTrackInput']('health', { target: { value: '6' } } as unknown as Event);
+    expect(service.character()?.statusTracks.health).toBe(3);
+
+    component['updateStatusTrackOverride']('health', {
+      target: { checked: true },
+    } as unknown as Event);
+    component['commitStatusTrackInput']('health', { target: { value: '6' } } as unknown as Event);
+    await Promise.resolve();
+
+    service.clear();
+    await service.loadSavedCharacter();
+
+    expect(service.character()).toMatchObject({
+      id: originalId,
+      statusTracks: { health: 6, spirit: 2, supply: 1 },
+    });
+  });
+
+  it('shows save failure feedback without losing the in-memory status value', async () => {
+    saveDefaultCharacter();
+    storage.failWrites = true;
+
+    component['adjustStatusTrack']('health', 1);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()?.statusTracks.health).toBe(4);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Save failed:');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'The current in-memory value is still shown.',
+    );
   });
 
   it('cancels identity and stat edits without changing the active character', () => {

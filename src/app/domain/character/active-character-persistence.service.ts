@@ -11,7 +11,6 @@ import { environment } from '@environments/environment';
 import {
   createDefaultCharacter,
   isValidStats,
-  isValidStatusTracks,
   type Character,
   type Stats,
   type StatusTracks,
@@ -22,6 +21,9 @@ export const ACTIVE_CHARACTER_STORAGE_KEY = 'ironsworn.activeCharacter';
 export type ActiveCharacterSaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
 export interface PersistedActiveCharacter {
+  readonly id?: string;
+  readonly createdAt?: string;
+  readonly updatedAt?: string;
   readonly name: string;
   readonly concept?: string;
   readonly stats: Stats;
@@ -35,6 +37,9 @@ export type ActiveCharacterLoadResult =
   | { readonly success: false; readonly error: StorageError };
 
 export const toPersistedActiveCharacter = (character: Character): PersistedActiveCharacter => ({
+  id: character.id,
+  createdAt: character.createdAt,
+  updatedAt: character.updatedAt,
   name: character.name,
   concept: character.concept,
   stats: { ...character.stats },
@@ -53,10 +58,15 @@ const isPersistedStats = (value: unknown): value is Stats =>
   ['edge', 'heart', 'iron', 'shadow', 'wits'].every((key) => typeof value[key] === 'number') &&
   isValidStats(value as unknown as Stats);
 
+const hasPersistableStatusTrackValues = (tracks: StatusTracks): boolean =>
+  [tracks.health, tracks.spirit, tracks.supply].every(
+    (value) => Number.isInteger(value) && value >= 0,
+  );
+
 const isPersistedStatusTracks = (value: unknown): value is StatusTracks =>
   isRecord(value) &&
   ['health', 'spirit', 'supply'].every((key) => typeof value[key] === 'number') &&
-  isValidStatusTracks(value as unknown as StatusTracks);
+  hasPersistableStatusTrackValues(value as unknown as StatusTracks);
 
 const isPersistedActiveCharacter = (value: unknown): value is PersistedActiveCharacter => {
   if (!isRecord(value)) return false;
@@ -79,9 +89,9 @@ const createRestoredCharacterId = (): string =>
 
 const toCharacter = (persisted: PersistedActiveCharacter, savedAt: string): Character => {
   const baseCharacter = createDefaultCharacter({
-    id: createRestoredCharacterId(),
-    createdAt: savedAt,
-    updatedAt: savedAt,
+    id: persisted.id ?? createRestoredCharacterId(),
+    createdAt: persisted.createdAt ?? savedAt,
+    updatedAt: persisted.updatedAt ?? savedAt,
     name: persisted.name.trim(),
     concept: persisted.concept?.trim() || undefined,
   });

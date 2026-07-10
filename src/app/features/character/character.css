@@ -193,3 +193,103 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+.status-controls {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 1.25rem;
+}
+
+.status-control-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  margin-top: 1rem;
+}
+
+.status-control-card {
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.24);
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.status-control-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.status-control-heading h4 {
+  margin: 0;
+}
+
+.status-control-heading strong {
+  color: #bfdbfe;
+  font-size: 1.75rem;
+}
+
+.track-actions {
+  align-items: center;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 3rem minmax(4rem, 1fr) 3rem;
+}
+
+.track-button {
+  border-radius: 0.75rem;
+  min-height: 3rem;
+  padding: 0.5rem;
+}
+
+.track-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.status-input {
+  text-align: center;
+}
+
+.override-toggle {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.override-toggle input {
+  width: auto;
+}
+
+.helper-text {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.sr-only {
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (max-width: 42rem) {
+  .status-controls {
+    padding: 1rem;
+  }
+
+  .track-actions {
+    grid-template-columns: 3.25rem minmax(0, 1fr) 3.25rem;
+  }
+}

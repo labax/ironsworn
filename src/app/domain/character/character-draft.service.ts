@@ -13,6 +13,8 @@ import {
   type ActiveCharacterLoadResult,
 } from './active-character-persistence.service';
 
+export type StatusTrackKey = keyof StatusTracks;
+
 export interface CharacterIdentityStatsInput {
   readonly name: string;
   readonly concept?: string;
@@ -80,6 +82,18 @@ export class CharacterDraftService {
     }
 
     return result;
+  }
+
+  updateStatusTrack(key: StatusTrackKey, value: number): Character | null {
+    const updated = this.activeCharacterState.updateActiveCharacter({
+      statusTracks: { [key]: value },
+    });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
   }
 
   updateIdentityAndStats(input: CharacterIdentityStatsInput): Character | null {

@@ -69,7 +69,10 @@ describe('ActiveCharacterPersistenceService', () => {
       namespace: ACTIVE_CHARACTER_STORAGE_KEY,
       contentType: 'active-character',
     });
-    expect(saved.payload).toEqual({
+    expect(saved.payload).toMatchObject({
+      id: 'character-fixture-1',
+      createdAt: '2026-01-02T03:04:05.000Z',
+      updatedAt: '2026-01-02T03:04:05.000Z',
       name: 'Kara',
       concept: 'Wandering scout',
       stats: { edge: 3, heart: 2, iron: 2, shadow: 1, wits: 1 },
@@ -108,6 +111,41 @@ describe('ActiveCharacterPersistenceService', () => {
         stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 },
         statusTracks: { health: 4, spirit: 3, supply: 2 },
         momentum: { current: 4 },
+      },
+    });
+  });
+
+  it('loads saved override values and preserved identity metadata', async () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      ACTIVE_CHARACTER_STORAGE_KEY,
+      JSON.stringify(
+        createSaveEnvelope<PersistedActiveCharacter>(
+          {
+            id: 'character-override',
+            createdAt: '2026-02-01T00:00:00.000Z',
+            updatedAt: '2026-02-02T00:00:00.000Z',
+            name: 'Vale',
+            stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 },
+            statusTracks: { health: 6, spirit: 3, supply: 2 },
+            momentum: 4,
+          },
+          { appVersion: 'test', savedAt: '2026-02-03T04:05:06.000Z' },
+        ),
+      ),
+    );
+    const service = configureService(storage);
+
+    const result = await service.loadActiveCharacter();
+
+    expect(result).toMatchObject({
+      success: true,
+      found: true,
+      character: {
+        id: 'character-override',
+        createdAt: '2026-02-01T00:00:00.000Z',
+        updatedAt: '2026-02-02T00:00:00.000Z',
+        statusTracks: { health: 6, spirit: 3, supply: 2 },
       },
     });
   });
@@ -163,7 +201,10 @@ describe('ActiveCharacterPersistenceService', () => {
       payload: PersistedActiveCharacter;
     };
 
-    expect(saved.payload).toEqual({
+    expect(saved.payload).toMatchObject({
+      id: 'character-fixture-1',
+      createdAt: '2026-01-02T03:04:05.000Z',
+      updatedAt: '2026-01-02T03:04:05.000Z',
       name: 'Vale',
       stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 },
       statusTracks: { health: 4, spirit: 3, supply: 2 },

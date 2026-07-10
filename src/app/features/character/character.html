@@ -125,6 +125,100 @@
           </div>
         }
       </dl>
+
+      <section class="status-controls" aria-labelledby="status-controls-title">
+        <div class="card-heading">
+          <h3 id="status-controls-title">In-session status</h3>
+          <p>Adjust Health, Spirit, and Supply during play. Normal controls stay within 0 to 5.</p>
+        </div>
+        <p class="sr-only" aria-live="polite">{{ statusAnnouncement() }}</p>
+        <div class="status-control-grid">
+          @for (field of playableStatusFields; track field.key) {
+            <article
+              class="status-control-card"
+              [attr.aria-labelledby]="field.key + '-status-title'"
+            >
+              <div class="status-control-heading">
+                <h4 [id]="field.key + '-status-title'">{{ field.label }}</h4>
+                <strong>{{ statusTrackValue(field.key) }}</strong>
+              </div>
+              <div class="track-actions" role="group" [attr.aria-label]="field.label + ' controls'">
+                <button
+                  type="button"
+                  class="secondary-button track-button"
+                  [disabled]="!canDecreaseStatusTrack(field.key)"
+                  [attr.aria-label]="'Decrease ' + field.label"
+                  [attr.title]="
+                    canDecreaseStatusTrack(field.key)
+                      ? 'Decrease ' + field.label
+                      : field.label + ' is already at 0'
+                  "
+                  (click)="adjustStatusTrack(field.key, -1)"
+                >
+                  −
+                </button>
+                <label class="sr-only" [for]="field.key + '-status-input'">
+                  {{ field.label }} value
+                </label>
+                <input
+                  class="status-input"
+                  [id]="field.key + '-status-input'"
+                  type="number"
+                  min="0"
+                  step="1"
+                  [attr.max]="statusTrackOverrides[field.key] ? null : 5"
+                  [value]="statusTrackValue(field.key)"
+                  [attr.aria-label]="field.label + ' value'"
+                  [attr.aria-describedby]="
+                    field.key + '-status-help ' + field.key + '-status-message'
+                  "
+                  (change)="commitStatusTrackInput(field.key, $event)"
+                  (keydown)="handleStatusTrackKeydown(field.key, $event)"
+                />
+                <button
+                  type="button"
+                  class="secondary-button track-button"
+                  [disabled]="!canIncreaseStatusTrack(field.key)"
+                  [attr.aria-label]="'Increase ' + field.label"
+                  [attr.title]="
+                    canIncreaseStatusTrack(field.key)
+                      ? 'Increase ' + field.label
+                      : field.label + ' is already at 5'
+                  "
+                  (click)="adjustStatusTrack(field.key, 1)"
+                >
+                  +
+                </button>
+              </div>
+              <label class="override-toggle">
+                <input
+                  type="checkbox"
+                  [checked]="statusTrackOverrides[field.key]"
+                  (change)="updateStatusTrackOverride(field.key, $event)"
+                />
+                Allow manual value above 5
+              </label>
+              <p [id]="field.key + '-status-help'" class="helper-text">
+                Use override only for variants or corrections. Values below 0 are not saved.
+              </p>
+              @if (statusTrackMessages[field.key]) {
+                <p [id]="field.key + '-status-message'" class="field-warning" role="status">
+                  {{ statusTrackMessages[field.key] }}
+                </p>
+              }
+            </article>
+          }
+        </div>
+        @if (characterDraft.saveStatus() === 'failed') {
+          <p class="field-error" role="alert">
+            Save failed:
+            {{ saveErrorMessage() }}
+            The current in-memory value is still shown.
+          </p>
+        } @else if (characterDraft.saveStatus() === 'saved') {
+          <p class="helper-text" role="status">Character changes saved locally.</p>
+        }
+      </section>
     </section>
 
     @if (editingIdentityStats) {
