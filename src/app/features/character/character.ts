@@ -18,6 +18,7 @@ import {
 import type {
   Bond,
   CharacterDebility,
+  CharacterExperience,
   DebilityCategory,
   DebilityType,
   MomentumState,
@@ -123,6 +124,8 @@ export class Character {
   protected momentumOverride = false;
   protected editingBondId: string | null = null;
   protected bondMessage = '';
+  protected experienceMessage = '';
+  protected experienceManualOverride = false;
   protected readonly statusAnnouncement = computed(() => {
     const character = this.savedCharacter();
     if (!character) return '';
@@ -155,6 +158,11 @@ export class Character {
     { key: 'supply', label: 'Supply', min: 0, max: 5 },
     { key: 'momentum', label: 'Momentum', min: -6, max: 10 },
   ] as const;
+
+  protected readonly experienceAnnouncement = computed(() => {
+    const experience = this.experienceValue();
+    return `Experience earned ${experience.earned}, spent ${experience.spent}, available ${this.availableExperience()}.`;
+  });
 
   protected readonly playableStatusFields = [
     { key: 'health', label: 'Health' },
@@ -251,6 +259,83 @@ export class Character {
 
   protected markedDebilityCount(): number {
     return this.savedCharacter()?.debilities.length ?? 0;
+  }
+
+  protected experienceValue(): CharacterExperience {
+    return this.savedCharacter()?.experience ?? { earned: 0, spent: 0 };
+  }
+
+  protected availableExperience(): number {
+    const experience = this.experienceValue();
+    return experience.earned - experience.spent;
+  }
+
+  protected hasExperienceOverspend(): boolean {
+    return this.availableExperience() < 0;
+  }
+
+  protected isExperienceOverrideAllowed(): boolean {
+    return this.experienceManualOverride || this.hasExperienceOverspend();
+  }
+
+  protected updateExperienceOverride(event: Event): void {
+    this.experienceManualOverride = (event.target as HTMLInputElement).checked;
+    this.experienceMessage = this.experienceManualOverride
+      ? 'Manual correction enabled for spent above earned.'
+      : this.hasExperienceOverspend()
+        ? 'Lower spent or enable correction before changing experience.'
+        : '';
+  }
+
+  protected adjustExperience(field: keyof CharacterExperience, delta: number): void {
+    this.saveExperienceValue(field, this.experienceValue()[field] + delta);
+  }
+
+  protected commitExperienceInput(field: keyof CharacterExperience, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = Number(input.value);
+
+    if (!Number.isInteger(value)) {
+      this.experienceMessage = 'Enter a whole number.';
+      input.value = String(this.experienceValue()[field]);
+      return;
+    }
+
+    this.saveExperienceValue(field, value);
+    input.value = String(this.experienceValue()[field]);
+  }
+
+  protected handleExperienceKeydown(field: keyof CharacterExperience, event: KeyboardEvent): void {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.adjustExperience(field, 1);
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.adjustExperience(field, -1);
+    }
+  }
+
+  private saveExperienceValue(field: keyof CharacterExperience, value: number): void {
+    if (value < 0) {
+      this.experienceMessage = 'Experience cannot be below 0.';
+      return;
+    }
+
+    const next = { ...this.experienceValue(), [field]: value };
+
+    if (next.spent > next.earned && !this.isExperienceOverrideAllowed()) {
+      this.experienceMessage = 'Spent exceeds earned. Enable manual correction to save.';
+      return;
+    }
+
+    const updated = this.characterDraft.updateExperience(next);
+    this.experienceMessage = updated
+      ? next.spent > next.earned
+        ? 'Experience saved with manual correction.'
+        : 'Experience saved.'
+      : 'No active character is available to update.';
   }
 
   protected isDebilityMarked(id: DebilityType): boolean {

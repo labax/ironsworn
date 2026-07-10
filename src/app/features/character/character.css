@@ -471,3 +471,55 @@ button {
   font-weight: 800;
   text-transform: uppercase;
 }
+
+.experience-controls {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 1.25rem;
+}
+
+.experience-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  margin-top: 1rem;
+}
+
+.experience-card {
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.24);
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.experience-card h4 {
+  margin: 0;
+}
+
+.available-card output {
+  color: #bfdbfe;
+  font-size: 2.75rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.available-card.negative-available {
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.available-card.negative-available output {
+  color: #fde68a;
+}
+
+.experience-override {
+  margin-top: 1rem;
+}
+
+@media (max-width: 42rem) {
+  .experience-controls {
+    padding: 1rem;
+  }
+}

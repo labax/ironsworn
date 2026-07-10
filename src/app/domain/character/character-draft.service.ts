@@ -5,6 +5,7 @@ import {
   type Bond,
   type Character,
   type CharacterDebility,
+  type CharacterExperience,
   type StatKey,
   type Stats,
   type MomentumState,
@@ -88,6 +89,16 @@ export class CharacterDraftService {
     }
 
     return result;
+  }
+
+  updateExperience(experience: CharacterExperience): Character | null {
+    const updated = this.activeCharacterState.updateActiveCharacter({ experience });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
   }
 
   updateMomentum(momentum: MomentumState): Character | null {
