@@ -4,7 +4,7 @@ import type { Character } from './character';
 
 export type ActiveCharacter = Pick<
   Character,
-  'name' | 'concept' | 'stats' | 'statusTracks' | 'momentum' | 'bonds'
+  'name' | 'concept' | 'stats' | 'statusTracks' | 'momentum' | 'debilities' | 'bonds'
 >;
 
 export type ActiveCharacterPatch = Partial<
@@ -13,6 +13,7 @@ export type ActiveCharacterPatch = Partial<
   readonly stats?: Partial<Character['stats']>;
   readonly statusTracks?: Partial<Character['statusTracks']>;
   readonly momentum?: Partial<Character['momentum']>;
+  readonly debilities?: Character['debilities'];
   readonly bonds?: Character['bonds'];
 };
 
@@ -83,6 +84,7 @@ export class ActiveCharacterService {
         ...current.momentum,
         ...patch.momentum,
       },
+      debilities: patch.debilities ? [...patch.debilities] : current.debilities,
       bonds: patch.bonds ? [...patch.bonds] : current.bonds,
       updatedAt: new Date().toISOString(),
     };

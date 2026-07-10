@@ -440,6 +440,100 @@ describe('Character', () => {
     });
   });
 
+  it('renders grouped debility checkboxes and toggles one with derived Momentum updates', async () => {
+    saveDefaultCharacter();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Conditions');
+    expect(compiled.textContent).toContain('Banes');
+    expect(compiled.textContent).toContain('Burdens');
+
+    component['toggleDebility']({ id: 'wounded', label: 'Wounded', category: 'condition' }, {
+      target: { checked: true },
+    } as unknown as Event);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()).toMatchObject({
+      name: 'Kara',
+      debilities: [{ id: 'wounded', type: 'wounded', category: 'condition', label: 'Wounded' }],
+      momentum: { current: 4, max: 9, reset: 1, hasOverride: false },
+    });
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Marked count: 1');
+  });
+
+  it('confirms and clamps current Momentum when a derived maximum would be lower', () => {
+    saveDefaultCharacter();
+    component['saveMomentumPatch']({ current: 10 });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+
+    component['toggleDebility']({ id: 'wounded', label: 'Wounded', category: 'condition' }, {
+      target: { checked: true },
+    } as unknown as Event);
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Wounded changes Maximum Momentum to 9. Current Momentum 10 will be lowered to 9. Continue?',
+    );
+    expect(service.character()?.momentum).toMatchObject({ current: 9, max: 9, reset: 1 });
+    confirmSpy.mockRestore();
+  });
+
+  it('preserves manual Momentum override on debility changes unless derived mode is confirmed', () => {
+    saveDefaultCharacter();
+    component['updateMomentumOverride']({ target: { checked: true } } as unknown as Event);
+    component['commitMomentumInput']('max', { target: { value: '12' } } as unknown as Event);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+
+    component['toggleDebility']({ id: 'maimed', label: 'Maimed', category: 'bane' }, {
+      target: { checked: true },
+    } as unknown as Event);
+
+    expect(service.character()?.debilities.map((debility) => debility.type)).toEqual(['maimed']);
+    expect(service.character()?.momentum).toMatchObject({ max: 12, reset: 2, hasOverride: true });
+
+    confirmSpy.mockReturnValueOnce(true);
+    component['toggleDebility']({ id: 'cursed', label: 'Cursed', category: 'burden' }, {
+      target: { checked: true },
+    } as unknown as Event);
+
+    expect(service.character()?.momentum).toMatchObject({ max: 8, reset: 0, hasOverride: false });
+    confirmSpy.mockRestore();
+  });
+
+  it('can return from manual Momentum override to standard derived behavior', () => {
+    saveDefaultCharacter();
+    component['toggleDebility']({ id: 'wounded', label: 'Wounded', category: 'condition' }, {
+      target: { checked: true },
+    } as unknown as Event);
+    component['updateMomentumOverride']({ target: { checked: true } } as unknown as Event);
+    component['commitMomentumInput']('max', { target: { value: '12' } } as unknown as Event);
+
+    component['returnMomentumToDerived']();
+
+    expect(service.character()?.momentum).toMatchObject({ max: 9, reset: 1, hasOverride: false });
+  });
+
+  it('persists debilities through save and reload while preserving unrelated fields', async () => {
+    saveDefaultCharacter();
+    const originalId = service.character()?.id;
+    component['toggleDebility']({ id: 'tormented', label: 'Tormented', category: 'burden' }, {
+      target: { checked: true },
+    } as unknown as Event);
+    await Promise.resolve();
+
+    service.clear();
+    await service.loadSavedCharacter();
+
+    expect(service.character()).toMatchObject({
+      id: originalId,
+      name: 'Kara',
+      stats: { edge: 3, heart: 2, iron: 2, shadow: 1, wits: 1 },
+      statusTracks: { health: 3, spirit: 2, supply: 1 },
+      debilities: [{ type: 'tormented', label: 'Tormented' }],
+      momentum: { max: 9, reset: 1, hasOverride: false },
+    });
+  });
+
   it('shows an empty bonds state and adds a multiline bond note', async () => {
     saveDefaultCharacter();
 

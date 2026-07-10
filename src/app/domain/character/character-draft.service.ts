@@ -4,6 +4,7 @@ import {
   createDefaultCharacter,
   type Bond,
   type Character,
+  type CharacterDebility,
   type StatKey,
   type Stats,
   type MomentumState,
@@ -91,6 +92,19 @@ export class CharacterDraftService {
 
   updateMomentum(momentum: MomentumState): Character | null {
     const updated = this.activeCharacterState.updateActiveCharacter({ momentum });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
+  }
+
+  updateDebilitiesAndMomentum(
+    debilities: readonly CharacterDebility[],
+    momentum: MomentumState,
+  ): Character | null {
+    const updated = this.activeCharacterState.updateActiveCharacter({ debilities, momentum });
 
     if (updated) {
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
