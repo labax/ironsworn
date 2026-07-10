@@ -4,7 +4,15 @@ import type { Character } from './character';
 
 export type ActiveCharacter = Pick<
   Character,
-  'name' | 'concept' | 'stats' | 'statusTracks' | 'momentum' | 'debilities' | 'bonds' | 'experience'
+  | 'name'
+  | 'concept'
+  | 'stats'
+  | 'statusTracks'
+  | 'momentum'
+  | 'debilities'
+  | 'bonds'
+  | 'assets'
+  | 'experience'
 >;
 
 export type ActiveCharacterPatch = Partial<
@@ -15,6 +23,7 @@ export type ActiveCharacterPatch = Partial<
   readonly momentum?: Partial<Character['momentum']>;
   readonly debilities?: Character['debilities'];
   readonly bonds?: Character['bonds'];
+  readonly assets?: Character['assets'];
   readonly experience?: Partial<Character['experience']>;
 };
 
@@ -87,6 +96,7 @@ export class ActiveCharacterService {
       },
       debilities: patch.debilities ? [...patch.debilities] : current.debilities,
       bonds: patch.bonds ? [...patch.bonds] : current.bonds,
+      assets: patch.assets ? [...patch.assets] : current.assets,
       experience: {
         ...current.experience,
         ...patch.experience,

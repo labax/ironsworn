@@ -356,7 +356,8 @@ button {
   width: 100%;
 }
 
-.bonds-section {
+.bonds-section,
+.assets-section {
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 1rem;
   background: rgba(15, 23, 42, 0.72);
@@ -411,7 +412,8 @@ button {
 }
 
 @media (max-width: 42rem) {
-  .bonds-section {
+  .bonds-section,
+  .assets-section {
     padding: 1rem;
   }
 
@@ -522,4 +524,17 @@ button {
   .experience-controls {
     padding: 1rem;
   }
+}
+
+.assets-section {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 1.25rem;
+}
+
+.asset-optional-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }

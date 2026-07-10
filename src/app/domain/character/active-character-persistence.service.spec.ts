@@ -157,6 +157,50 @@ describe('ActiveCharacterPersistenceService', () => {
     });
   });
 
+  it('saves and loads user-authored asset records with stable IDs, notes, provenance, and order', async () => {
+    const storage = new MemoryStorage();
+    const service = configureService(storage);
+    const character = createMinimalCharacterFixture({
+      assets: [
+        {
+          id: 'asset-1',
+          name: 'Companion',
+          category: 'Path',
+          source: 'User note',
+          notes: 'Trusted scout',
+          provenance: 'user_authored',
+        },
+        { id: 'asset-2', name: 'Ritual', provenance: 'user_authored' },
+      ],
+    });
+
+    await service.saveActiveCharacter(character);
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload.assets).toEqual(character.assets);
+
+    const loaded = await service.loadActiveCharacter();
+
+    expect(loaded).toMatchObject({
+      success: true,
+      found: true,
+      character: {
+        assets: [
+          {
+            id: 'asset-1',
+            name: 'Companion',
+            category: 'Path',
+            source: 'User note',
+            notes: 'Trusted scout',
+            provenance: 'user_authored',
+          },
+          { id: 'asset-2', name: 'Ritual', provenance: 'user_authored' },
+        ],
+      },
+    });
+  });
+
   it('saves and loads earned and spent experience values', async () => {
     const storage = new MemoryStorage();
     const service = configureService(storage);

@@ -723,6 +723,143 @@ describe('Character', () => {
     confirmSpy.mockRestore();
   });
 
+  it('shows an empty asset state and adds a user-authored asset reference', async () => {
+    saveDefaultCharacter();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'No asset references yet.',
+    );
+
+    component['assetForm'].setValue({
+      name: '  Companion  ',
+      category: 'Path',
+      source: 'My table',
+      notes: 'Trusted scout',
+    });
+    component['saveAsset']();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()?.assets).toEqual([
+      expect.objectContaining({
+        id: expect.any(String),
+        name: 'Companion',
+        category: 'Path',
+        source: 'My table',
+        notes: 'Trusted scout',
+        provenance: 'user_authored',
+      }),
+    ]);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Companion');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('User-authored');
+
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload.assets).toEqual(service.character()?.assets);
+  });
+
+  it('edits a selected asset without creating a duplicate and preserves unrelated fields', async () => {
+    saveDefaultCharacter();
+    const original = service.character();
+    component['assetForm'].setValue({
+      name: 'Companion',
+      category: 'Path',
+      source: '',
+      notes: 'Old note',
+    });
+    component['saveAsset']();
+    const asset = service.character()?.assets[0];
+
+    component['beginEditAsset'](asset!);
+    component['assetForm'].setValue({
+      name: '  Raven companion  ',
+      category: ' Companion ',
+      source: ' Table note ',
+      notes: 'Updated notes',
+    });
+    component['saveAsset']();
+    await Promise.resolve();
+
+    expect(service.character()).toMatchObject({
+      id: original?.id,
+      name: 'Kara',
+      stats: original?.stats,
+      statusTracks: original?.statusTracks,
+      momentum: original?.momentum,
+      assets: [
+        {
+          id: asset?.id,
+          name: 'Raven companion',
+          category: 'Companion',
+          source: 'Table note',
+          notes: 'Updated notes',
+          provenance: 'user_authored',
+        },
+      ],
+    });
+    expect(service.character()?.assets).toHaveLength(1);
+  });
+
+  it('requires confirmation before removing an asset with notes and only removes that record', async () => {
+    saveDefaultCharacter();
+    component['assetForm'].setValue({
+      name: 'Companion',
+      category: 'Path',
+      source: '',
+      notes: 'Keep',
+    });
+    component['saveAsset']();
+    component['assetForm'].setValue({ name: 'Ritual', category: '', source: '', notes: '' });
+    component['saveAsset']();
+    const [first, second] = service.character()?.assets ?? [];
+    const confirmSpy = vi
+      .spyOn(window, 'confirm')
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+
+    component['confirmRemoveAsset'](first);
+    expect(service.character()?.assets.map((asset) => asset.id)).toEqual([first.id, second.id]);
+
+    component['confirmRemoveAsset'](first);
+    await Promise.resolve();
+
+    expect(confirmSpy).toHaveBeenCalledWith('Remove Companion and discard its notes?');
+    expect(service.character()?.assets).toEqual([second]);
+    confirmSpy.mockRestore();
+  });
+
+  it('preserves asset IDs and order after save and reload', async () => {
+    saveDefaultCharacter();
+    component['assetForm'].setValue({
+      name: 'Companion',
+      category: 'Path',
+      source: '',
+      notes: 'First',
+    });
+    component['saveAsset']();
+    component['assetForm'].setValue({
+      name: 'Ritual',
+      category: 'Ritual',
+      source: '',
+      notes: 'Second',
+    });
+    component['saveAsset']();
+    await Promise.resolve();
+    const assets = service.character()?.assets ?? [];
+
+    service.clear();
+    await service.loadSavedCharacter();
+
+    expect(service.character()?.assets.map((asset) => asset.id)).toEqual(
+      assets.map((asset) => asset.id),
+    );
+    expect(service.character()?.assets.map((asset) => asset.name)).toEqual(['Companion', 'Ritual']);
+    expect(service.character()?.assets.every((asset) => asset.provenance === 'user_authored')).toBe(
+      true,
+    );
+  });
+
   it('shows save failure feedback without losing the in-memory status value', async () => {
     saveDefaultCharacter();
     storage.failWrites = true;

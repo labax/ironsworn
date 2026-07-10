@@ -374,6 +374,110 @@
         }
       </section>
 
+      <section class="assets-section" aria-labelledby="assets-title">
+        <div class="card-heading bonds-heading">
+          <div>
+            <h3 id="assets-title">Assets</h3>
+            <p>
+              User-authored references for your character assets. No official catalog is bundled.
+            </p>
+          </div>
+          <button #addAssetButton type="button" class="secondary-button" (click)="beginAddAsset()">
+            Add asset
+          </button>
+        </div>
+
+        @if (!savedCharacter()?.assets?.length) {
+          <div class="bond-empty-state" role="status">
+            <strong>No asset references yet.</strong>
+            <span
+              >Add your first user-authored asset reference with a name and optional notes.</span
+            >
+          </div>
+        } @else {
+          <div class="bond-list" aria-label="Saved asset references">
+            @for (asset of savedCharacter()?.assets; track asset.id) {
+              <article class="bond-card" [attr.aria-labelledby]="'asset-' + asset.id + '-name'">
+                <div class="bond-card-heading">
+                  <div>
+                    <h4 [id]="'asset-' + asset.id + '-name'">{{ asset.name }}</h4>
+                    <p class="helper-text">
+                      {{ asset.category || 'Uncategorized' }} · User-authored
+                      @if (asset.source) {
+                        · {{ asset.source }}
+                      }
+                    </p>
+                  </div>
+                  <div class="bond-actions">
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      [attr.data-asset-edit]="asset.id"
+                      (click)="beginEditAsset(asset)"
+                    >
+                      Edit
+                    </button>
+                    <button type="button" class="danger-button" (click)="confirmRemoveAsset(asset)">
+                      Remove
+                    </button>
+                  </div>
+                </div>
+                @if (asset.notes) {
+                  <p class="bond-note">{{ asset.notes }}</p>
+                } @else {
+                  <p class="helper-text">No personal notes added.</p>
+                }
+              </article>
+            }
+          </div>
+        }
+
+        <form
+          class="bond-form"
+          [formGroup]="assetForm"
+          (ngSubmit)="saveAsset()"
+          aria-labelledby="asset-editor-title"
+          novalidate
+        >
+          <h4 id="asset-editor-title">
+            {{ editingAssetId ? 'Edit asset reference' : 'Add an asset reference' }}
+          </h4>
+          <label for="asset-name">Name <span aria-hidden="true">*</span></label>
+          <input #assetNameInput id="asset-name" type="text" formControlName="name" required />
+          @if (showAssetError('name')) {
+            <p class="field-error">Enter an asset name.</p>
+          }
+
+          <div class="asset-optional-grid">
+            <div class="number-field">
+              <label for="asset-category">Category/type</label>
+              <input id="asset-category" type="text" formControlName="category" />
+            </div>
+            <div class="number-field">
+              <label for="asset-source">Source/reference</label>
+              <input id="asset-source" type="text" formControlName="source" />
+            </div>
+          </div>
+
+          <label for="asset-notes">Personal notes</label>
+          <textarea
+            id="asset-notes"
+            formControlName="notes"
+            rows="4"
+            placeholder="Optional user-authored notes; do not copy official ability text"
+          ></textarea>
+          <div class="form-actions">
+            <button type="submit">{{ editingAssetId ? 'Save asset' : 'Add asset' }}</button>
+            <button type="button" class="secondary-button" (click)="cancelAssetEdit()">
+              Cancel
+            </button>
+          </div>
+          @if (assetMessage) {
+            <p class="helper-text" role="status">{{ assetMessage }}</p>
+          }
+        </form>
+      </section>
+
       <section class="bonds-section" aria-labelledby="bonds-title">
         <div class="card-heading bonds-heading">
           <div>
