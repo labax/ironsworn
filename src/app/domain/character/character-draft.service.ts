@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 
 import {
   createDefaultCharacter,
+  type Bond,
   type Character,
   type StatKey,
   type Stats,
@@ -53,10 +54,13 @@ const buildStatusTracks = (input: CharacterCreationInput): StatusTracks => ({
   supply: input.supply,
 });
 
-const createCharacterId = (): string =>
+const createEntityId = (prefix: string): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
-    : `character-${Date.now()}`;
+    : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+const createCharacterId = (): string => createEntityId('character');
+const createBondId = (): string => createEntityId('bond');
 
 @Injectable({ providedIn: 'root' })
 export class CharacterDraftService {
@@ -142,6 +146,66 @@ export class CharacterDraftService {
     this.activeCharacterState.setActiveCharacter(character);
     void this.activeCharacterPersistence.saveActiveCharacter(character);
     return character;
+  }
+
+  addBond(input: { readonly name: string; readonly description?: string }): Character | null {
+    const character = this.activeCharacterState.activeCharacter();
+    if (!character) return null;
+
+    const bond: Bond = {
+      id: createBondId(),
+      name: input.name.trim(),
+      description: input.description?.trim() || undefined,
+    };
+
+    const updated = this.activeCharacterState.updateActiveCharacter({
+      bonds: [...character.bonds, bond],
+    });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
+  }
+
+  updateBond(input: Bond): Character | null {
+    const character = this.activeCharacterState.activeCharacter();
+    if (!character) return null;
+
+    const updatedBonds = character.bonds.map((bond) =>
+      bond.id === input.id
+        ? {
+            ...bond,
+            name: input.name.trim(),
+            description: input.description?.trim() || undefined,
+            progressTrackId: input.progressTrackId,
+          }
+        : bond,
+    );
+
+    const updated = this.activeCharacterState.updateActiveCharacter({ bonds: updatedBonds });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
+  }
+
+  removeBond(id: string): Character | null {
+    const character = this.activeCharacterState.activeCharacter();
+    if (!character) return null;
+
+    const updated = this.activeCharacterState.updateActiveCharacter({
+      bonds: character.bonds.filter((bond) => bond.id !== id),
+    });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
   }
 
   clear(): void {

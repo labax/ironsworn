@@ -57,6 +57,31 @@ describe('ActiveCharacterService', () => {
     expect(service.activeCharacter()?.name).toBe('Vale');
   });
 
+  it('patches bond collections without replacing unrelated character fields', () => {
+    service.setActiveCharacter(
+      createMinimalCharacterFixture({
+        bonds: [{ id: 'bond-1', name: 'Brynn', description: 'Ally' }],
+      }),
+    );
+
+    const updated = service.updateActiveCharacter({
+      bonds: [
+        { id: 'bond-1', name: 'Brynn', description: 'Ally' },
+        { id: 'bond-2', name: 'Talan' },
+      ],
+    });
+
+    expect(updated).toMatchObject({
+      id: 'character-fixture-1',
+      name: 'Kara',
+      stats: { edge: 3, heart: 2, iron: 2, shadow: 1, wits: 1 },
+      bonds: [
+        { id: 'bond-1', name: 'Brynn', description: 'Ally' },
+        { id: 'bond-2', name: 'Talan' },
+      ],
+    });
+  });
+
   it('returns null when patching an empty active character state', () => {
     expect(service.updateActiveCharacter({ name: 'No one' })).toBeNull();
     expect(service.activeCharacter()).toBeNull();

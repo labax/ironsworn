@@ -226,6 +226,85 @@
         </div>
       </section>
 
+      <section class="bonds-section" aria-labelledby="bonds-title">
+        <div class="card-heading bonds-heading">
+          <div>
+            <h3 id="bonds-title">Bonds</h3>
+            <p>Track relationships and personal notes. Progress links can be added later.</p>
+          </div>
+          <button #addBondButton type="button" class="secondary-button" (click)="beginAddBond()">
+            Add bond
+          </button>
+        </div>
+
+        @if (!savedCharacter()?.bonds?.length) {
+          <div class="bond-empty-state" role="status">
+            <strong>No bonds yet.</strong>
+            <span>Add your first relationship with a name and optional note.</span>
+          </div>
+        } @else {
+          <div class="bond-list" aria-label="Saved bonds">
+            @for (bond of savedCharacter()?.bonds; track bond.id) {
+              <article class="bond-card" [attr.aria-labelledby]="'bond-' + bond.id + '-name'">
+                <div class="bond-card-heading">
+                  <h4 [id]="'bond-' + bond.id + '-name'">{{ bond.name }}</h4>
+                  <div class="bond-actions">
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      [attr.data-bond-edit]="bond.id"
+                      (click)="beginEditBond(bond)"
+                    >
+                      Edit
+                    </button>
+                    <button type="button" class="danger-button" (click)="confirmRemoveBond(bond)">
+                      Remove
+                    </button>
+                  </div>
+                </div>
+                @if (bond.description) {
+                  <p class="bond-note">{{ bond.description }}</p>
+                } @else {
+                  <p class="helper-text">No note added.</p>
+                }
+              </article>
+            }
+          </div>
+        }
+
+        <form
+          class="bond-form"
+          [formGroup]="bondForm"
+          (ngSubmit)="saveBond()"
+          aria-labelledby="bond-editor-title"
+          novalidate
+        >
+          <h4 id="bond-editor-title">{{ editingBondId ? 'Edit bond' : 'Add a bond' }}</h4>
+          <label for="bond-name">Name <span aria-hidden="true">*</span></label>
+          <input #bondNameInput id="bond-name" type="text" formControlName="name" required />
+          @if (showBondError('name')) {
+            <p class="field-error">Enter a bond name.</p>
+          }
+
+          <label for="bond-note">Note</label>
+          <textarea
+            id="bond-note"
+            formControlName="description"
+            rows="4"
+            placeholder="Optional relationship notes"
+          ></textarea>
+          <div class="form-actions">
+            <button type="submit">{{ editingBondId ? 'Save bond' : 'Add bond' }}</button>
+            <button type="button" class="secondary-button" (click)="cancelBondEdit()">
+              Cancel
+            </button>
+          </div>
+          @if (bondMessage) {
+            <p class="helper-text" role="status">{{ bondMessage }}</p>
+          }
+        </form>
+      </section>
+
       <section class="status-controls" aria-labelledby="status-controls-title">
         <div class="card-heading">
           <h3 id="status-controls-title">In-session status</h3>

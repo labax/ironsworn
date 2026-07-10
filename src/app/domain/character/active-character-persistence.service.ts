@@ -11,6 +11,7 @@ import { environment } from '@environments/environment';
 import {
   createDefaultCharacter,
   isValidStats,
+  type Bond,
   type Character,
   type MomentumState,
   type Stats,
@@ -30,6 +31,7 @@ export interface PersistedActiveCharacter {
   readonly stats: Stats;
   readonly statusTracks: StatusTracks;
   readonly momentum: number | MomentumState;
+  readonly bonds?: readonly Bond[];
 }
 
 export type ActiveCharacterLoadResult =
@@ -46,6 +48,7 @@ export const toPersistedActiveCharacter = (character: Character): PersistedActiv
   stats: { ...character.stats },
   statusTracks: { ...character.statusTracks },
   momentum: { ...character.momentum },
+  bonds: character.bonds.map((bond) => ({ ...bond })),
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -92,6 +95,25 @@ const isPersistedStatusTracks = (value: unknown): value is StatusTracks =>
   ['health', 'spirit', 'supply'].every((key) => typeof value[key] === 'number') &&
   hasPersistableStatusTrackValues(value as unknown as StatusTracks);
 
+const isPersistedBond = (value: unknown): value is Bond => {
+  if (!isRecord(value)) return false;
+
+  const description = value['description'];
+  const progressTrackId = value['progressTrackId'];
+
+  return (
+    typeof value['id'] === 'string' &&
+    value['id'].trim().length > 0 &&
+    typeof value['name'] === 'string' &&
+    value['name'].trim().length > 0 &&
+    (description === undefined || typeof description === 'string') &&
+    (progressTrackId === undefined || typeof progressTrackId === 'string')
+  );
+};
+
+const isPersistedBonds = (value: unknown): value is readonly Bond[] =>
+  value === undefined || (Array.isArray(value) && value.every(isPersistedBond));
+
 const isPersistedActiveCharacter = (value: unknown): value is PersistedActiveCharacter => {
   if (!isRecord(value)) return false;
 
@@ -102,7 +124,8 @@ const isPersistedActiveCharacter = (value: unknown): value is PersistedActiveCha
     (concept === undefined || typeof concept === 'string') &&
     isPersistedStats(value['stats']) &&
     isPersistedStatusTracks(value['statusTracks']) &&
-    hasValidMomentum(value['momentum'])
+    hasValidMomentum(value['momentum']) &&
+    isPersistedBonds(value['bonds'])
   );
 };
 
@@ -128,6 +151,12 @@ const toCharacter = (persisted: PersistedActiveCharacter, savedAt: string): Char
       typeof persisted.momentum === 'number'
         ? { ...baseCharacter.momentum, current: persisted.momentum }
         : { ...persisted.momentum },
+    bonds:
+      persisted.bonds?.map((bond) => ({
+        ...bond,
+        name: bond.name.trim(),
+        description: bond.description?.trim() || undefined,
+      })) ?? [],
   };
 };
 

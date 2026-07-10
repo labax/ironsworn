@@ -78,6 +78,7 @@ describe('ActiveCharacterPersistenceService', () => {
       stats: { edge: 3, heart: 2, iron: 2, shadow: 1, wits: 1 },
       statusTracks: { health: 5, spirit: 5, supply: 5 },
       momentum: { current: 2, max: 10, reset: 2, hasOverride: false },
+      bonds: [],
     });
   });
 
@@ -111,6 +112,46 @@ describe('ActiveCharacterPersistenceService', () => {
         stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 },
         statusTracks: { health: 4, spirit: 3, supply: 2 },
         momentum: { current: 4 },
+      },
+    });
+  });
+
+  it('saves and loads bond records with stable IDs, notes, and order', async () => {
+    const storage = new MemoryStorage();
+    const service = configureService(storage);
+    const character = createMinimalCharacterFixture({
+      bonds: [
+        {
+          id: 'bond-1',
+          name: 'Brynn',
+          description: 'First\nline',
+          progressTrackId: 'future-track',
+        },
+        { id: 'bond-2', name: 'Talan' },
+      ],
+    });
+
+    await service.saveActiveCharacter(character);
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload.bonds).toEqual(character.bonds);
+
+    const loaded = await service.loadActiveCharacter();
+
+    expect(loaded).toMatchObject({
+      success: true,
+      found: true,
+      character: {
+        bonds: [
+          {
+            id: 'bond-1',
+            name: 'Brynn',
+            description: 'First\nline',
+            progressTrackId: 'future-track',
+          },
+          { id: 'bond-2', name: 'Talan' },
+        ],
       },
     });
   });

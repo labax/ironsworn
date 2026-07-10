@@ -355,3 +355,72 @@ button {
 .momentum-range meter {
   width: 100%;
 }
+
+.bonds-section {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.bonds-heading,
+.bond-card-heading {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.bond-empty-state,
+.bond-card,
+.bond-form {
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.24);
+  padding: 1rem;
+}
+
+.bond-list,
+.bond-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.bond-card h4,
+.bond-form h4 {
+  margin: 0;
+}
+
+.bond-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.bond-note {
+  margin: 0.75rem 0 0;
+  white-space: pre-wrap;
+}
+
+.danger-button {
+  background: #fecaca;
+  color: #7f1d1d;
+}
+
+@media (max-width: 42rem) {
+  .bonds-section {
+    padding: 1rem;
+  }
+
+  .bonds-heading,
+  .bond-card-heading {
+    display: grid;
+  }
+
+  .bond-actions {
+    justify-content: stretch;
+  }
+}

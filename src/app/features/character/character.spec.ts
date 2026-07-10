@@ -440,6 +440,119 @@ describe('Character', () => {
     });
   });
 
+  it('shows an empty bonds state and adds a multiline bond note', async () => {
+    saveDefaultCharacter();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('No bonds yet.');
+
+    component['bondForm'].setValue({
+      name: '  Brynn  ',
+      description: 'Met at the ford\nOwes a favor',
+    });
+    component['saveBond']();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()?.bonds).toEqual([
+      expect.objectContaining({
+        id: expect.any(String),
+        name: 'Brynn',
+        description: 'Met at the ford\nOwes a favor',
+      }),
+    ]);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Brynn');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Met at the ford');
+
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload.bonds).toEqual(service.character()?.bonds);
+  });
+
+  it('edits a selected bond without creating a duplicate and preserves unrelated fields', async () => {
+    saveDefaultCharacter();
+    const original = service.character();
+    component['bondForm'].setValue({ name: 'Brynn', description: 'Old note' });
+    component['saveBond']();
+    const bond = service.character()?.bonds[0];
+
+    component['beginEditBond'](bond!);
+    component['bondForm'].setValue({ name: ' Brynn the Smith ', description: 'Updated\nnotes' });
+    component['saveBond']();
+    await Promise.resolve();
+
+    expect(service.character()).toMatchObject({
+      id: original?.id,
+      name: 'Kara',
+      stats: original?.stats,
+      statusTracks: original?.statusTracks,
+      momentum: original?.momentum,
+      bonds: [
+        {
+          id: bond?.id,
+          name: 'Brynn the Smith',
+          description: 'Updated\nnotes',
+        },
+      ],
+    });
+    expect(service.character()?.bonds).toHaveLength(1);
+  });
+
+  it('requires confirmation before removing a bond and only removes the selected bond', async () => {
+    saveDefaultCharacter();
+    component['bondForm'].setValue({ name: 'Brynn', description: 'Keep this note' });
+    component['saveBond']();
+    component['bondForm'].setValue({ name: 'Talan', description: '' });
+    component['saveBond']();
+    const [first, second] = service.character()?.bonds ?? [];
+    const confirmSpy = vi
+      .spyOn(window, 'confirm')
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+
+    component['confirmRemoveBond'](first);
+    expect(service.character()?.bonds.map((bond) => bond.id)).toEqual([first.id, second.id]);
+
+    component['confirmRemoveBond'](first);
+    await Promise.resolve();
+
+    expect(confirmSpy).toHaveBeenCalledWith('Remove Brynn and discard its notes?');
+    expect(service.character()?.bonds).toEqual([second]);
+    confirmSpy.mockRestore();
+  });
+
+  it('preserves bond IDs and order after save and reload', async () => {
+    saveDefaultCharacter();
+    component['bondForm'].setValue({ name: 'Brynn', description: 'First' });
+    component['saveBond']();
+    component['bondForm'].setValue({ name: 'Talan', description: 'Second' });
+    component['saveBond']();
+    await Promise.resolve();
+    const bonds = service.character()?.bonds ?? [];
+
+    service.clear();
+    await service.loadSavedCharacter();
+
+    expect(service.character()?.bonds.map((bond) => bond.id)).toEqual(bonds.map((bond) => bond.id));
+    expect(service.character()?.bonds.map((bond) => bond.name)).toEqual(['Brynn', 'Talan']);
+  });
+
+  it('warns before discarding unsaved bond note edits', () => {
+    saveDefaultCharacter();
+    component['bondForm'].setValue({ name: 'Brynn', description: 'Draft note' });
+    component['bondForm'].markAsDirty();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    component['cancelBondEdit']();
+
+    expect(confirmSpy).toHaveBeenCalledWith('Discard unsaved bond changes?');
+    expect(component['bondForm'].getRawValue()).toEqual({
+      name: 'Brynn',
+      description: 'Draft note',
+    });
+    confirmSpy.mockRestore();
+  });
+
   it('shows save failure feedback without losing the in-memory status value', async () => {
     saveDefaultCharacter();
     storage.failWrites = true;
