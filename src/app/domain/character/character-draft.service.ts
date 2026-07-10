@@ -4,6 +4,7 @@ import {
   createDefaultCharacter,
   type Character,
   type StatKey,
+  type Stats,
   type StatusTracks,
 } from './character';
 import { ActiveCharacterService } from './active-character.service';
@@ -11,6 +12,12 @@ import {
   ActiveCharacterPersistenceService,
   type ActiveCharacterLoadResult,
 } from './active-character-persistence.service';
+
+export interface CharacterIdentityStatsInput {
+  readonly name: string;
+  readonly concept?: string;
+  readonly stats: Stats;
+}
 
 export interface CharacterCreationInput {
   readonly name: string;
@@ -73,6 +80,20 @@ export class CharacterDraftService {
     }
 
     return result;
+  }
+
+  updateIdentityAndStats(input: CharacterIdentityStatsInput): Character | null {
+    const updated = this.activeCharacterState.updateActiveCharacter({
+      name: input.name.trim(),
+      concept: input.concept?.trim() || undefined,
+      stats: input.stats,
+    });
+
+    if (updated) {
+      void this.activeCharacterPersistence.saveActiveCharacter(updated);
+    }
+
+    return updated;
   }
 
   save(input: CharacterCreationInput): Character {

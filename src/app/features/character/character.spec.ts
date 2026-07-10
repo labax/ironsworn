@@ -136,7 +136,93 @@ describe('Character', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('4');
   });
 
-  it('updates active character state when edited values are resubmitted', () => {
+  it('opens the identity and stats editor with current active character values', () => {
+    component['characterForm'].setValue({
+      name: 'Kara',
+      concept: 'Wandering scout',
+      edge: 3,
+      heart: 2,
+      iron: 2,
+      shadow: 1,
+      wits: 1,
+      health: 5,
+      spirit: 5,
+      supply: 5,
+      momentum: 2,
+    });
+    component['saveCharacter']();
+    fixture.detectChanges();
+
+    component['openIdentityStatsEditor']();
+    fixture.detectChanges();
+
+    expect(component['identityStatsForm'].getRawValue()).toEqual({
+      name: 'Kara',
+      concept: 'Wandering scout',
+      edge: 3,
+      heart: 2,
+      iron: 2,
+      shadow: 1,
+      wits: 1,
+    });
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Edit identity and stats');
+  });
+
+  it('saves valid identity and nonstandard stat edits without replacing unrelated fields', async () => {
+    component['characterForm'].setValue({
+      name: 'Kara',
+      concept: 'Wandering scout',
+      edge: 3,
+      heart: 2,
+      iron: 2,
+      shadow: 1,
+      wits: 1,
+      health: 4,
+      spirit: 3,
+      supply: 2,
+      momentum: 5,
+    });
+    component['saveCharacter']();
+    const originalId = service.character()?.id;
+
+    component['openIdentityStatsEditor']();
+    component['identityStatsForm'].setValue({
+      name: ' Vale ',
+      concept: ' Storm watcher ',
+      edge: 4,
+      heart: 0,
+      iron: 5,
+      shadow: 2,
+      wits: 3,
+    });
+    component['saveIdentityStats']();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()).toMatchObject({
+      id: originalId,
+      name: 'Vale',
+      concept: 'Storm watcher',
+      stats: { edge: 4, heart: 0, iron: 5, shadow: 2, wits: 3 },
+      statusTracks: { health: 4, spirit: 3, supply: 2 },
+      momentum: { current: 5 },
+    });
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Vale');
+    expect(component['editingIdentityStats']).toBe(false);
+
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload).toMatchObject({
+      name: 'Vale',
+      concept: 'Storm watcher',
+      stats: { edge: 4, heart: 0, iron: 5, shadow: 2, wits: 3 },
+      statusTracks: { health: 4, spirit: 3, supply: 2 },
+      momentum: 5,
+    });
+  });
+
+  it('shows edit validation for required names and invalid numbers', () => {
     component['characterForm'].setValue({
       name: 'Kara',
       concept: '',
@@ -152,13 +238,69 @@ describe('Character', () => {
     });
     component['saveCharacter']();
 
-    component['characterForm'].patchValue({ name: 'Kara the Keen', edge: 4, health: 4 });
+    component['openIdentityStatsEditor']();
+    component['identityStatsForm'].patchValue({ name: '   ', edge: 1.5 });
+    component['saveIdentityStats']();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Enter a character name.');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Use a whole number from 0 to 5.',
+    );
+    expect(service.character()?.name).toBe('Kara');
+  });
+
+  it('warns for nonstandard stat spreads but allows saving them', () => {
+    component['characterForm'].setValue({
+      name: 'Kara',
+      concept: '',
+      edge: 3,
+      heart: 2,
+      iron: 2,
+      shadow: 1,
+      wits: 1,
+      health: 5,
+      spirit: 5,
+      supply: 5,
+      momentum: 2,
+    });
+    component['saveCharacter']();
+    component['openIdentityStatsEditor']();
+    component['identityStatsForm'].patchValue({ edge: 5, heart: 4, iron: 3, shadow: 2, wits: 1 });
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'These stats differ from 3, 2, 2, 1, 1.',
+    );
+
+    component['saveIdentityStats']();
+    expect(service.character()?.stats).toEqual({ edge: 5, heart: 4, iron: 3, shadow: 2, wits: 1 });
+  });
+
+  it('cancels identity and stat edits without changing the active character', () => {
+    component['characterForm'].setValue({
+      name: 'Kara',
+      concept: 'Wandering scout',
+      edge: 3,
+      heart: 2,
+      iron: 2,
+      shadow: 1,
+      wits: 1,
+      health: 5,
+      spirit: 5,
+      supply: 5,
+      momentum: 2,
+    });
     component['saveCharacter']();
 
+    component['openIdentityStatsEditor']();
+    component['identityStatsForm'].patchValue({ name: 'Changed', edge: 5 });
+    component['cancelIdentityStatsEditor']();
+
     expect(service.character()).toMatchObject({
-      name: 'Kara the Keen',
-      stats: { edge: 4 },
-      statusTracks: { health: 4 },
+      name: 'Kara',
+      stats: { edge: 3, heart: 2, iron: 2, shadow: 1, wits: 1 },
     });
+    expect(component['editingIdentityStats']).toBe(false);
   });
 });

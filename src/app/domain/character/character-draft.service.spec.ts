@@ -68,6 +68,80 @@ describe('CharacterDraftService saved character loading', () => {
     });
   });
 
+  it('updates identity and stats while preserving unrelated active character fields', async () => {
+    const storage = new MemoryStorage();
+    const service = configureService(storage);
+    const activeCharacter = TestBed.inject(ActiveCharacterService);
+    activeCharacter.setActiveCharacter(
+      createMinimalCharacterFixture({
+        id: 'kept-id',
+        equipmentNotes: 'Keep this kit.',
+        notes: 'Keep this note.',
+        experience: { earned: 4, spent: 1 },
+      }),
+    );
+
+    const updated = service.updateIdentityAndStats({
+      name: '  Vale  ',
+      concept: '  Storm watcher  ',
+      stats: { edge: 4, heart: 0, iron: 5, shadow: 2, wits: 3 },
+    });
+    await Promise.resolve();
+
+    expect(updated).toMatchObject({
+      id: 'kept-id',
+      name: 'Vale',
+      concept: 'Storm watcher',
+      stats: { edge: 4, heart: 0, iron: 5, shadow: 2, wits: 3 },
+      statusTracks: { health: 5, spirit: 5, supply: 5 },
+      momentum: { current: 2 },
+      equipmentNotes: 'Keep this kit.',
+      notes: 'Keep this note.',
+      experience: { earned: 4, spent: 1 },
+    });
+
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload).toMatchObject({
+      name: 'Vale',
+      concept: 'Storm watcher',
+      stats: { edge: 4, heart: 0, iron: 5, shadow: 2, wits: 3 },
+      statusTracks: { health: 5, spirit: 5, supply: 5 },
+      momentum: 2,
+    });
+  });
+
+  it('stores a blank edited concept as omitted optional data', async () => {
+    const storage = new MemoryStorage();
+    const service = configureService(storage);
+    TestBed.inject(ActiveCharacterService).setActiveCharacter(createMinimalCharacterFixture());
+
+    service.updateIdentityAndStats({
+      name: 'Kara',
+      concept: '   ',
+      stats: { edge: 3, heart: 2, iron: 2, shadow: 1, wits: 1 },
+    });
+    await Promise.resolve();
+
+    expect(service.character()?.concept).toBeUndefined();
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload.concept).toBeUndefined();
+  });
+
+  it('returns null when editing identity and stats without an active character', () => {
+    const service = configureService(new MemoryStorage());
+
+    expect(
+      service.updateIdentityAndStats({
+        name: 'No one',
+        stats: { edge: 1, heart: 1, iron: 1, shadow: 1, wits: 1 },
+      }),
+    ).toBeNull();
+  });
+
   it('leaves active character state empty when no saved character exists', async () => {
     const service = configureService(new MemoryStorage());
 
