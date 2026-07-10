@@ -79,6 +79,7 @@ describe('ActiveCharacterPersistenceService', () => {
       statusTracks: { health: 5, spirit: 5, supply: 5 },
       momentum: { current: 2, max: 10, reset: 2, hasOverride: false },
       bonds: [],
+      experience: { earned: 0, spent: 0 },
     });
   });
 
@@ -153,6 +154,28 @@ describe('ActiveCharacterPersistenceService', () => {
           { id: 'bond-2', name: 'Talan' },
         ],
       },
+    });
+  });
+
+  it('saves and loads earned and spent experience values', async () => {
+    const storage = new MemoryStorage();
+    const service = configureService(storage);
+
+    await service.saveActiveCharacter(
+      createMinimalCharacterFixture({ experience: { earned: 7, spent: 3 } }),
+    );
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+
+    expect(saved.payload.experience).toEqual({ earned: 7, spent: 3 });
+
+    const loaded = await service.loadActiveCharacter();
+
+    expect(loaded).toMatchObject({
+      success: true,
+      found: true,
+      character: { experience: { earned: 7, spent: 3 } },
     });
   });
 

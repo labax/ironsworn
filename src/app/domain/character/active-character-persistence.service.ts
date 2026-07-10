@@ -14,6 +14,7 @@ import {
   type Bond,
   type Character,
   type CharacterDebility,
+  type CharacterExperience,
   type MomentumState,
   type Stats,
   type StatusTracks,
@@ -34,6 +35,7 @@ export interface PersistedActiveCharacter {
   readonly momentum: number | MomentumState;
   readonly debilities?: readonly CharacterDebility[];
   readonly bonds?: readonly Bond[];
+  readonly experience?: CharacterExperience;
 }
 
 export type ActiveCharacterLoadResult =
@@ -52,6 +54,7 @@ export const toPersistedActiveCharacter = (character: Character): PersistedActiv
   momentum: { ...character.momentum },
   debilities: character.debilities.map((debility) => ({ ...debility })),
   bonds: character.bonds.map((bond) => ({ ...bond })),
+  experience: { ...character.experience },
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -146,6 +149,14 @@ const isPersistedDebilities = (value: unknown): value is readonly CharacterDebil
 const isPersistedBonds = (value: unknown): value is readonly Bond[] =>
   value === undefined || (Array.isArray(value) && value.every(isPersistedBond));
 
+const isPersistedExperience = (value: unknown): value is CharacterExperience =>
+  value === undefined ||
+  (isRecord(value) &&
+    Number.isInteger(value['earned']) &&
+    Number.isInteger(value['spent']) &&
+    (value['earned'] as number) >= 0 &&
+    (value['spent'] as number) >= 0);
+
 const isPersistedActiveCharacter = (value: unknown): value is PersistedActiveCharacter => {
   if (!isRecord(value)) return false;
 
@@ -158,7 +169,8 @@ const isPersistedActiveCharacter = (value: unknown): value is PersistedActiveCha
     isPersistedStatusTracks(value['statusTracks']) &&
     hasValidMomentum(value['momentum']) &&
     isPersistedDebilities(value['debilities']) &&
-    isPersistedBonds(value['bonds'])
+    isPersistedBonds(value['bonds']) &&
+    isPersistedExperience(value['experience'])
   );
 };
 
@@ -196,6 +208,7 @@ const toCharacter = (persisted: PersistedActiveCharacter, savedAt: string): Char
         name: bond.name.trim(),
         description: bond.description?.trim() || undefined,
       })) ?? [],
+    experience: persisted.experience ? { ...persisted.experience } : baseCharacter.experience,
   };
 };
 

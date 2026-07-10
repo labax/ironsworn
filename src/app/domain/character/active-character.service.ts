@@ -4,17 +4,18 @@ import type { Character } from './character';
 
 export type ActiveCharacter = Pick<
   Character,
-  'name' | 'concept' | 'stats' | 'statusTracks' | 'momentum' | 'debilities' | 'bonds'
+  'name' | 'concept' | 'stats' | 'statusTracks' | 'momentum' | 'debilities' | 'bonds' | 'experience'
 >;
 
 export type ActiveCharacterPatch = Partial<
-  Omit<ActiveCharacter, 'stats' | 'statusTracks' | 'momentum'>
+  Omit<ActiveCharacter, 'stats' | 'statusTracks' | 'momentum' | 'experience'>
 > & {
   readonly stats?: Partial<Character['stats']>;
   readonly statusTracks?: Partial<Character['statusTracks']>;
   readonly momentum?: Partial<Character['momentum']>;
   readonly debilities?: Character['debilities'];
   readonly bonds?: Character['bonds'];
+  readonly experience?: Partial<Character['experience']>;
 };
 
 export interface ActiveCharacterSummary {
@@ -86,6 +87,10 @@ export class ActiveCharacterService {
       },
       debilities: patch.debilities ? [...patch.debilities] : current.debilities,
       bonds: patch.bonds ? [...patch.bonds] : current.bonds,
+      experience: {
+        ...current.experience,
+        ...patch.experience,
+      },
       updatedAt: new Date().toISOString(),
     };
 

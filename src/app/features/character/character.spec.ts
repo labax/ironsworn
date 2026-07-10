@@ -297,6 +297,82 @@ describe('Character', () => {
     expect(service.character()?.stats).toEqual({ edge: 5, heart: 4, iron: 3, shadow: 2, wits: 1 });
   });
 
+  it('renders earned, spent, and calculated available experience', () => {
+    saveDefaultCharacter();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.textContent).toContain('Experience');
+    expect(compiled.querySelector('#experience-earned-input')?.getAttribute('type')).toBe('number');
+    expect(compiled.querySelector('#experience-spent-input')?.getAttribute('min')).toBe('0');
+    expect(compiled.querySelector('#experience-available')?.textContent?.trim()).toBe('0');
+  });
+
+  it('edits experience and derives available while preserving unrelated fields and saving', async () => {
+    saveDefaultCharacter();
+    const original = service.character();
+
+    component['commitExperienceInput']('earned', { target: { value: '5' } } as unknown as Event);
+    component['commitExperienceInput']('spent', { target: { value: '2' } } as unknown as Event);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()).toMatchObject({
+      id: original?.id,
+      name: 'Kara',
+      stats: original?.stats,
+      statusTracks: original?.statusTracks,
+      momentum: original?.momentum,
+      experience: { earned: 5, spent: 2 },
+    });
+    expect(component['availableExperience']()).toBe(3);
+    expect(
+      (fixture.nativeElement as HTMLElement)
+        .querySelector('#experience-available')
+        ?.textContent?.trim(),
+    ).toBe('3');
+
+    const saved = JSON.parse(storage.getItem(ACTIVE_CHARACTER_STORAGE_KEY) ?? '{}') as {
+      payload: PersistedActiveCharacter;
+    };
+    expect(saved.payload.experience).toEqual({ earned: 5, spent: 2 });
+  });
+
+  it('rejects negative experience during normal editing', () => {
+    saveDefaultCharacter();
+    component['commitExperienceInput']('earned', { target: { value: '3' } } as unknown as Event);
+
+    component['commitExperienceInput']('earned', { target: { value: '-1' } } as unknown as Event);
+    component['adjustExperience']('spent', -1);
+
+    expect(service.character()?.experience).toEqual({ earned: 3, spent: 0 });
+    expect(component['experienceMessage']).toBe('Experience cannot be below 0.');
+  });
+
+  it('warns and requires manual correction before spent exceeds earned', async () => {
+    saveDefaultCharacter();
+    component['commitExperienceInput']('earned', { target: { value: '2' } } as unknown as Event);
+
+    component['commitExperienceInput']('spent', { target: { value: '3' } } as unknown as Event);
+    expect(service.character()?.experience).toEqual({ earned: 2, spent: 0 });
+    expect(component['experienceMessage']).toContain('Enable manual correction');
+
+    component['updateExperienceOverride']({ target: { checked: true } } as unknown as Event);
+    component['commitExperienceInput']('spent', { target: { value: '3' } } as unknown as Event);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(service.character()?.experience).toEqual({ earned: 2, spent: 3 });
+    expect(component['availableExperience']()).toBe(-1);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Available experience is negative.',
+    );
+
+    service.clear();
+    await service.loadSavedCharacter();
+    expect(service.character()?.experience).toEqual({ earned: 2, spent: 3 });
+  });
+
   it('renders prominent in-session Health, Spirit, and Supply controls', () => {
     saveDefaultCharacter();
 

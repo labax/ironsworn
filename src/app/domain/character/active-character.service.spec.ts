@@ -46,6 +46,7 @@ describe('ActiveCharacterService', () => {
       stats: { edge: 2 },
       statusTracks: { health: 4 },
       momentum: { current: 3 },
+      experience: { earned: 4 },
     });
 
     expect(updated).toMatchObject({
@@ -53,6 +54,7 @@ describe('ActiveCharacterService', () => {
       stats: { edge: 2, heart: 2, iron: 2, shadow: 1, wits: 1 },
       statusTracks: { health: 4, spirit: 5, supply: 5 },
       momentum: { current: 3, max: 10, reset: 2 },
+      experience: { earned: 4, spent: 0 },
     });
     expect(service.activeCharacter()?.name).toBe('Vale');
   });

@@ -126,6 +126,114 @@
         }
       </dl>
 
+      <section class="experience-controls" aria-labelledby="experience-controls-title">
+        <div class="card-heading">
+          <h3 id="experience-controls-title">Experience</h3>
+          <p>Track earned and spent experience. Available is calculated from those values.</p>
+        </div>
+        <p class="sr-only" aria-live="polite">{{ experienceAnnouncement() }}</p>
+        <div class="experience-grid">
+          <article class="experience-card">
+            <h4>Earned</h4>
+            <div class="track-actions" role="group" aria-label="Earned experience controls">
+              <button
+                type="button"
+                class="secondary-button track-button"
+                [disabled]="experienceValue().earned <= 0"
+                aria-label="Decrease earned experience"
+                (click)="adjustExperience('earned', -1)"
+              >
+                −
+              </button>
+              <label class="sr-only" for="experience-earned-input">Earned experience</label>
+              <input
+                id="experience-earned-input"
+                class="status-input"
+                type="number"
+                min="0"
+                step="1"
+                [value]="experienceValue().earned"
+                aria-describedby="experience-help experience-message"
+                (change)="commitExperienceInput('earned', $event)"
+                (keydown)="handleExperienceKeydown('earned', $event)"
+              />
+              <button
+                type="button"
+                class="secondary-button track-button"
+                aria-label="Increase earned experience"
+                (click)="adjustExperience('earned', 1)"
+              >
+                +
+              </button>
+            </div>
+          </article>
+
+          <article class="experience-card">
+            <h4>Spent</h4>
+            <div class="track-actions" role="group" aria-label="Spent experience controls">
+              <button
+                type="button"
+                class="secondary-button track-button"
+                [disabled]="experienceValue().spent <= 0"
+                aria-label="Decrease spent experience"
+                (click)="adjustExperience('spent', -1)"
+              >
+                −
+              </button>
+              <label class="sr-only" for="experience-spent-input">Spent experience</label>
+              <input
+                id="experience-spent-input"
+                class="status-input"
+                type="number"
+                min="0"
+                step="1"
+                [value]="experienceValue().spent"
+                aria-describedby="experience-help experience-message"
+                (change)="commitExperienceInput('spent', $event)"
+                (keydown)="handleExperienceKeydown('spent', $event)"
+              />
+              <button
+                type="button"
+                class="secondary-button track-button"
+                aria-label="Increase spent experience"
+                (click)="adjustExperience('spent', 1)"
+              >
+                +
+              </button>
+            </div>
+          </article>
+
+          <article
+            class="experience-card available-card"
+            [class.negative-available]="hasExperienceOverspend()"
+          >
+            <h4>Available</h4>
+            <output id="experience-available" aria-live="polite">{{
+              availableExperience()
+            }}</output>
+            <span class="derived-badge">Calculated</span>
+          </article>
+        </div>
+        <label class="override-toggle experience-override">
+          <input
+            type="checkbox"
+            [checked]="isExperienceOverrideAllowed()"
+            (change)="updateExperienceOverride($event)"
+          />
+          Allow spent above earned for manual correction
+        </label>
+        <p id="experience-help" class="helper-text">
+          Normal editing uses whole numbers of 0 or higher. Enable correction only for imports or
+          variants.
+        </p>
+        @if (hasExperienceOverspend()) {
+          <p class="field-warning" role="alert">Available experience is negative.</p>
+        }
+        @if (experienceMessage) {
+          <p id="experience-message" class="field-warning" role="status">{{ experienceMessage }}</p>
+        }
+      </section>
+
       <section class="momentum-controls" aria-labelledby="momentum-controls-title">
         <div class="card-heading">
           <h3 id="momentum-controls-title">Momentum</h3>
