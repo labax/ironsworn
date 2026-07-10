@@ -1,4 +1,4 @@
-export const CURRENT_SAVE_SCHEMA_VERSION = 1;
+export const CURRENT_SAVE_SCHEMA_VERSION = 2;
 
 export type StorageErrorCode =
   | 'storage-unavailable'

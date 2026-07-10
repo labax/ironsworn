@@ -8,39 +8,17 @@ import {
 } from '@app/core/storage';
 import { environment } from '@environments/environment';
 
+import { createDefaultCharacter, type Character } from './character';
 import {
-  createDefaultCharacter,
-  isValidStats,
-  type AssetReference,
-  type Bond,
-  type Character,
-  type CharacterDebility,
-  type CharacterExperience,
-  type MomentumState,
-  type Stats,
-  type StatusTracks,
-} from './character';
+  migratePersistedActiveCharacter,
+  type PersistedActiveCharacter,
+} from './active-character-persistence.migrations';
+
+export { type PersistedActiveCharacter } from './active-character-persistence.migrations';
 
 export const ACTIVE_CHARACTER_STORAGE_KEY = 'ironsworn.activeCharacter';
 
 export type ActiveCharacterSaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
-
-export interface PersistedActiveCharacter {
-  readonly id?: string;
-  readonly createdAt?: string;
-  readonly updatedAt?: string;
-  readonly name: string;
-  readonly concept?: string;
-  readonly stats: Stats;
-  readonly statusTracks: StatusTracks;
-  readonly momentum: number | MomentumState;
-  readonly debilities?: readonly CharacterDebility[];
-  readonly bonds?: readonly Bond[];
-  readonly assets?: readonly AssetReference[];
-  readonly equipmentNotes?: string;
-  readonly notes?: string;
-  readonly experience?: CharacterExperience;
-}
 
 export type ActiveCharacterLoadResult =
   | { readonly success: true; readonly found: true; readonly character: Character }
@@ -52,7 +30,9 @@ export const toPersistedActiveCharacter = (character: Character): PersistedActiv
   createdAt: character.createdAt,
   updatedAt: character.updatedAt,
   name: character.name,
+  pronouns: character.pronouns,
   concept: character.concept,
+  campaignId: character.campaignId,
   stats: { ...character.stats },
   statusTracks: { ...character.statusTracks },
   momentum: { ...character.momentum },
@@ -67,155 +47,6 @@ export const toPersistedActiveCharacter = (character: Character): PersistedActiv
   experience: { ...character.experience },
 });
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
-const hasValidMomentumNumber = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value >= -6 && value <= 10;
-
-const hasValidMomentumState = (value: unknown): value is MomentumState => {
-  if (!isRecord(value)) return false;
-
-  const current = value['current'];
-  const max = value['max'];
-  const reset = value['reset'];
-  const hasOverride = value['hasOverride'];
-
-  return (
-    Number.isInteger(current) &&
-    Number.isInteger(max) &&
-    Number.isInteger(reset) &&
-    typeof hasOverride === 'boolean' &&
-    (hasOverride ||
-      ((current as number) >= -6 &&
-        (current as number) <= (max as number) &&
-        (max as number) >= (reset as number)))
-  );
-};
-
-const hasValidMomentum = (value: unknown): value is PersistedActiveCharacter['momentum'] =>
-  hasValidMomentumNumber(value) || hasValidMomentumState(value);
-
-const isPersistedStats = (value: unknown): value is Stats =>
-  isRecord(value) &&
-  ['edge', 'heart', 'iron', 'shadow', 'wits'].every((key) => typeof value[key] === 'number') &&
-  isValidStats(value as unknown as Stats);
-
-const hasPersistableStatusTrackValues = (tracks: StatusTracks): boolean =>
-  [tracks.health, tracks.spirit, tracks.supply].every(
-    (value) => Number.isInteger(value) && value >= 0,
-  );
-
-const isPersistedStatusTracks = (value: unknown): value is StatusTracks =>
-  isRecord(value) &&
-  ['health', 'spirit', 'supply'].every((key) => typeof value[key] === 'number') &&
-  hasPersistableStatusTrackValues(value as unknown as StatusTracks);
-
-const isPersistedBond = (value: unknown): value is Bond => {
-  if (!isRecord(value)) return false;
-
-  const description = value['description'];
-  const progressTrackId = value['progressTrackId'];
-
-  return (
-    typeof value['id'] === 'string' &&
-    value['id'].trim().length > 0 &&
-    typeof value['name'] === 'string' &&
-    value['name'].trim().length > 0 &&
-    (description === undefined || typeof description === 'string') &&
-    (progressTrackId === undefined || typeof progressTrackId === 'string')
-  );
-};
-
-const isPersistedAssetReference = (value: unknown): value is AssetReference => {
-  if (!isRecord(value)) return false;
-
-  const contentId = value['contentId'];
-  const category = value['category'];
-  const notes = value['notes'];
-  const source = value['source'];
-  const provenance = value['provenance'];
-
-  return (
-    typeof value['id'] === 'string' &&
-    value['id'].trim().length > 0 &&
-    (contentId === undefined || typeof contentId === 'string') &&
-    typeof value['name'] === 'string' &&
-    value['name'].trim().length > 0 &&
-    (category === undefined || typeof category === 'string') &&
-    (notes === undefined || typeof notes === 'string') &&
-    (source === undefined || typeof source === 'string') &&
-    (provenance === undefined ||
-      provenance === 'user_authored' ||
-      provenance === 'approved_content')
-  );
-};
-
-const isPersistedDebility = (value: unknown): value is CharacterDebility => {
-  if (!isRecord(value)) return false;
-
-  const category = value['category'];
-  const type = value['type'];
-  const notes = value['notes'];
-
-  return (
-    typeof value['id'] === 'string' &&
-    ['condition', 'bane', 'burden'].includes(category as string) &&
-    [
-      'wounded',
-      'shaken',
-      'unprepared',
-      'maimed',
-      'corrupted',
-      'cursed',
-      'tormented',
-      'custom',
-    ].includes(type as string) &&
-    typeof value['label'] === 'string' &&
-    value['label'].trim().length > 0 &&
-    (notes === undefined || typeof notes === 'string')
-  );
-};
-
-const isPersistedDebilities = (value: unknown): value is readonly CharacterDebility[] =>
-  value === undefined || (Array.isArray(value) && value.every(isPersistedDebility));
-
-const isPersistedBonds = (value: unknown): value is readonly Bond[] =>
-  value === undefined || (Array.isArray(value) && value.every(isPersistedBond));
-
-const isPersistedAssets = (value: unknown): value is readonly AssetReference[] =>
-  value === undefined || (Array.isArray(value) && value.every(isPersistedAssetReference));
-
-const isPersistedExperience = (value: unknown): value is CharacterExperience =>
-  value === undefined ||
-  (isRecord(value) &&
-    Number.isInteger(value['earned']) &&
-    Number.isInteger(value['spent']) &&
-    (value['earned'] as number) >= 0 &&
-    (value['spent'] as number) >= 0);
-
-const isPersistedActiveCharacter = (value: unknown): value is PersistedActiveCharacter => {
-  if (!isRecord(value)) return false;
-
-  const concept = value['concept'];
-  const equipmentNotes = value['equipmentNotes'];
-  const notes = value['notes'];
-  return (
-    typeof value['name'] === 'string' &&
-    value['name'].trim().length > 0 &&
-    (concept === undefined || typeof concept === 'string') &&
-    (equipmentNotes === undefined || typeof equipmentNotes === 'string') &&
-    (notes === undefined || typeof notes === 'string') &&
-    isPersistedStats(value['stats']) &&
-    isPersistedStatusTracks(value['statusTracks']) &&
-    hasValidMomentum(value['momentum']) &&
-    isPersistedDebilities(value['debilities']) &&
-    isPersistedBonds(value['bonds']) &&
-    isPersistedAssets(value['assets']) &&
-    isPersistedExperience(value['experience'])
-  );
-};
-
 const createRestoredCharacterId = (): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -226,8 +57,10 @@ const toCharacter = (persisted: PersistedActiveCharacter, savedAt: string): Char
     id: persisted.id ?? createRestoredCharacterId(),
     createdAt: persisted.createdAt ?? savedAt,
     updatedAt: persisted.updatedAt ?? savedAt,
-    name: persisted.name.trim(),
-    concept: persisted.concept?.trim() || undefined,
+    name: persisted.name,
+    pronouns: persisted.pronouns,
+    concept: persisted.concept,
+    campaignId: persisted.campaignId,
   });
 
   return {
@@ -238,27 +71,9 @@ const toCharacter = (persisted: PersistedActiveCharacter, savedAt: string): Char
       typeof persisted.momentum === 'number'
         ? { ...baseCharacter.momentum, current: persisted.momentum }
         : { ...persisted.momentum },
-    debilities:
-      persisted.debilities?.map((debility) => ({
-        ...debility,
-        label: debility.label.trim(),
-        notes: debility.notes?.trim() || undefined,
-      })) ?? [],
-    bonds:
-      persisted.bonds?.map((bond) => ({
-        ...bond,
-        name: bond.name.trim(),
-        description: bond.description?.trim() || undefined,
-      })) ?? [],
-    assets:
-      persisted.assets?.map((asset) => ({
-        ...asset,
-        name: asset.name.trim(),
-        category: asset.category?.trim() || undefined,
-        notes: asset.notes?.trim() || undefined,
-        source: asset.source?.trim() || undefined,
-        provenance: asset.provenance ?? 'user_authored',
-      })) ?? [],
+    debilities: persisted.debilities?.map((debility) => ({ ...debility })) ?? [],
+    bonds: persisted.bonds?.map((bond) => ({ ...bond })) ?? [],
+    assets: persisted.assets?.map((asset) => ({ ...asset })) ?? [],
     equipmentNotes: persisted.equipmentNotes ?? '',
     notes: persisted.notes ?? '',
     experience: persisted.experience ? { ...persisted.experience } : baseCharacter.experience,
@@ -275,15 +90,14 @@ export class ActiveCharacterPersistenceService {
   readonly lastSaveResult = this.lastSaveResultState.asReadonly();
 
   async loadActiveCharacter(): Promise<ActiveCharacterLoadResult> {
-    const result: LoadResult<PersistedActiveCharacter> = await this.storage.load(
-      ACTIVE_CHARACTER_STORAGE_KEY,
-    );
+    const result: LoadResult<unknown> = await this.storage.load(ACTIVE_CHARACTER_STORAGE_KEY);
 
     if (!result.success || !result.found) {
       return result;
     }
 
-    if (!isPersistedActiveCharacter(result.data.payload)) {
+    const persisted = migratePersistedActiveCharacter(result.data);
+    if (!persisted) {
       return {
         success: false,
         error: {
@@ -296,7 +110,7 @@ export class ActiveCharacterPersistenceService {
     return {
       success: true,
       found: true,
-      character: toCharacter(result.data.payload, result.data.savedAt),
+      character: toCharacter(persisted, result.data.savedAt),
     };
   }
 
