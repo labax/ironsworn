@@ -57,7 +57,7 @@ export const migrateSaveEnvelope = <T>(value: unknown): ParseResult<VersionedSav
     };
   }
 
-  if (value.schemaVersion === CURRENT_SAVE_SCHEMA_VERSION) {
+  if (value.schemaVersion >= 1 && value.schemaVersion <= CURRENT_SAVE_SCHEMA_VERSION) {
     return { success: true, value };
   }
 
