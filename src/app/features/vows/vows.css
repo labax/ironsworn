@@ -270,3 +270,22 @@ button.danger {
   gap: 0.75rem;
   padding: 0.75rem;
 }
+.archive-view-actions,
+.vow-record-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.archive-view-actions {
+  justify-content: space-between;
+}
+.vow-record-actions {
+  margin-top: 1rem;
+}
+@media (max-width: 42rem) {
+  .archive-view-actions,
+  .vow-record-actions {
+    display: grid;
+  }
+}

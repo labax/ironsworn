@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, inject, viewChild } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -55,6 +55,11 @@ const STATUS_ORDER: Record<VowStatus, number> = {
 };
 
 const CONFIRMED_STATUSES: readonly VowStatus[] = ['fulfilled', 'forsaken', 'archived'];
+
+const deleteVowConfirmation = (warnings: readonly string[]): string =>
+  warnings.length > 0
+    ? `Delete this vow? This cannot be undone. ${warnings.join(' ')}`
+    : 'Delete this vow? This cannot be undone.';
 
 const statusChangeConfirmation = (status: VowStatus): string =>
   status === 'archived'
@@ -128,6 +133,7 @@ export class Vows {
     }),
   );
   protected readonly selectedVowId = this.workspace.selectedVowId;
+  protected readonly showArchived = signal(false);
   protected readonly loadError = computed(() => {
     try {
       this.workspace.vows();
@@ -150,6 +156,7 @@ export class Vows {
 
       return this.workspace
         .vows()
+        .filter((vow) => this.showArchived() || vow.status !== 'archived')
         .map((vow) => {
           const progress = progressSummaryFor(
             vow,
@@ -196,6 +203,7 @@ export class Vows {
   protected editingOutcomeIds: Record<string, boolean | undefined> = {};
   protected outcomeErrors: Record<string, string | undefined> = {};
   protected linkSelections: Record<string, string | undefined> = {};
+  private vowActionFocusReturnId: string | null = null;
   protected latestVowProgressRoll: Readonly<VowProgressRollResult> | null = null;
   protected progressRollErrors: Record<string, string | undefined> = {};
   private milestoneFocusReturnId: string | null = null;
@@ -232,6 +240,73 @@ export class Vows {
     this.fieldErrors = {};
     this.markClean();
     this.formMessage = 'Editing selected vow.';
+    this.focusTitle();
+  }
+
+  protected toggleArchivedView(): void {
+    this.showArchived.update((value) => !value);
+    this.formMessage = this.showArchived()
+      ? 'Archived vows are shown.'
+      : 'Archived vows are hidden from the active list.';
+  }
+
+  protected archiveVow(vowId: string): void {
+    this.vowActionFocusReturnId = `vow-edit-${vowId}`;
+    const confirmed = window.confirm('Archive this vow? You can restore it later.');
+    if (!confirmed) {
+      this.formMessage = 'Archive canceled; vow was unchanged.';
+      this.focusVowActionReturn();
+      return;
+    }
+    const result = this.workspace.archiveVow(vowId);
+    this.formMessage = result.ok
+      ? 'Vow archived. You can show archived vows and restore it later.'
+      : (result.errors[0]?.message ?? 'Vow could not be archived.');
+    this.focusVowActionReturn();
+  }
+
+  protected restoreVow(vowId: string): void {
+    this.vowActionFocusReturnId = `vow-restore-${vowId}`;
+    const result = this.workspace.restoreVow(vowId);
+    this.formMessage = result.ok
+      ? 'Vow restored.'
+      : (result.errors[0]?.message ?? 'Vow could not be restored.');
+    this.focusVowActionReturn();
+  }
+
+  protected deleteVow(vowId: string): void {
+    this.vowActionFocusReturnId = `vow-delete-${vowId}`;
+    const preview = this.workspace.previewDeleteVow(vowId);
+    if (!preview.ok) {
+      this.formMessage = preview.errors[0]?.message ?? 'Vow could not be deleted.';
+      this.focusVowActionReturn();
+      return;
+    }
+
+    const confirmed = window.confirm(
+      deleteVowConfirmation(preview.warnings.map((warning) => warning.message)),
+    );
+    if (!confirmed) {
+      this.formMessage = 'Delete canceled; vow was unchanged.';
+      this.focusVowActionReturn();
+      return;
+    }
+
+    const result = this.workspace.deleteVow(vowId);
+    this.formMessage = result.ok
+      ? 'Vow deleted. Linked progress tracks were not deleted.'
+      : (result.errors[0]?.message ?? 'Vow could not be deleted.');
+    if (this.editingVowId === vowId) {
+      this.editingVowId = null;
+      this.vowForm.reset({
+        title: '',
+        description: '',
+        rank: 'troublesome',
+        status: 'active',
+        notes: '',
+      });
+      this.markClean();
+    }
     this.focusTitle();
   }
 
@@ -576,6 +651,12 @@ export class Vows {
 
   private focusMilestoneReturn(): void {
     const targetId = this.milestoneFocusReturnId;
+    if (!targetId) return;
+    queueMicrotask(() => document.getElementById(targetId)?.focus());
+  }
+
+  private focusVowActionReturn(): void {
+    const targetId = this.vowActionFocusReturnId;
     if (!targetId) return;
     queueMicrotask(() => document.getElementById(targetId)?.focus());
   }

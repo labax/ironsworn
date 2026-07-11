@@ -89,7 +89,7 @@ describe('Vows', () => {
     );
     expect(titles).toEqual(['First active', 'Second active', 'Past promise']);
     expect(compiled().textContent).toContain(
-      'Active vows are listed first; other statuses follow by latest timestamp, then stable ID.',
+      'Active vows are listed first; archived vows are hidden unless you show the archived view.',
     );
   });
 
@@ -564,5 +564,113 @@ describe('Vows', () => {
 
     expect(compiled().textContent).toContain('Linked progress track is missing.');
     expect(workspace.progressTracks()[0].ticks).toBe(20);
+  });
+  it('archives hides from default view and restores the same vow data intact', () => {
+    const archivedCandidate = vowFixture({
+      id: 'vow-archive',
+      title: 'Archive me',
+      progressTrackId: 'track-archive',
+      milestones: [
+        { id: 'milestone-archive', createdAt: '2026-07-02T00:00:00.000Z', note: 'Kept step' },
+      ],
+      outcome: { summary: 'Kept outcome', resolvedAt: '2026-07-03T00:00:00.000Z' },
+    });
+    workspace.setVows([archivedCandidate, vowFixture({ id: 'vow-active', title: 'Still active' })]);
+    workspace.setProgressTracks([progressFixture({ id: 'track-archive' })]);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    createComponent();
+
+    fixture.componentInstance['archiveVow']('vow-archive');
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith('Archive this vow? You can restore it later.');
+    expect(workspace.vows().find((vow) => vow.id === 'vow-archive')).toMatchObject({
+      id: 'vow-archive',
+      status: 'archived',
+      progressTrackId: 'track-archive',
+      milestones: archivedCandidate.milestones,
+      outcome: archivedCandidate.outcome,
+    });
+    expect(compiled().textContent).not.toContain('Archive me');
+
+    fixture.componentInstance['toggleArchivedView']();
+    fixture.detectChanges();
+    expect(compiled().textContent).toContain('Archive me');
+
+    fixture.componentInstance['restoreVow']('vow-archive');
+    fixture.detectChanges();
+    const restored = workspace.vows().find((vow) => vow.id === 'vow-archive');
+    expect(restored).toMatchObject({
+      id: 'vow-archive',
+      status: 'active',
+      rank: archivedCandidate.rank,
+      notes: archivedCandidate.notes,
+      description: archivedCandidate.description,
+      progressTrackId: 'track-archive',
+      milestones: archivedCandidate.milestones,
+      outcome: archivedCandidate.outcome,
+    });
+  });
+
+  it('cancels destructive vow actions without changing vows or linked progress', () => {
+    const original = vowFixture({ id: 'vow-cancel-delete', progressTrackId: 'track-cancel' });
+    const track = progressFixture({ id: 'track-cancel' });
+    workspace.setVows([original]);
+    workspace.setProgressTracks([track]);
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    createComponent();
+
+    fixture.componentInstance['archiveVow']('vow-cancel-delete');
+    fixture.componentInstance['deleteVow']('vow-cancel-delete');
+
+    expect(workspace.vows()[0]).toEqual(original);
+    expect(workspace.progressTracks()[0]).toEqual(track);
+    expect(compiled().textContent).toContain('Carry word to Hillwatch');
+  });
+
+  it('warns before deleting data-bearing vows and preserves linked tracks and unrelated data', () => {
+    const doomed = vowFixture({
+      id: 'vow-delete',
+      title: 'Delete selected only',
+      progressTrackId: 'track-survives',
+      milestones: [
+        { id: 'milestone-delete', createdAt: '2026-07-04T00:00:00.000Z', note: 'Delete with vow' },
+      ],
+      outcome: { summary: 'Delete this outcome', resolvedAt: '2026-07-05T00:00:00.000Z' },
+    });
+    const unrelated = vowFixture({ id: 'vow-unrelated', title: 'Unrelated remains' });
+    const track = progressFixture({ id: 'track-survives' });
+    workspace.setVows([doomed, unrelated]);
+    workspace.setProgressTracks([track]);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    createComponent();
+
+    fixture.componentInstance['deleteVow']('vow-delete');
+
+    expect(confirmSpy.mock.calls.at(-1)?.[0]).toContain(
+      'This vow has a linked progress track. The track will remain.',
+    );
+    expect(confirmSpy.mock.calls.at(-1)?.[0]).toContain('This vow has milestone notes.');
+    expect(confirmSpy.mock.calls.at(-1)?.[0]).toContain('This vow has notes.');
+    expect(confirmSpy.mock.calls.at(-1)?.[0]).toContain('This vow has outcome data.');
+    expect(workspace.vows()).toEqual([unrelated]);
+    expect(workspace.progressTracks()).toEqual([track]);
+  });
+
+  it('handles stale delete requests safely and returns focus after cancel', async () => {
+    workspace.setVows([vowFixture({ id: 'vow-stale', title: 'Stale target' })]);
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    createComponent();
+    fixture.detectChanges();
+
+    const deleteButton = compiled().querySelector<HTMLButtonElement>('#vow-delete-vow-stale');
+    deleteButton?.focus();
+    fixture.componentInstance['deleteVow']('vow-stale');
+    await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
+
+    expect(document.activeElement).toBe(deleteButton);
+    workspace.clearVows();
+    fixture.componentInstance['deleteVow']('vow-stale');
+    expect(fixture.componentInstance['formMessage']).toBe('Vow was not found.');
   });
 });

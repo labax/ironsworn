@@ -120,6 +120,11 @@ export interface DeleteProgressTrackWarning {
   readonly message: string;
 }
 
+export interface DeleteVowWarning {
+  readonly code: 'linked_track' | 'has_milestones' | 'has_notes' | 'has_outcome';
+  readonly message: string;
+}
+
 export interface ProgressTrackArchiveResult {
   readonly ok: true;
   readonly track: ProgressTrack;
@@ -129,6 +134,12 @@ export interface DeleteProgressTrackPreview {
   readonly ok: true;
   readonly track: ProgressTrack;
   readonly warnings: readonly DeleteProgressTrackWarning[];
+}
+
+export interface DeleteVowPreview {
+  readonly ok: true;
+  readonly vow: Vow;
+  readonly warnings: readonly DeleteVowWarning[];
 }
 
 const compareVows = (left: Vow, right: Vow): number => {
@@ -295,6 +306,77 @@ export class CampaignWorkspaceService {
     this.selectedVowIdState.set(vow.id);
 
     return { ok: true, vow: cloneVow(vow) };
+  }
+
+  archiveVow(
+    vowId: string,
+  ): { ok: true; vow: Vow } | { ok: false; errors: readonly ValidationError[] } {
+    return this.updateVowStatus({ vowId, status: 'archived' });
+  }
+
+  restoreVow(
+    vowId: string,
+  ): { ok: true; vow: Vow } | { ok: false; errors: readonly ValidationError[] } {
+    return this.updateVowStatus({ vowId, status: 'active' });
+  }
+
+  previewDeleteVow(
+    vowId: string,
+  ): DeleteVowPreview | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.vowsState().find((vow) => vow.id === vowId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+
+    const warnings: DeleteVowWarning[] = [];
+    if (existing.progressTrackId) {
+      warnings.push({
+        code: 'linked_track',
+        message: 'This vow has a linked progress track. The track will remain.',
+      });
+    }
+    if ((existing.milestones ?? []).length > 0) {
+      warnings.push({
+        code: 'has_milestones',
+        message: 'This vow has milestone notes. Deleting removes those vow notes.',
+      });
+    }
+    if (typeof existing.notes === 'string' && existing.notes.trim()) {
+      warnings.push({
+        code: 'has_notes',
+        message: 'This vow has notes. Deleting removes those vow notes.',
+      });
+    }
+    if (existing.outcome?.summary || existing.outcome?.resolvedAt || existing.outcome?.rollId) {
+      warnings.push({
+        code: 'has_outcome',
+        message: 'This vow has outcome data. Deleting removes the vow outcome.',
+      });
+    }
+
+    return { ok: true, vow: cloneVow(existing), warnings };
+  }
+
+  deleteVow(
+    vowId: string,
+  ): { ok: true; vow: Vow } | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.vowsState().find((vow) => vow.id === vowId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+
+    this.vowsState.update((vows) => vows.filter((vow) => vow.id !== vowId));
+    if (this.selectedVowIdState() === vowId) {
+      this.selectedVowIdState.set(null);
+    }
+
+    return { ok: true, vow: cloneVow(existing) };
   }
 
   updateVowOutcome(
