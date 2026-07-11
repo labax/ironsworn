@@ -1,7 +1,13 @@
 import { Component, computed, ElementRef, inject, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import { CHALLENGE_RANK_LABELS, CHALLENGE_RANKS, type ChallengeRank } from '@app/domain/progress';
+import {
+  CHALLENGE_RANK_LABELS,
+  CHALLENGE_RANKS,
+  MAX_PROGRESS_TICKS,
+  type ChallengeRank,
+  type ProgressTrack,
+} from '@app/domain/progress';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
 import { VOW_STATUS_LABELS, VOW_STATUSES, type Vow, type VowStatus } from '@app/domain/vows';
 import type { ValidationError } from '@app/rules/validation';
@@ -18,7 +24,57 @@ interface VowListItem {
   readonly statusLabel: string;
   readonly description: string;
   readonly notes: string;
+  readonly updatedLabel: string;
+  readonly updatedMachineValue?: string;
+  readonly progressSummary: string;
+  readonly progressWarning?: string;
 }
+
+const STATUS_ORDER: Record<VowStatus, number> = {
+  active: 0,
+  fulfilled: 1,
+  forsaken: 2,
+  archived: 3,
+};
+
+const compareVowListItems = (left: VowListItem, right: VowListItem): number => {
+  const statusComparison = STATUS_ORDER[left.vow.status] - STATUS_ORDER[right.vow.status];
+  if (statusComparison !== 0) return statusComparison;
+
+  const leftDate = left.vow.updatedAt ?? left.vow.createdAt ?? '';
+  const rightDate = right.vow.updatedAt ?? right.vow.createdAt ?? '';
+  const dateComparison = rightDate.localeCompare(leftDate);
+
+  return dateComparison !== 0 ? dateComparison : left.vow.id.localeCompare(right.vow.id);
+};
+
+const formatTimestamp = (value: string | undefined): string => {
+  if (!value) return 'Not recorded';
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return 'Recorded date unavailable';
+
+  return new Intl.DateTimeFormat('en', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+};
+
+const progressSummaryFor = (
+  vow: Vow,
+  track: ProgressTrack | undefined,
+): Pick<VowListItem, 'progressSummary' | 'progressWarning'> => {
+  if (!vow.progressTrackId) return { progressSummary: 'No linked progress track.' };
+  if (!track) {
+    return {
+      progressSummary: 'Progress unavailable.',
+      progressWarning: 'Linked progress track is missing. Reopen the vow to repair the link.',
+    };
+  }
+
+  return {
+    progressSummary: `${track.ticks} of ${MAX_PROGRESS_TICKS} ticks (${CHALLENGE_RANK_LABELS[track.rank] ?? 'Unknown rank'}, ${track.status})`,
+  };
+};
 
 @Component({
   selector: 'app-vows',
@@ -41,16 +97,46 @@ export class Vows {
     }),
   );
   protected readonly selectedVowId = this.workspace.selectedVowId;
-  protected readonly vows = computed<readonly VowListItem[]>(() =>
-    this.workspace.vows().map((vow) => ({
-      vow,
-      title: vow.title.trim() || 'Untitled vow',
-      rankLabel: CHALLENGE_RANK_LABELS[vow.rank] ?? 'Unknown rank',
-      statusLabel: VOW_STATUS_LABELS[vow.status] ?? 'Unknown status',
-      description: vow.description ?? '',
-      notes: vow.notes ?? '',
-    })),
-  );
+  protected readonly loadError = computed(() => {
+    try {
+      this.workspace.vows();
+      this.workspace.progressTracks();
+      return '';
+    } catch {
+      return 'Vows could not be loaded. Try again or create a new vow.';
+    }
+  });
+  protected readonly vows = computed<readonly VowListItem[]>(() => {
+    try {
+      const progressById = new Map(
+        this.workspace.progressTracks().map((track) => [track.id, track]),
+      );
+
+      return this.workspace
+        .vows()
+        .map((vow) => {
+          const progress = progressSummaryFor(
+            vow,
+            vow.progressTrackId ? progressById.get(vow.progressTrackId) : undefined,
+          );
+
+          return {
+            vow,
+            title: vow.title.trim() || 'Untitled vow',
+            rankLabel: CHALLENGE_RANK_LABELS[vow.rank] ?? 'Unknown rank',
+            statusLabel: VOW_STATUS_LABELS[vow.status] ?? 'Unknown status',
+            description: vow.description ?? '',
+            notes: vow.notes ?? '',
+            updatedLabel: formatTimestamp(vow.updatedAt ?? vow.createdAt),
+            updatedMachineValue: vow.updatedAt ?? vow.createdAt,
+            ...progress,
+          };
+        })
+        .sort(compareVowListItems);
+    } catch {
+      return [];
+    }
+  });
 
   protected readonly vowForm = this.formBuilder.group({
     title: ['', [Validators.required, Validators.pattern(/\S/)]],

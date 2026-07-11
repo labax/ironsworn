@@ -1,10 +1,23 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
+import { createDefaultProgressTrack, type ProgressTrack } from '@app/domain/progress';
 import { createDefaultVow, type Vow } from '@app/domain/vows';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
 
 import { Vows } from './vows';
+
+const progressFixture = (overrides: Partial<ProgressTrack> = {}): ProgressTrack => ({
+  ...createDefaultProgressTrack({
+    id: 'progress-track-default',
+    createdAt: '2026-07-01T00:00:00.000Z',
+    title: 'Track the promise',
+    type: 'vow',
+    rank: 'formidable',
+  }),
+  ticks: 12,
+  ...overrides,
+});
 
 const vowFixture = (overrides: Partial<Vow> = {}): Vow => ({
   ...createDefaultVow({
@@ -32,6 +45,88 @@ describe('Vows', () => {
     await TestBed.configureTestingModule({ imports: [Vows] }).compileComponents();
     workspace = TestBed.inject(CampaignWorkspaceService);
     workspace.clearVows();
+    workspace.clearProgressTracks();
+  });
+
+  it('renders an empty state with a create action', () => {
+    createComponent();
+
+    expect(compiled().textContent).toContain('No vows yet.');
+    expect(
+      compiled().querySelector<HTMLButtonElement>('.empty-state button')?.textContent,
+    ).toContain('Create vow');
+  });
+
+  it('lists active vows first with deterministic timestamp and stable-id ordering', () => {
+    workspace.setVows([
+      vowFixture({
+        id: 'vow-fulfilled',
+        title: 'Past promise',
+        status: 'fulfilled',
+        updatedAt: '2026-07-10T00:00:00.000Z',
+      }),
+      vowFixture({
+        id: 'vow-active-b',
+        title: 'Second active',
+        status: 'active',
+        updatedAt: '2026-07-08T00:00:00.000Z',
+      }),
+      vowFixture({
+        id: 'vow-active-a',
+        title: 'First active',
+        status: 'active',
+        updatedAt: '2026-07-08T00:00:00.000Z',
+      }),
+    ]);
+    createComponent();
+
+    const titles = Array.from(compiled().querySelectorAll('.vow-title-block h3')).map((node) =>
+      node.textContent?.trim(),
+    );
+    expect(titles).toEqual(['First active', 'Second active', 'Past promise']);
+    expect(compiled().textContent).toContain(
+      'Active vows are listed first; other statuses follow by latest timestamp, then stable ID.',
+    );
+  });
+
+  it('opens the selected vow by stable id', () => {
+    workspace.setVows([
+      vowFixture({ id: 'vow-one', title: 'First visible duplicate' }),
+      vowFixture({ id: 'vow-two', title: 'First visible duplicate', notes: 'The selected note.' }),
+    ]);
+    createComponent();
+
+    fixture.componentInstance['openVow']('vow-two');
+
+    expect(workspace.selectedVowId()).toBe('vow-two');
+    expect(fixture.componentInstance['vowForm'].getRawValue().notes).toBe('The selected note.');
+  });
+
+  it('derives linked progress from the progress track and warns when the link is broken', () => {
+    workspace.setProgressTracks([
+      progressFixture({ id: 'track-linked', ticks: 16, rank: 'extreme', status: 'active' }),
+    ]);
+    workspace.setVows([
+      vowFixture({ id: 'vow-linked', title: 'Linked vow', progressTrackId: 'track-linked' }),
+      vowFixture({ id: 'vow-broken', title: 'Broken vow', progressTrackId: 'missing-track' }),
+    ]);
+    createComponent();
+
+    expect(compiled().textContent).toContain('16 of 40 ticks (Extreme, active)');
+    expect(compiled().textContent).toContain('Linked progress track is missing.');
+  });
+
+  it('shows a safe failed-load state', () => {
+    vi.spyOn(workspace, 'vows').mockImplementation(() => {
+      throw new Error('load failed');
+    });
+    createComponent();
+
+    expect(compiled().textContent).toContain('Vows are unavailable.');
+    expect(compiled().textContent).toContain('Vows could not be loaded.');
+    expect(
+      compiled().querySelector<HTMLButtonElement>('.error-state button')?.textContent,
+    ).toContain('Create vow');
   });
 
   it('creates a typed vow with stable identity, timestamps, and user-authored text', () => {

@@ -7,6 +7,7 @@
 }
 .vows-header,
 .empty-state,
+.error-state,
 .vow-card,
 .vow-form {
   border: 1px solid rgba(148, 163, 184, 0.25);
@@ -16,6 +17,7 @@
 }
 .vows-header,
 .empty-state,
+.error-state,
 .vow-card article,
 .vow-form {
   padding: 1.25rem;
@@ -31,11 +33,13 @@
 }
 .vows-header h2,
 .empty-state h3,
+.error-state h3,
 .vow-title-block h3 {
   margin: 0;
 }
 .vows-header p:last-child,
 .empty-state p,
+.error-state p,
 .helper-text,
 .form-message {
   color: #cbd5e1;
@@ -51,6 +55,7 @@
   padding: 0;
 }
 .empty-state,
+.error-state,
 .vow-card-heading,
 .form-actions {
   align-items: start;
@@ -67,11 +72,15 @@
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
+.vow-card-active {
+  border-width: 2px;
+}
 .vow-card-selected {
   border-color: rgba(147, 197, 253, 0.75);
 }
 .vow-title-block,
-.vow-text {
+.vow-text,
+.progress-warning {
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -96,6 +105,14 @@
 .vow-facts dd {
   font-weight: 800;
   margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+}
+.progress-warning {
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  border-radius: 0.75rem;
+  color: #fde68a;
+  margin: 1rem 0 0;
+  padding: 0.75rem;
 }
 label {
   color: #e2e8f0;
@@ -150,6 +167,7 @@ textarea:focus-visible {
 }
 @media (max-width: 42rem) {
   .empty-state,
+  .error-state,
   .vow-card-heading,
   .form-actions {
     grid-template-columns: 1fr;
