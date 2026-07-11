@@ -113,6 +113,7 @@
       </button>
     </section>
   } @else {
+    <p class="form-message" role="status" aria-live="polite">{{ progressMessage }}</p>
     <ul class="track-list" aria-label="Progress tracks">
       @for (item of tracks(); track item.track.id) {
         <li
@@ -151,9 +152,59 @@
               }
               <div>
                 <dt>Progress</dt>
-                <dd>{{ item.progressLabel }}</dd>
+                <dd>{{ item.progressLabel }} · {{ item.progressScoreLabel }}</dd>
               </div>
             </dl>
+
+            <div
+              class="progress-boxes"
+              [attr.aria-label]="item.progressLabel + ', ' + item.progressScoreLabel"
+            >
+              @for (filled of item.progressBoxes; track $index) {
+                <span class="progress-box" [class.progress-box-filled]="filled">{{
+                  filled ? '✓' : '□'
+                }}</span>
+              }
+            </div>
+
+            <div
+              class="progress-controls"
+              [attr.aria-describedby]="'progress-help-' + item.track.id"
+            >
+              <button
+                type="button"
+                (click)="markProgress(item.track)"
+                [disabled]="item.markDisabled"
+                [attr.aria-label]="'Mark progress on ' + item.title"
+              >
+                Mark
+              </button>
+              <button
+                type="button"
+                (click)="unmarkProgress(item.track)"
+                [disabled]="item.unmarkDisabled"
+                [attr.aria-label]="'Remove progress from ' + item.title"
+              >
+                Remove
+              </button>
+              <label class="correction-field">
+                Correct ticks
+                <input
+                  #correctionInput
+                  type="number"
+                  step="1"
+                  [value]="item.track.ticks"
+                  (focus)="prepareCorrection(item.track)"
+                  [attr.aria-label]="'Correct progress ticks for ' + item.title"
+                />
+              </label>
+              <button type="button" (click)="applyCorrection(item.track, correctionInput.value)">
+                Apply correction
+              </button>
+            </div>
+            <p [id]="'progress-help-' + item.track.id" class="helper-text">
+              {{ item.markHelp }} {{ item.unmarkHelp }}
+            </p>
 
             @if (item.notes) {
               <p class="track-notes">{{ item.notes }}</p>

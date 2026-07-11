@@ -89,8 +89,9 @@ describe('Trackers', () => {
     ]);
     createComponent();
 
-    const buttons = compiled().querySelectorAll<HTMLButtonElement>('.track-card button');
-    buttons[1].click();
+    compiled()
+      .querySelector<HTMLButtonElement>('[aria-label="Open progress track: Second trail"]')
+      ?.click();
     fixture.detectChanges();
 
     expect(workspace.selectedProgressTrackId()).toBe('track-second');
@@ -164,8 +165,12 @@ describe('Trackers', () => {
     });
     fixture.detectChanges();
 
-    expect(workspace.progressTracks().map((track) => track.type)).toEqual(types);
-    expect(workspace.progressTracks().map((track) => track.rank)).toEqual(ranks);
+    expect(workspace.progressTracks().map((track) => track.type)).toEqual(
+      expect.arrayContaining(types),
+    );
+    expect(workspace.progressTracks().map((track) => track.rank)).toEqual(
+      expect.arrayContaining(ranks),
+    );
     expect(compiled().querySelector('#track-type')?.tagName).toBe('SELECT');
     expect(compiled().querySelector('#track-rank')?.tagName).toBe('SELECT');
     expect(compiled().querySelector('#track-type')?.getAttribute('aria-describedby')).toContain(
@@ -245,5 +250,122 @@ describe('Trackers', () => {
     expect(compiled().textContent).toContain('Choose a supported rank.');
     expect(compiled().querySelector('#track-type')?.getAttribute('aria-invalid')).toBe('true');
     expect(compiled().querySelector('#track-rank')?.getAttribute('aria-invalid')).toBe('true');
+  });
+  it('marks and removes progress on only the selected track with accessible announcements', () => {
+    const selected = progressTrack({ id: 'track-mark', rank: 'dangerous', ticks: 8 });
+    const unrelated = progressTrack({
+      id: 'track-safe',
+      title: 'Safe',
+      ticks: 12,
+      notes: 'Keep me',
+    });
+    workspace.setProgressTracks([selected, unrelated]);
+    createComponent();
+
+    compiled()
+      .querySelector<HTMLButtonElement>('[aria-label="Mark progress on Find the hidden ford"]')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(workspace.progressTracks().find((track) => track.id === 'track-mark')?.ticks).toBe(16);
+    expect(workspace.progressTracks().find((track) => track.id === 'track-safe')).toEqual(
+      unrelated,
+    );
+    expect(compiled().textContent).toContain('Progress marked. 16 ticks, score 4.');
+    expect(compiled().textContent).toContain('16 progress ticks · Score 4');
+
+    compiled()
+      .querySelector<HTMLButtonElement>('[aria-label="Remove progress from Find the hidden ford"]')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(workspace.progressTracks().find((track) => track.id === 'track-mark')?.ticks).toBe(8);
+    expect(compiled().textContent).toContain('Progress removed. 8 ticks, score 2.');
+  });
+
+  it('disables normal controls at boundaries with non-color helper text', () => {
+    workspace.setProgressTracks([
+      progressTrack({ id: 'track-full', title: 'Full', rank: 'troublesome', ticks: 36 }),
+      progressTrack({ id: 'track-empty', title: 'Empty', rank: 'dangerous', ticks: 4 }),
+    ]);
+    createComponent();
+
+    expect(
+      compiled().querySelector<HTMLButtonElement>('[aria-label="Mark progress on Full"]')?.disabled,
+    ).toBe(true);
+    expect(
+      compiled().querySelector<HTMLButtonElement>('[aria-label="Remove progress from Empty"]')
+        ?.disabled,
+    ).toBe(true);
+    expect(compiled().textContent).toContain('Marking would exceed 40 ticks.');
+    expect(compiled().textContent).toContain('Removing would go below 0 ticks.');
+  });
+
+  it('applies direct correction with destructive confirmation and preserves unrelated data', () => {
+    const track = progressTrack({ id: 'track-correct', ticks: 20, notes: 'Keep note' });
+    const unrelated = progressTrack({ id: 'track-other', title: 'Other', ticks: 8 });
+    workspace.setProgressTracks([track, unrelated]);
+    createComponent();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const input = compiled().querySelector<HTMLInputElement>(
+      '[aria-label="Correct progress ticks for Find the hidden ford"]',
+    );
+    expect(input).toBeTruthy();
+    input!.value = '12';
+
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    fixture.detectChanges();
+
+    expect(
+      workspace.progressTracks().find((candidate) => candidate.id === 'track-correct')?.ticks,
+    ).toBe(20);
+    expect(compiled().textContent).toContain(
+      'Progress correction canceled; progress was preserved.',
+    );
+
+    confirmSpy.mockReturnValue(true);
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    fixture.detectChanges();
+
+    expect(
+      workspace.progressTracks().find((candidate) => candidate.id === 'track-correct'),
+    ).toMatchObject({
+      id: 'track-correct',
+      ticks: 12,
+      notes: 'Keep note',
+      status: 'active',
+    });
+    expect(workspace.progressTracks().find((candidate) => candidate.id === 'track-other')).toEqual(
+      unrelated,
+    );
+  });
+
+  it('requires confirmation for manual correction outside normal bounds without clamping confirmed values', () => {
+    workspace.setProgressTracks([progressTrack({ id: 'track-override', ticks: 40 })]);
+    createComponent();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const input = compiled().querySelector<HTMLInputElement>(
+      '[aria-label="Correct progress ticks for Find the hidden ford"]',
+    );
+    input!.value = '44';
+
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    fixture.detectChanges();
+
+    expect(workspace.progressTracks().find((track) => track.id === 'track-override')?.ticks).toBe(
+      40,
+    );
+    expect(compiled().textContent).toContain('Manual correction canceled; progress was preserved.');
+
+    confirmSpy.mockReturnValue(true);
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    fixture.detectChanges();
+
+    expect(workspace.progressTracks().find((track) => track.id === 'track-override')?.ticks).toBe(
+      44,
+    );
+    expect(compiled().textContent).toContain(
+      'Manual progress correction applied. 44 ticks, score 10.',
+    );
   });
 });

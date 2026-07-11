@@ -12,6 +12,16 @@ import {
   type ProgressTrackType,
 } from '@app/domain/progress';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
+import {
+  addProgressByRank,
+  correctProgressTicks,
+  MAX_PROGRESS_TICKS,
+  MIN_PROGRESS_TICKS,
+  PROGRESS_TICKS_PER_BOX,
+  progressRankIncrementTicks,
+  progressScoreFromState,
+  removeProgressByRank,
+} from '@app/rules/progress-rolls';
 import type { ValidationError } from '@app/rules/validation';
 
 interface ProgressTrackListItem {
@@ -21,6 +31,12 @@ interface ProgressTrackListItem {
   readonly statusLabel: string;
   readonly rankLabel: string | null;
   readonly progressLabel: string;
+  readonly progressScoreLabel: string;
+  readonly progressBoxes: readonly boolean[];
+  readonly markDisabled: boolean;
+  readonly unmarkDisabled: boolean;
+  readonly markHelp: string;
+  readonly unmarkHelp: string;
   readonly notes: string | null;
 }
 
@@ -69,6 +85,8 @@ export class Trackers {
   protected editingTrackId: string | null = null;
   protected formMessage = '';
   protected fieldErrors: Partial<Record<'title' | 'type' | 'rank', string>> = {};
+  protected correctionTicks = 0;
+  protected progressMessage = '';
 
   constructor() {
     effect(() => {
@@ -88,6 +106,67 @@ export class Trackers {
   protected openTrack(trackId: string): void {
     const selected = this.workspace.selectProgressTrack(trackId);
     if (selected) this.loadTrack(selected);
+  }
+
+  protected markProgress(track: ProgressTrack): void {
+    const result = addProgressByRank({ ticks: track.ticks, rank: track.rank });
+    if (!result.ok) {
+      this.progressMessage = result.errors[0]?.message ?? 'Progress could not be marked.';
+      return;
+    }
+    this.saveProgressTicks(track.id, result.value.ticks, 'Progress marked.');
+  }
+
+  protected unmarkProgress(track: ProgressTrack): void {
+    const result = removeProgressByRank({ ticks: track.ticks, rank: track.rank });
+    if (!result.ok) {
+      this.progressMessage = result.errors[0]?.message ?? 'Progress could not be removed.';
+      return;
+    }
+    this.saveProgressTicks(track.id, result.value.ticks, 'Progress removed.');
+  }
+
+  protected prepareCorrection(track: ProgressTrack): void {
+    this.correctionTicks = track.ticks;
+    this.progressMessage = 'Enter a deliberate progress correction in ticks.';
+  }
+
+  protected applyCorrection(track: ProgressTrack, ticksValue: string | number): void {
+    const ticks = Number(ticksValue);
+    const normal = correctProgressTicks(ticks);
+    const isDestructive = Number.isFinite(ticks) && ticks < track.ticks;
+
+    if (!normal.ok) {
+      const confirmed = window.confirm(
+        'This correction is outside normal progress bounds. Apply it as a manual override?',
+      );
+      if (!confirmed) {
+        this.progressMessage = 'Manual correction canceled; progress was preserved.';
+        return;
+      }
+      const manual = correctProgressTicks(ticks, { mode: 'manual_correction' });
+      if (!manual.ok) {
+        this.progressMessage = manual.errors[0]?.message ?? 'Progress correction is invalid.';
+        return;
+      }
+      this.saveProgressTicks(
+        track.id,
+        manual.value.ticks,
+        'Manual progress correction applied.',
+        true,
+      );
+      return;
+    }
+
+    if (isDestructive) {
+      const confirmed = window.confirm('This correction lowers existing progress. Apply it?');
+      if (!confirmed) {
+        this.progressMessage = 'Progress correction canceled; progress was preserved.';
+        return;
+      }
+    }
+
+    this.saveProgressTicks(track.id, normal.value.ticks, 'Progress correction applied.');
   }
 
   protected saveTrack(): void {
@@ -137,6 +216,22 @@ export class Trackers {
     );
   }
 
+  private saveProgressTicks(
+    trackId: string,
+    ticks: number,
+    message: string,
+    manualOverride = false,
+  ): void {
+    const result = this.workspace.updateProgressTrackTicks(
+      trackId,
+      ticks,
+      manualOverride ? { mode: 'manual_correction' } : undefined,
+    );
+    this.progressMessage = result.ok
+      ? `${message} ${result.track.ticks} ticks, score ${Math.min(10, Math.max(0, Math.floor(result.track.ticks / PROGRESS_TICKS_PER_BOX)))}.`
+      : (result.errors[0]?.message ?? 'Progress update failed.');
+  }
+
   private loadTrack(track: ProgressTrack): void {
     this.editingTrackId = track.id;
     this.trackForm.reset({
@@ -164,7 +259,14 @@ export class Trackers {
   private toListItem(track: ProgressTrack): ProgressTrackListItem {
     const title = this.cleanText(track.title) || 'Untitled progress track';
     const status = this.cleanText(track.status);
-    const ticks = Number.isFinite(track.ticks) ? Math.max(0, Math.trunc(track.ticks)) : 0;
+    const progress = progressScoreFromState({ ticks: track.ticks }, { mode: 'manual_correction' });
+    const ticks = progress.ok ? progress.value.ticks : 0;
+    const boxes = progress.ok ? progress.value.boxes : 0;
+    const score = progress.ok ? progress.value.progressScore : 0;
+    const increment = progressRankIncrementTicks(track.rank);
+    const incrementTicks = increment.ok ? increment.value : 0;
+    const markDisabled = !increment.ok || ticks + incrementTicks > MAX_PROGRESS_TICKS;
+    const unmarkDisabled = !increment.ok || ticks - incrementTicks < MIN_PROGRESS_TICKS;
 
     return {
       track,
@@ -173,6 +275,16 @@ export class Trackers {
       statusLabel: statusLabels[track.status] ?? (status ? status : 'Unknown status'),
       rankLabel: CHALLENGE_RANK_LABELS[track.rank] ?? null,
       progressLabel: `${ticks} progress tick${ticks === 1 ? '' : 's'}`,
+      progressScoreLabel: `Score ${score}`,
+      progressBoxes: Array.from({ length: 10 }, (_value, index) => index < boxes),
+      markDisabled,
+      unmarkDisabled,
+      markHelp: markDisabled
+        ? `Marking would exceed ${MAX_PROGRESS_TICKS} ticks.`
+        : `Mark ${incrementTicks} tick${incrementTicks === 1 ? '' : 's'}.`,
+      unmarkHelp: unmarkDisabled
+        ? `Removing would go below ${MIN_PROGRESS_TICKS} ticks.`
+        : `Remove ${incrementTicks} tick${incrementTicks === 1 ? '' : 's'}.`,
       notes: this.cleanText(track.notes),
     };
   }

@@ -7,6 +7,7 @@ import {
   type ProgressTrack,
   type ProgressTrackType,
 } from '@app/domain/progress';
+import { correctProgressTicks, type ProgressValidationOptions } from '@app/rules/progress-rolls';
 import type { ValidationError } from '@app/rules/validation';
 
 const cloneProgressTrack = (track: ProgressTrack): ProgressTrack => ({
@@ -121,6 +122,36 @@ export class CampaignWorkspaceService {
     this.selectedProgressTrackIdState.set(selected?.id ?? null);
 
     return selected ? cloneProgressTrack(selected) : null;
+  }
+
+  updateProgressTrackTicks(
+    trackId: string,
+    ticks: number,
+    options?: ProgressValidationOptions,
+  ): { ok: true; track: ProgressTrack } | { ok: false; errors: readonly ValidationError[] } {
+    const progress = correctProgressTicks(ticks, options);
+    if (!progress.ok) return { ok: false, errors: progress.errors };
+
+    const existing = this.progressTracksState().find((track) => track.id === trackId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'trackId', message: 'Progress track was not found.' }],
+      };
+    }
+
+    const track = cloneProgressTrack({
+      ...existing,
+      ticks: progress.value.ticks,
+      updatedAt: new Date().toISOString(),
+    });
+
+    this.progressTracksState.update((tracks) =>
+      tracks.map((candidate) => (candidate.id === trackId ? track : candidate)),
+    );
+    this.selectedProgressTrackIdState.set(track.id);
+
+    return { ok: true, track: cloneProgressTrack(track) };
   }
 
   clearProgressTracks(): void {
