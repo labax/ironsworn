@@ -6,13 +6,24 @@
   "additionalProperties": false,
   "required": ["schemaVersion", "generatedFor", "lastReviewedAt", "entries"],
   "properties": {
-    "$schema": { "type": "string" },
-    "schemaVersion": { "type": "string" },
-    "generatedFor": { "const": "Ironsworn Digital Companion" },
-    "lastReviewedAt": { "type": ["string", "null"], "format": "date" },
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "string"
+    },
+    "generatedFor": {
+      "const": "Ironsworn Digital Companion"
+    },
+    "lastReviewedAt": {
+      "type": ["string", "null"],
+      "format": "date"
+    },
     "entries": {
       "type": "array",
-      "items": { "$ref": "#/$defs/entry" },
+      "items": {
+        "$ref": "#/$defs/entry"
+      },
       "uniqueItems": true
     }
   },
@@ -37,8 +48,14 @@
         "notes"
       ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-        "title": { "type": "string", "minLength": 1 },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
         "category": {
           "enum": [
             "official",
@@ -67,16 +84,54 @@
             "other"
           ]
         },
-        "source": { "type": "string", "minLength": 1 },
-        "sourceUrl": { "type": ["string", "null"], "format": "uri" },
-        "license": { "type": "string", "minLength": 1 },
-        "licenseUrl": { "type": ["string", "null"], "format": "uri" },
-        "attributionRequired": { "type": "boolean" },
-        "attributionText": { "type": ["string", "null"] },
-        "noticeRef": { "type": ["string", "null"] },
-        "releaseStatus": { "enum": ["allowed", "review-required", "blocked"] },
-        "reviewStatus": { "enum": ["unreviewed", "reviewed", "needs-legal-review", "rejected"] },
-        "notes": { "type": "string" }
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceUrl": {
+          "type": ["string", "null"],
+          "format": "uri"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "licenseUrl": {
+          "type": ["string", "null"],
+          "format": "uri"
+        },
+        "attributionRequired": {
+          "type": "boolean"
+        },
+        "attributionText": {
+          "type": ["string", "null"]
+        },
+        "noticeRef": {
+          "type": ["string", "null"]
+        },
+        "releaseStatus": {
+          "enum": ["allowed", "review-required", "blocked"]
+        },
+        "reviewStatus": {
+          "enum": ["unreviewed", "reviewed", "needs-legal-review", "rejected"]
+        },
+        "notes": {
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
       }
     }
   }
