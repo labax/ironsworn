@@ -52,6 +52,16 @@ export interface SaveProgressTrackInput {
   readonly notes?: string;
 }
 
+export interface UpdateVowRankInput {
+  readonly vowId: string;
+  readonly rank: unknown;
+}
+
+export interface UpdateVowStatusInput {
+  readonly vowId: string;
+  readonly status: unknown;
+}
+
 const compareVows = (left: Vow, right: Vow): number => {
   const leftCreated = typeof left.createdAt === 'string' ? left.createdAt : '';
   const rightCreated = typeof right.createdAt === 'string' ? right.createdAt : '';
@@ -160,6 +170,62 @@ export class CampaignWorkspaceService {
     this.selectedVowIdState.set(selected?.id ?? null);
 
     return selected ? cloneVow(selected) : null;
+  }
+
+  updateVowRank(
+    input: UpdateVowRankInput,
+  ): { ok: true; vow: Vow } | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.vowsState().find((vow) => vow.id === input.vowId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+
+    const details = validateVowDetails({ ...existing, rank: input.rank });
+    if (!details.ok) return { ok: false, errors: details.errors };
+
+    const vow = cloneVow({
+      ...existing,
+      rank: details.value.rank,
+      updatedAt: new Date().toISOString(),
+    });
+
+    this.vowsState.update((vows) =>
+      vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
+    );
+    this.selectedVowIdState.set(vow.id);
+
+    return { ok: true, vow: cloneVow(vow) };
+  }
+
+  updateVowStatus(
+    input: UpdateVowStatusInput,
+  ): { ok: true; vow: Vow } | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.vowsState().find((vow) => vow.id === input.vowId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+
+    const details = validateVowDetails({ ...existing, status: input.status });
+    if (!details.ok) return { ok: false, errors: details.errors };
+
+    const vow = cloneVow({
+      ...existing,
+      status: details.value.status,
+      updatedAt: new Date().toISOString(),
+    });
+
+    this.vowsState.update((vows) =>
+      vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
+    );
+    this.selectedVowIdState.set(vow.id);
+
+    return { ok: true, vow: cloneVow(vow) };
   }
 
   clearVows(): void {

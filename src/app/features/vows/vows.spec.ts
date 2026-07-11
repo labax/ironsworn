@@ -180,8 +180,10 @@ describe('Vows', () => {
       status: 'fulfilled',
       notes: 'Updated note.',
     });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     fixture.componentInstance['saveVow']();
 
+    expect(confirmSpy).toHaveBeenCalledWith('Mark this vow fulfilled?');
     const saved = workspace.vows().find((vow) => vow.id === 'vow-edit');
     expect(saved).toMatchObject({
       id: 'vow-edit',
@@ -198,6 +200,67 @@ describe('Vows', () => {
     expect(saved?.createdAt).toBe(original.createdAt);
     expect(saved?.milestones).toEqual(original.milestones);
     expect(workspace.vows().find((vow) => vow.id === 'vow-other')).toEqual(unrelated);
+  });
+
+  it('requires confirmation for terminal or disruptive status changes and cancel leaves state unchanged', () => {
+    const original = vowFixture({
+      id: 'vow-status',
+      status: 'active',
+      progressTrackId: 'track-status',
+    });
+    const track = progressFixture({ id: 'track-status', ticks: 20 });
+    workspace.setVows([original]);
+    workspace.setProgressTracks([track]);
+    createComponent();
+    fixture.componentInstance['openVow']('vow-status');
+    fixture.componentInstance['vowForm'].patchValue({ status: 'forsaken', rank: 'epic' });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    fixture.componentInstance['saveVow']();
+
+    expect(confirmSpy).toHaveBeenCalledWith('Mark this vow forsaken?');
+    expect(workspace.vows()[0]).toEqual(original);
+    expect(workspace.progressTracks()[0]).toEqual(track);
+    expect(fixture.componentInstance['vowForm'].getRawValue().status).toBe('forsaken');
+
+    confirmSpy.mockReturnValue(true);
+    fixture.componentInstance['saveVow']();
+    expect(workspace.vows()[0]).toMatchObject({
+      id: 'vow-status',
+      status: 'forsaken',
+      rank: 'epic',
+    });
+    expect(workspace.progressTracks()[0].ticks).toBe(20);
+  });
+
+  it('allows deliberate correction of an accidental terminal status without changing progress', () => {
+    workspace.setVows([
+      vowFixture({ id: 'vow-correct', status: 'fulfilled', progressTrackId: 'track-correct' }),
+    ]);
+    workspace.setProgressTracks([progressFixture({ id: 'track-correct', ticks: 8 })]);
+    createComponent();
+    fixture.componentInstance['openVow']('vow-correct');
+    fixture.componentInstance['vowForm'].patchValue({ status: 'active' });
+
+    fixture.componentInstance['saveVow']();
+
+    expect(workspace.vows()[0].status).toBe('active');
+    expect(workspace.progressTracks()[0].ticks).toBe(8);
+  });
+
+  it('offers every supported rank and status from the domain model', () => {
+    createComponent();
+
+    expect(
+      Array.from(compiled().querySelectorAll<HTMLOptionElement>('#vow-rank option')).map(
+        (o) => o.value,
+      ),
+    ).toEqual(['troublesome', 'dangerous', 'formidable', 'extreme', 'epic']);
+    expect(
+      Array.from(compiled().querySelectorAll<HTMLOptionElement>('#vow-status option')).map(
+        (o) => o.value,
+      ),
+    ).toEqual(['active', 'fulfilled', 'forsaken', 'archived']);
   });
 
   it('rejects invalid input with field errors while preserving entered values', () => {
