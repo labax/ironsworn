@@ -127,11 +127,15 @@ export class Trackers {
     this.trackForm.reset({ title: '', type: 'vow', rank: 'troublesome', notes: '' });
     this.fieldErrors = {};
     this.formMessage = 'Creating a new progress track.';
+    this.focusTrackTitle();
   }
 
   protected openTrack(trackId: string): void {
     const selected = this.workspace.selectProgressTrack(trackId);
-    if (selected) this.loadTrack(selected);
+    if (selected) {
+      this.loadTrack(selected);
+      this.focusTrackTitle();
+    }
   }
 
   protected openLinkedVow(vowId: string): void {
@@ -341,6 +345,7 @@ export class Trackers {
     this.editingTrackId = result.track.id;
     this.formMessage = 'Progress track saved.';
     this.trackForm.markAsPristine();
+    this.focusTrackTitle();
   }
 
   protected showError(controlName: 'title' | 'type' | 'rank'): boolean {
@@ -401,6 +406,10 @@ export class Trackers {
     );
     this.formMessage = 'Fix the highlighted fields.';
     this.focusFirstFieldError();
+  }
+
+  private focusTrackTitle(): void {
+    queueMicrotask(() => document.getElementById('track-title')?.focus());
   }
 
   private focusFirstFieldError(): void {

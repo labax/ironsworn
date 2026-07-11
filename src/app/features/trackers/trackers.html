@@ -13,12 +13,15 @@
     [formGroup]="trackForm"
     (ngSubmit)="saveTrack()"
     aria-labelledby="track-editor-title"
+    aria-describedby="track-editor-mode track-editor-help track-form-message"
   >
     <div class="track-card-heading">
       <div>
-        <p class="section-label">{{ editingTrackId ? 'Edit track' : 'Create track' }}</p>
+        <p class="section-label" id="track-editor-mode">
+          {{ editingTrackId ? 'Edit track' : 'Create track' }}
+        </p>
         <h3 id="track-editor-title">Progress track details</h3>
-        <p class="helper-text">
+        <p id="track-editor-help" class="helper-text">
           Rank changes keep current progress unless you choose otherwise later.
         </p>
       </div>
@@ -89,13 +92,21 @@
 
     <label>
       Notes
-      <textarea id="track-notes" formControlName="notes" rows="3"></textarea>
+      <textarea
+        id="track-notes"
+        formControlName="notes"
+        rows="3"
+        aria-describedby="track-notes-help"
+      ></textarea>
+      <span id="track-notes-help" class="helper-text"
+        >Long notes wrap and are saved as entered.</span
+      >
     </label>
 
     <div class="form-actions">
       <button type="submit">Save track</button>
       @if (formMessage) {
-        <p class="form-message" role="status">{{ formMessage }}</p>
+        <p id="track-form-message" class="form-message" role="status">{{ formMessage }}</p>
       }
     </div>
   </form>
@@ -149,8 +160,14 @@
         Archived tracks
       </button>
     </div>
-    <p class="form-message" role="status" aria-live="polite">{{ progressMessage }}</p>
-    <ul class="track-list" aria-label="Progress tracks">
+    <p id="progress-workspace-message" class="form-message" role="status" aria-live="polite">
+      {{ progressMessage }}
+    </p>
+    <ul
+      class="track-list"
+      aria-label="Progress tracks"
+      aria-describedby="progress-workspace-message"
+    >
       @for (item of tracks(); track item.track.id) {
         <li
           class="track-card"
@@ -218,7 +235,10 @@
 
             <div
               class="progress-controls"
-              [attr.aria-describedby]="'progress-help-' + item.track.id"
+              [attr.aria-label]="'Progress actions for ' + item.title"
+              [attr.aria-describedby]="
+                'progress-help-' + item.track.id + ' progress-error-' + item.track.id
+              "
             >
               <button
                 type="button"
@@ -254,9 +274,16 @@
                   [value]="item.track.ticks"
                   (focus)="prepareCorrection(item.track)"
                   [attr.aria-label]="'Correct progress ticks for ' + item.title"
+                  [attr.aria-describedby]="
+                    'progress-help-' + item.track.id + ' progress-error-' + item.track.id
+                  "
                 />
               </label>
-              <button type="button" (click)="applyCorrection(item.track, correctionInput.value)">
+              <button
+                type="button"
+                (click)="applyCorrection(item.track, correctionInput.value)"
+                [attr.aria-label]="'Apply progress correction for ' + item.title"
+              >
                 Apply correction
               </button>
               @if (item.linkedVowId) {
@@ -271,7 +298,11 @@
               }
 
               @if (item.isManualOverride) {
-                <button type="button" (click)="returnToStandard(item.track)">
+                <button
+                  type="button"
+                  (click)="returnToStandard(item.track)"
+                  [attr.aria-label]="'Return ' + item.title + ' to standard progress mode'"
+                >
                   Return to standard
                 </button>
               }
@@ -307,6 +338,9 @@
               {{ item.markHelp }} Roll progress compares the current score without changing the
               track.
               {{ item.unmarkHelp }}
+            </p>
+            <p [id]="'progress-error-' + item.track.id" class="sr-only" aria-live="polite">
+              {{ progressMessage }}
             </p>
 
             @if (latestProgressRoll && latestProgressRoll.trackId === item.track.id) {

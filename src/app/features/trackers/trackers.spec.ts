@@ -612,4 +612,70 @@ describe('Trackers', () => {
     expect(document.activeElement).toBe(deleteButton);
     expect(fixture.componentInstance['progressMessage']).toContain('Delete canceled');
   });
+
+  it('provides programmatic names and error associations for editor and progress controls', () => {
+    workspace.setProgressTracks([progressTrack({ id: 'track-a11y', title: 'Named controls' })]);
+    createComponent();
+
+    expect(compiled().querySelector('form')?.getAttribute('aria-describedby')).toContain(
+      'track-editor-help',
+    );
+    expect(compiled().querySelector('#track-title')?.getAttribute('aria-describedby')).toBe(
+      'track-title-error',
+    );
+    expect(compiled().querySelector('#track-notes')?.getAttribute('aria-describedby')).toBe(
+      'track-notes-help',
+    );
+    expect(
+      compiled().querySelector('[aria-label="Progress actions for Named controls"]'),
+    ).toBeTruthy();
+    expect(
+      compiled().querySelector('[aria-label="Apply progress correction for Named controls"]'),
+    ).toBeTruthy();
+    expect(
+      compiled()
+        .querySelector('[aria-label="Correct progress ticks for Named controls"]')
+        ?.getAttribute('aria-describedby'),
+    ).toContain('progress-error-track-a11y');
+  });
+
+  it('returns focus to the editor name when creating, opening, and saving tracks', async () => {
+    workspace.setProgressTracks([progressTrack({ id: 'track-focus', title: 'Focus target' })]);
+    createComponent();
+
+    fixture.componentInstance['openTrack']('track-focus');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.activeElement).toBe(compiled().querySelector('#track-title'));
+
+    fixture.componentInstance['trackForm'].setValue({
+      title: 'Focus target updated',
+      type: 'journey',
+      rank: 'dangerous',
+      notes: '',
+    });
+    fixture.componentInstance['saveTrack']();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.activeElement).toBe(compiled().querySelector('#track-title'));
+
+    fixture.componentInstance['openCreate']();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.activeElement).toBe(compiled().querySelector('#track-title'));
+  });
+
+  it('keeps long content in semantic wrapping containers for responsive layouts', () => {
+    const longTitle = 'A-very-long-unbroken-title-without-natural-breakpoints-'.repeat(6);
+    const longNotes = 'LongNoteWithoutSpaces'.repeat(20);
+    workspace.setProgressTracks([
+      progressTrack({ id: 'track-long-responsive', title: longTitle, notes: longNotes }),
+    ]);
+    createComponent();
+
+    expect(compiled().querySelector('.track-card')?.className).toContain('track-card');
+    expect(compiled().querySelector('.track-title-block h3')?.textContent).toContain(longTitle);
+    expect(compiled().querySelector('.track-notes')?.textContent).toContain(longNotes);
+    expect(compiled().querySelector('.progress-boxes')?.getAttribute('aria-label')).toContain(
+      'progress ticks',
+    );
+  });
 });
