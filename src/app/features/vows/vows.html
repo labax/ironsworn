@@ -126,9 +126,19 @@
       <button type="button" (click)="openCreate()">Create vow</button>
     </section>
   } @else {
-    <p class="helper-text">
-      Active vows are listed first; other statuses follow by latest timestamp, then stable ID.
-    </p>
+    <div class="archive-view-actions">
+      <p class="helper-text">
+        Active vows are listed first; archived vows are hidden unless you show the archived view.
+      </p>
+      <button
+        type="button"
+        class="secondary"
+        (click)="toggleArchivedView()"
+        [attr.aria-pressed]="showArchived()"
+      >
+        {{ showArchived() ? 'Hide archived vows' : 'Show archived vows' }}
+      </button>
+    </div>
     <ul class="vow-list" aria-label="Vows">
       @for (item of vows(); track item.vow.id) {
         <li
@@ -145,9 +155,41 @@
               <button
                 type="button"
                 (click)="openVow(item.vow.id)"
+                [id]="'vow-edit-' + item.vow.id"
                 [attr.aria-label]="'Edit vow: ' + item.title"
               >
                 Edit
+              </button>
+            </div>
+            <div class="vow-record-actions">
+              @if (item.vow.status === 'archived') {
+                <button
+                  type="button"
+                  class="secondary"
+                  [id]="'vow-restore-' + item.vow.id"
+                  (click)="restoreVow(item.vow.id)"
+                  [attr.aria-label]="'Restore vow: ' + item.title"
+                >
+                  Restore vow
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="secondary"
+                  (click)="archiveVow(item.vow.id)"
+                  [attr.aria-label]="'Archive vow: ' + item.title"
+                >
+                  Archive vow
+                </button>
+              }
+              <button
+                type="button"
+                class="danger"
+                [id]="'vow-delete-' + item.vow.id"
+                (click)="deleteVow(item.vow.id)"
+                [attr.aria-label]="'Delete vow: ' + item.title"
+              >
+                Delete vow
               </button>
             </div>
             <dl class="vow-facts" aria-label="Vow details">
@@ -325,6 +367,37 @@
 
               @if (item.outcomeSummary && !editingOutcomeIds[item.vow.id]) {
                 <article class="outcome-record">
+                  <div class="vow-record-actions">
+                    @if (item.vow.status === 'archived') {
+                      <button
+                        type="button"
+                        class="secondary"
+                        [id]="'vow-restore-' + item.vow.id"
+                        (click)="restoreVow(item.vow.id)"
+                        [attr.aria-label]="'Restore vow: ' + item.title"
+                      >
+                        Restore vow
+                      </button>
+                    } @else {
+                      <button
+                        type="button"
+                        class="secondary"
+                        (click)="archiveVow(item.vow.id)"
+                        [attr.aria-label]="'Archive vow: ' + item.title"
+                      >
+                        Archive vow
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      class="danger"
+                      [id]="'vow-delete-' + item.vow.id"
+                      (click)="deleteVow(item.vow.id)"
+                      [attr.aria-label]="'Delete vow: ' + item.title"
+                    >
+                      Delete vow
+                    </button>
+                  </div>
                   <dl class="vow-facts" aria-label="Outcome details">
                     <div>
                       <dt>Outcome saved</dt>
