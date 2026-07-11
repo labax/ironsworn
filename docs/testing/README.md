@@ -13,9 +13,10 @@ npm run test:ci
 npm run lint
 npm run format:check
 npm run validate:content-json
+npm run validate:content
 ```
 
-These commands intentionally fail when installs, Angular production builds, unit tests, scaffold lint/static checks, formatting, or content JSON metadata validation fail.
+These commands intentionally fail when installs, Angular production builds, unit tests, scaffold lint/static checks, formatting, or content JSON metadata validation, or content provenance validation fail.
 
 ## CI jobs
 
@@ -32,4 +33,4 @@ Epic #1 / issue #63 character-sheet acceptance is documented in [`epic-1-charact
 
 - A dedicated Angular ESLint configuration is not configured yet. Until it is added, `npm run lint` remains the scaffold static-check gate and runs the Angular development build.
 - End-to-end and smoke tests are deferred until the app shell and test runner requirements are defined.
-- CodeQL, dependency review, and content provenance validation are deferred to later setup/content issues.
+- CodeQL, dependency review, and extended content provenance fixture coverage runs through `npm run test:provenance`.
