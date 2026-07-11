@@ -21,6 +21,7 @@ import {
   progressRankIncrementTicks,
   progressScoreFromState,
   removeProgressByRank,
+  type ProgressRollResult,
 } from '@app/rules/progress-rolls';
 import type { ValidationError } from '@app/rules/validation';
 
@@ -40,6 +41,7 @@ interface ProgressTrackListItem {
   readonly notes: string | null;
   readonly isManualOverride: boolean;
   readonly overrideStatusLabel: string;
+  readonly rollDisabled: boolean;
 }
 
 interface SelectOption<T extends string> {
@@ -89,6 +91,7 @@ export class Trackers {
   protected fieldErrors: Partial<Record<'title' | 'type' | 'rank' | 'ticks', string>> = {};
   protected correctionTicks = 0;
   protected progressMessage = '';
+  protected latestProgressRoll: Readonly<ProgressRollResult> | null = null;
 
   constructor() {
     effect(() => {
@@ -126,6 +129,32 @@ export class Trackers {
       return;
     }
     this.saveProgressTicks(track.id, result.value.ticks, 'Progress removed.');
+  }
+
+  protected rollProgress(track: ProgressTrack): void {
+    this.latestProgressRoll = null;
+    const current = this.workspace.progressTracks().find((candidate) => candidate.id === track.id);
+    if (
+      !current ||
+      current.updatedAt !== track.updatedAt ||
+      !Object.is(current.ticks, track.ticks)
+    ) {
+      this.progressMessage = 'Progress roll unavailable because this track snapshot is stale.';
+      return;
+    }
+
+    const result = this.workspace.resolveProgressRollForTrack(track.id);
+    if (!result.ok) {
+      this.progressMessage = result.errors[0]?.message ?? 'Progress roll could not be resolved.';
+      return;
+    }
+
+    this.latestProgressRoll = result.value;
+    this.progressMessage = `Progress roll: score ${result.value.progressScore} vs ${result.value.challengeDice[0]} and ${result.value.challengeDice[1]} — ${this.outcomeLabel(result.value.outcome)}${result.value.isMatch ? ', match' : ', no match'}.`;
+  }
+
+  protected outcomeLabel(outcome: ProgressRollResult['outcome']): string {
+    return outcome.replace('_', ' ');
   }
 
   protected prepareCorrection(track: ProgressTrack): void {
@@ -326,6 +355,7 @@ export class Trackers {
         : markDisabled
           ? `Marking would exceed ${MAX_PROGRESS_TICKS} ticks.`
           : `Mark ${incrementTicks} tick${incrementTicks === 1 ? '' : 's'}.`,
+      rollDisabled: !progress.ok || manualOverride,
       unmarkHelp: manualOverride
         ? 'Manual override active; normal removing is paused.'
         : unmarkDisabled

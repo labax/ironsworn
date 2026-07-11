@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
+import { rulesFailure, rulesSuccess } from '@app/rules/validation';
 
 import { createDefaultProgressTrack, type ProgressTrack } from '@app/domain/progress';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
@@ -29,6 +30,7 @@ describe('Trackers', () => {
   const compiled = (): HTMLElement => fixture.nativeElement as HTMLElement;
 
   beforeEach(async () => {
+    vi.restoreAllMocks();
     await TestBed.configureTestingModule({ imports: [Trackers] }).compileComponents();
     workspace = TestBed.inject(CampaignWorkspaceService);
     workspace.clearProgressTracks();
@@ -283,6 +285,87 @@ describe('Trackers', () => {
     expect(compiled().textContent).toContain('Progress removed. 8 ticks, score 2.');
   });
 
+  it('rolls progress from the current track snapshot and displays structured mechanical data without mutation', () => {
+    const track = progressTrack({ id: 'track-roll', ticks: 24, notes: 'Keep note' });
+    const unrelated = progressTrack({ id: 'track-other', title: 'Other', ticks: 8 });
+    workspace.setProgressTracks([track, unrelated]);
+    const rollSpy = vi.spyOn(workspace, 'resolveProgressRollForTrack').mockReturnValue(
+      rulesSuccess(
+        Object.freeze({
+          type: 'progress' as const,
+          trackId: 'track-roll',
+          rolledAt: '2026-07-11T00:00:00.000Z',
+          source: 'generated' as const,
+          progressScore: 6,
+          challengeDice: [4, 4] as const,
+          outcome: 'strong_hit' as const,
+          challengeResults: [true, true] as const,
+          isMatch: true,
+          trace: ['test'],
+        }),
+      ),
+    );
+    createComponent();
+
+    const button = compiled().querySelector<HTMLButtonElement>(
+      '[aria-label="Roll progress for Find the hidden ford"]',
+    );
+    button?.focus();
+    button?.click();
+    fixture.detectChanges();
+
+    expect(document.activeElement).toBe(button);
+    expect(rollSpy).toHaveBeenCalledWith('track-roll');
+    expect(compiled().textContent).toContain(
+      'Progress roll: score 6 vs 4 and 4 — strong hit, match.',
+    );
+    expect(compiled().textContent).toContain('Progress roll result');
+    expect(compiled().textContent).toContain('Challenge dice');
+    expect(compiled().textContent).toContain('Match');
+    expect(workspace.progressTracks().find((candidate) => candidate.id === 'track-roll')).toEqual(
+      track,
+    );
+    expect(workspace.progressTracks().find((candidate) => candidate.id === 'track-other')).toEqual(
+      unrelated,
+    );
+  });
+
+  it('shows recoverable errors for missing, stale, or malformed tracks', () => {
+    const track = progressTrack({ id: 'track-roll-errors', ticks: 12 });
+    workspace.setProgressTracks([track]);
+    createComponent();
+
+    const staleButton = compiled().querySelector<HTMLButtonElement>(
+      '[aria-label="Roll progress for Find the hidden ford"]',
+    );
+    workspace.setProgressTracks([{ ...track, ticks: 16, updatedAt: '2026-07-02T00:00:00.000Z' }]);
+    staleButton?.click();
+    fixture.detectChanges();
+    expect(compiled().textContent).toContain(
+      'Progress roll unavailable because this track snapshot is stale.',
+    );
+
+    const malformed = progressTrack({ id: 'track-malformed', ticks: Number.NaN });
+    workspace.setProgressTracks([malformed as ProgressTrack]);
+    fixture.componentInstance['rollProgress'](malformed as ProgressTrack);
+    fixture.detectChanges();
+    expect(compiled().textContent).toContain('ticks must be a finite number.');
+
+    const missing = progressTrack({ id: 'track-missing' });
+    const rollSpy = vi
+      .spyOn(workspace, 'resolveProgressRollForTrack')
+      .mockReturnValue(
+        rulesFailure([
+          { code: 'not_found', field: 'trackId', message: 'Progress track was not found.' },
+        ]),
+      );
+    workspace.setProgressTracks([missing]);
+    fixture.componentInstance['rollProgress'](missing);
+    fixture.detectChanges();
+    expect(rollSpy).toHaveBeenCalledWith('track-missing');
+    expect(compiled().textContent).toContain('Progress track was not found.');
+  });
+
   it('disables normal controls at boundaries with non-color helper text', () => {
     workspace.setProgressTracks([
       progressTrack({ id: 'track-full', title: 'Full', rank: 'troublesome', ticks: 36 }),
@@ -313,7 +396,7 @@ describe('Trackers', () => {
     expect(input).toBeTruthy();
     input!.value = '12';
 
-    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[3].click();
     fixture.detectChanges();
 
     expect(
@@ -324,7 +407,7 @@ describe('Trackers', () => {
     );
 
     confirmSpy.mockReturnValue(true);
-    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[3].click();
     fixture.detectChanges();
 
     expect(
@@ -349,7 +432,7 @@ describe('Trackers', () => {
     );
     input!.value = '44';
 
-    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[3].click();
     fixture.detectChanges();
 
     expect(workspace.progressTracks().find((track) => track.id === 'track-override')?.ticks).toBe(
@@ -358,7 +441,7 @@ describe('Trackers', () => {
     expect(compiled().textContent).toContain('Manual correction canceled; progress was preserved.');
 
     confirmSpy.mockReturnValue(true);
-    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[3].click();
     fixture.detectChanges();
 
     expect(workspace.progressTracks().find((track) => track.id === 'track-override')?.ticks).toBe(
@@ -382,7 +465,7 @@ describe('Trackers', () => {
     ).toBe(true);
 
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[3].click();
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[4].click();
     fixture.detectChanges();
     expect(workspace.progressTracks()[0]?.progressMode).toBe('manual_override');
     expect(compiled().textContent).toContain('Return to standard mode canceled');
@@ -391,7 +474,7 @@ describe('Trackers', () => {
     compiled().querySelector<HTMLInputElement>(
       '[aria-label="Correct progress ticks for Find the hidden ford"]',
     )!.value = '40';
-    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[3].click();
     fixture.detectChanges();
     expect(workspace.progressTracks()[0]).toMatchObject({ ticks: 40, progressMode: 'standard' });
   });
@@ -406,7 +489,7 @@ describe('Trackers', () => {
       '[aria-label="Correct progress ticks for Find the hidden ford"]',
     );
     input!.value = 'not a number';
-    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[3].click();
     fixture.detectChanges();
 
     expect(confirmSpy).toHaveBeenCalled();

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createFixedRandomProvider } from '../testing';
 import {
   addProgressByRank,
   boxesToTicks,
@@ -177,12 +178,90 @@ describe('progress rolls', () => {
     expect(classifyProgressRoll(5, [5, 7])).toBe('miss');
   });
 
-  it('resolves typed progress roll input', () => {
-    const result = resolveProgressRoll({ progressScore: 7, challengeDice: [3, 7] });
+  it.each([
+    ['strong_hit', 8, [2, 7]],
+    ['weak_hit', 5, [2, 7]],
+    ['miss', 5, [5, 7]],
+  ] as const)(
+    'resolves %s with strict progress comparison',
+    (outcome, progressScore, challengeDice) => {
+      const result = resolveProgressRoll({
+        trackId: 'track-1',
+        progressScore,
+        challengeDice,
+        rolledAt: '2026-07-11T00:00:00.000Z',
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value).toMatchObject({
+        type: 'progress',
+        trackId: 'track-1',
+        progressScore,
+        challengeDice,
+        outcome,
+        rolledAt: '2026-07-11T00:00:00.000Z',
+        source: 'manual',
+      });
+      expect(Object.isFrozen(result.value)).toBe(true);
+    },
+  );
+
+  it('detects challenge matches and keeps raw dice', () => {
+    const result = resolveProgressRoll({
+      trackId: 'track-match',
+      progressScore: 9,
+      challengeDice: [6, 6],
+    });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    expect(result.value.isMatch).toBe(true);
+    expect(result.value.challengeResults).toEqual([true, true]);
+  });
+
+  it.each([0, 10])('accepts progress score boundary %i', (progressScore) => {
+    const result = resolveProgressRoll({
+      trackId: 'track-boundary',
+      progressScore,
+      challengeDice: [1, 10],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('uses deterministic injectable randomness for generated challenge dice', () => {
+    const result = resolveProgressRoll({
+      trackId: 'track-random',
+      progressScore: 6,
+      randomProvider: createFixedRandomProvider([0.2, 0.9]),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.challengeDice).toEqual([3, 10]);
     expect(result.value.outcome).toBe('weak_hit');
-    expect(result.value.isMatch).toBe(false);
+    expect(result.value.source).toBe('generated');
+  });
+
+  it.each([
+    ['missing track ID', { trackId: '', progressScore: 5, challengeDice: [1, 2] }, 'required'],
+    [
+      'non-integer progress',
+      { trackId: 'track', progressScore: 1.5, challengeDice: [1, 2] },
+      'not_integer',
+    ],
+    [
+      'progress over maximum',
+      { trackId: 'track', progressScore: 11, challengeDice: [1, 2] },
+      'out_of_range',
+    ],
+    [
+      'malformed challenge die',
+      { trackId: 'track', progressScore: 5, challengeDice: [0, 2] },
+      'out_of_range',
+    ],
+  ] as const)('returns safe errors for %s', (_label, input, code) => {
+    expectFailureCode(resolveProgressRoll(input), code);
   });
 });

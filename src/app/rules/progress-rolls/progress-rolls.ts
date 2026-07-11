@@ -1,17 +1,25 @@
 import type { ChallengeRank } from '@domain/progress';
-import type { ProgressRollDice, RollOutcome } from '@domain/rolls';
-import { rollChallengeDice, validateChallengeDie } from '../dice';
+import type { ProgressRollDice, RollOutcome, RollSource } from '@domain/rolls';
+import { rollChallengeDice, validateChallengeDie, type RandomNumberProvider } from '../dice';
 import { detectChallengeMatch } from '../action-rolls';
 import { rulesFailure, rulesSuccess, type RulesResult, type ValidationError } from '../validation';
 
 export type ProgressRollOutcome = Extract<RollOutcome, 'strong_hit' | 'weak_hit' | 'miss'>;
 
 export interface ProgressRollInput {
+  readonly trackId: string;
   readonly progressScore: number;
   readonly challengeDice?: readonly [number, number];
+  readonly randomProvider?: RandomNumberProvider;
+  readonly rolledAt?: string;
+  readonly source?: RollSource;
 }
 
 export interface ProgressRollResult extends ProgressRollDice {
+  readonly type: 'progress';
+  readonly trackId: string;
+  readonly rolledAt: string;
+  readonly source: RollSource;
   readonly outcome: ProgressRollOutcome;
   readonly challengeResults: readonly [boolean, boolean];
   readonly isMatch: boolean;
@@ -240,18 +248,29 @@ export const classifyProgressRoll = (
   return 'miss';
 };
 
-export const resolveProgressRoll = (input: ProgressRollInput): RulesResult<ProgressRollResult> => {
-  const challengeDice = input.challengeDice ?? rollChallengeDice();
+export const resolveProgressRoll = (
+  input: ProgressRollInput,
+): RulesResult<Readonly<ProgressRollResult>> => {
+  const challengeDice = input.challengeDice ?? rollChallengeDice(input.randomProvider);
   const errors: ValidationError[] = challengeDice.flatMap((die, index) => {
     const result = validateChallengeDie(die, `challengeDice.${index}`);
     return result.ok ? [] : result.errors;
   });
 
-  if (
-    !Number.isInteger(input.progressScore) ||
-    input.progressScore < MIN_PROGRESS_SCORE ||
-    input.progressScore > MAX_PROGRESS_SCORE
-  ) {
+  if (typeof input.trackId !== 'string' || input.trackId.trim() === '') {
+    errors.push({
+      code: 'required',
+      field: 'trackId',
+      message: 'trackId is required for a progress roll.',
+    });
+  }
+  if (!Number.isInteger(input.progressScore)) {
+    errors.push({
+      code: 'not_integer',
+      field: 'progressScore',
+      message: 'progressScore must be an integer.',
+    });
+  } else if (input.progressScore < MIN_PROGRESS_SCORE || input.progressScore > MAX_PROGRESS_SCORE) {
     errors.push({
       code: 'out_of_range',
       field: 'progressScore',
@@ -261,15 +280,21 @@ export const resolveProgressRoll = (input: ProgressRollInput): RulesResult<Progr
   if (errors.length > 0) return rulesFailure(errors);
 
   const outcome = classifyProgressRoll(input.progressScore, challengeDice);
-  return rulesSuccess({
-    progressScore: input.progressScore,
-    challengeDice,
-    outcome,
-    challengeResults: [
-      input.progressScore > challengeDice[0],
-      input.progressScore > challengeDice[1],
-    ],
-    isMatch: detectChallengeMatch(challengeDice),
-    trace: ['progress score compares directly to challenge dice'],
-  });
+  return rulesSuccess(
+    Object.freeze({
+      type: 'progress' as const,
+      trackId: input.trackId,
+      rolledAt: input.rolledAt ?? new Date().toISOString(),
+      source: input.source ?? (input.challengeDice ? 'manual' : 'generated'),
+      progressScore: input.progressScore,
+      challengeDice,
+      outcome,
+      challengeResults: [
+        input.progressScore > challengeDice[0],
+        input.progressScore > challengeDice[1],
+      ] as const,
+      isMatch: detectChallengeMatch(challengeDice),
+      trace: ['progress score compares directly to challenge dice'] as const,
+    }),
+  );
 };
