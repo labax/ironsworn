@@ -3,7 +3,7 @@ name: Deploy UAT to GitHub Pages
 on:
   push:
     branches:
-      - uat
+      - main
   workflow_dispatch:
 
 permissions:
