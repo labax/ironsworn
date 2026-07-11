@@ -1,8 +1,72 @@
-<section class="placeholder-page" aria-labelledby="page-title">
-  <p class="section-label">Placeholder</p>
-  <h2 id="page-title">{{ content.title }}</h2>
-  <p class="description">{{ content.description }}</p>
-  <div class="empty-state" role="status">
-    {{ content.emptyState }}
-  </div>
+<section class="trackers-page" aria-labelledby="page-title">
+  <header class="trackers-header">
+    <p class="section-label">Progress tracks</p>
+    <h2 id="page-title">Trackers</h2>
+    <p>
+      Review vows, journeys, combats, bonds, and custom tracks saved in this campaign workspace.
+      Tracks are shown oldest first, then by ID when creation dates match.
+    </p>
+  </header>
+
+  @if (tracks().length === 0) {
+    <section class="empty-state" aria-labelledby="empty-track-title">
+      <div>
+        <h3 id="empty-track-title">No progress tracks yet.</h3>
+        <p>
+          Create a track when your campaign needs a vow, journey, combat, bond, or custom clock.
+        </p>
+      </div>
+      <button type="button" aria-label="Create a progress track">Create track</button>
+    </section>
+  } @else {
+    <ul class="track-list" aria-label="Progress tracks">
+      @for (item of tracks(); track item.track.id) {
+        <li
+          class="track-card"
+          [class.track-card-selected]="selectedProgressTrackId() === item.track.id"
+        >
+          <article [attr.aria-labelledby]="'track-title-' + item.track.id">
+            <div class="track-card-heading">
+              <div class="track-title-block">
+                <p class="track-status">Status: {{ item.statusLabel }}</p>
+                <h3 [id]="'track-title-' + item.track.id">{{ item.title }}</h3>
+              </div>
+              <button
+                type="button"
+                (click)="openTrack(item.track.id)"
+                [attr.aria-label]="'Open progress track: ' + item.title"
+              >
+                Open
+              </button>
+            </div>
+
+            <dl class="track-facts" aria-label="Progress track details">
+              <div>
+                <dt>Type</dt>
+                <dd>{{ item.typeLabel }}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{{ item.statusLabel }}</dd>
+              </div>
+              @if (item.rankLabel) {
+                <div>
+                  <dt>Rank</dt>
+                  <dd>{{ item.rankLabel }}</dd>
+                </div>
+              }
+              <div>
+                <dt>Progress</dt>
+                <dd>{{ item.progressLabel }}</dd>
+              </div>
+            </dl>
+
+            @if (item.notes) {
+              <p class="track-notes">{{ item.notes }}</p>
+            }
+          </article>
+        </li>
+      }
+    </ul>
+  }
 </section>
