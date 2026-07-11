@@ -164,7 +164,7 @@ describe('Vows', () => {
       characterId: 'character-1',
       campaignId: 'campaign-1',
       milestones: [
-        { id: 'milestone-1', title: 'First step', createdAt: '2026-07-02T00:00:00.000Z' },
+        { id: 'milestone-1', createdAt: '2026-07-02T00:00:00.000Z', note: 'First step' },
       ],
       outcome: { summary: 'Resolved by user', resolvedAt: '2026-07-03T00:00:00.000Z' },
     });
@@ -246,6 +246,81 @@ describe('Vows', () => {
 
     expect(workspace.vows()[0].status).toBe('active');
     expect(workspace.progressTracks()[0].ticks).toBe(8);
+  });
+
+  it('records edits orders and confirms deletion of milestones with accessible focus behavior', () => {
+    const original = vowFixture({
+      id: 'vow-milestones',
+      progressTrackId: 'track-milestones',
+      milestones: [
+        { id: 'milestone-late', createdAt: '2026-07-03T00:00:00.000Z', note: 'Late note' },
+        { id: 'milestone-early', createdAt: '2026-07-02T00:00:00.000Z', note: 'Early note' },
+      ],
+    });
+    const track = progressFixture({ id: 'track-milestones', ticks: 16 });
+    workspace.setVows([original]);
+    workspace.setProgressTracks([track]);
+    createComponent();
+
+    expect(compiled().textContent).toContain('recording a milestone never marks progress');
+    const notes = Array.from(compiled().querySelectorAll('.milestone-record .vow-text')).map(
+      (node) => node.textContent?.trim(),
+    );
+    expect(notes).toEqual(['Early note', 'Late note']);
+    const textarea = compiled().querySelector<HTMLTextAreaElement>(
+      '#milestone-note-vow-milestones',
+    );
+    expect(textarea?.getAttribute('aria-describedby')).toContain('milestone-help-vow-milestones');
+
+    fixture.componentInstance['updateMilestoneDraft'](
+      'vow-milestones',
+      'New milestone '.repeat(80),
+    );
+    fixture.componentInstance['saveMilestone']('vow-milestones');
+    fixture.detectChanges();
+
+    expect(workspace.progressTracks()[0]).toEqual(track);
+    expect(workspace.vows()[0]).toMatchObject({
+      id: original.id,
+      rank: original.rank,
+      status: original.status,
+      progressTrackId: original.progressTrackId,
+      notes: original.notes,
+      outcome: original.outcome,
+    });
+    expect(workspace.vows()[0].milestones).toHaveLength(3);
+    const created = workspace
+      .vows()[0]
+      .milestones.find((milestone) => milestone.note?.startsWith('New milestone'));
+    expect(created?.id).toMatch(/^vow-milestone-/);
+
+    fixture.componentInstance['startMilestoneEdit'](
+      'vow-milestones',
+      workspace.vows()[0].milestones.find((milestone) => milestone.id === 'milestone-early')!,
+    );
+    fixture.componentInstance['updateMilestoneDraft']('vow-milestones', 'Edited early note');
+    fixture.componentInstance['saveMilestone']('vow-milestones');
+    expect(
+      workspace.vows()[0].milestones.find((milestone) => milestone.id === 'milestone-early'),
+    ).toMatchObject({
+      id: 'milestone-early',
+      createdAt: '2026-07-02T00:00:00.000Z',
+      note: 'Edited early note',
+    });
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    fixture.componentInstance['removeMilestone']('vow-milestones', 'milestone-early');
+    expect(confirmSpy).toHaveBeenCalledWith('Delete this milestone note? This cannot be undone.');
+    expect(
+      workspace.vows()[0].milestones.some((milestone) => milestone.id === 'milestone-early'),
+    ).toBe(true);
+
+    confirmSpy.mockReturnValue(true);
+    fixture.componentInstance['removeMilestone']('vow-milestones', 'milestone-early');
+    expect(
+      workspace.vows()[0].milestones.some((milestone) => milestone.id === 'milestone-early'),
+    ).toBe(false);
+    expect(workspace.progressTracks()[0].ticks).toBe(16);
   });
 
   it('offers every supported rank and status from the domain model', () => {

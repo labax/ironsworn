@@ -18,10 +18,8 @@ const vowFixture = (overrides: Partial<Vow> = {}): Vow => ({
   milestones: [
     {
       id: 'milestone-one',
-      title: 'Found a safe ford',
       createdAt: '2026-07-02T00:00:00.000Z',
-      notes: 'Short player note.',
-      progressEventId: 'event-one',
+      note: 'Short player note.',
     },
   ],
   outcome: {
@@ -100,6 +98,64 @@ describe('CampaignWorkspaceService vow rank and status actions', () => {
       expect(service.vows().find((vow) => vow.id === unrelated.id)).toEqual(unrelated);
     },
   );
+
+  it('adds edits and removes typed vow milestones without changing unrelated vow or progress data', () => {
+    const selected = vowFixture({ id: 'vow-milestone', progressTrackId: 'track-linked' });
+    const unrelated = vowFixture({ id: 'vow-unrelated', title: 'Leave untouched' });
+    const track = createDefaultProgressTrack({
+      id: 'track-linked',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      title: 'Linked track',
+      type: 'vow',
+      rank: 'dangerous',
+    });
+    service.setVows([selected, unrelated]);
+    service.setProgressTracks([{ ...track, ticks: 12 }]);
+
+    const added = service.addVowMilestone({
+      vowId: selected.id,
+      note: 'A long note. '.repeat(120),
+    });
+
+    expect(added.ok).toBe(true);
+    if (!added.ok) return;
+    expect(added.milestone.id).toMatch(/^vow-milestone-/);
+    expect(added.milestone.createdAt).toBe(added.milestone.updatedAt);
+    const afterAdd = service.vows().find((vow) => vow.id === selected.id);
+    expect(afterAdd).toMatchObject({
+      id: selected.id,
+      rank: selected.rank,
+      status: selected.status,
+      notes: selected.notes,
+      progressTrackId: selected.progressTrackId,
+      outcome: selected.outcome,
+    });
+    expect(service.progressTracks()[0].ticks).toBe(12);
+
+    const edited = service.updateVowMilestone({
+      vowId: selected.id,
+      milestoneId: added.milestone.id,
+      note: 'Edited by the player.',
+    });
+
+    expect(edited.ok).toBe(true);
+    if (!edited.ok) return;
+    expect(edited.milestone.id).toBe(added.milestone.id);
+    expect(edited.milestone.createdAt).toBe(added.milestone.createdAt);
+    expect(edited.milestone.note).toBe('Edited by the player.');
+    expect(service.vows().find((vow) => vow.id === unrelated.id)).toEqual(unrelated);
+
+    const removed = service.removeVowMilestone({
+      vowId: selected.id,
+      milestoneId: added.milestone.id,
+    });
+
+    expect(removed.ok).toBe(true);
+    expect(service.vows().find((vow) => vow.id === selected.id)?.milestones).toEqual(
+      selected.milestones,
+    );
+    expect(service.progressTracks()[0].ticks).toBe(12);
+  });
 
   it('rejects invalid enum values safely without mutating vows', () => {
     const selected = vowFixture();

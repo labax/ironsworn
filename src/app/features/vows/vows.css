@@ -176,3 +176,48 @@ textarea:focus-visible {
     width: 100%;
   }
 }
+.milestone-panel {
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+.milestone-panel h4 {
+  margin: 0;
+}
+.milestone-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding-left: 1.25rem;
+}
+.milestone-record {
+  border-radius: 0.75rem;
+  background: rgba(2, 6, 23, 0.24);
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+.milestone-record time {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.milestone-editor {
+  display: grid;
+  gap: 0.5rem;
+}
+.milestone-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+button.danger {
+  background: #fecaca;
+}
+@media (max-width: 42rem) {
+  .milestone-actions {
+    display: grid;
+  }
+}
