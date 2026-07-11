@@ -38,6 +38,8 @@ interface ProgressTrackListItem {
   readonly markHelp: string;
   readonly unmarkHelp: string;
   readonly notes: string | null;
+  readonly isManualOverride: boolean;
+  readonly overrideStatusLabel: string;
 }
 
 interface SelectOption<T extends string> {
@@ -84,7 +86,7 @@ export class Trackers {
 
   protected editingTrackId: string | null = null;
   protected formMessage = '';
-  protected fieldErrors: Partial<Record<'title' | 'type' | 'rank', string>> = {};
+  protected fieldErrors: Partial<Record<'title' | 'type' | 'rank' | 'ticks', string>> = {};
   protected correctionTicks = 0;
   protected progressMessage = '';
 
@@ -132,7 +134,8 @@ export class Trackers {
   }
 
   protected applyCorrection(track: ProgressTrack, ticksValue: string | number): void {
-    const ticks = Number(ticksValue);
+    const ticks =
+      typeof ticksValue === 'string' && ticksValue.trim() === '' ? Number.NaN : Number(ticksValue);
     const normal = correctProgressTicks(ticks);
     const isDestructive = Number.isFinite(ticks) && ticks < track.ticks;
 
@@ -155,6 +158,18 @@ export class Trackers {
         'Manual progress correction applied.',
         true,
       );
+      return;
+    }
+
+    if (track.progressMode === 'manual_override') {
+      const confirmed = window.confirm(
+        'Return this track to standard progress mode? The current value must be within normal bounds.',
+      );
+      if (!confirmed) {
+        this.progressMessage = 'Return to standard mode canceled; manual override remains active.';
+        return;
+      }
+      this.saveProgressTicks(track.id, normal.value.ticks, 'Standard progress mode restored.');
       return;
     }
 
@@ -228,8 +243,19 @@ export class Trackers {
       manualOverride ? { mode: 'manual_correction' } : undefined,
     );
     this.progressMessage = result.ok
-      ? `${message} ${result.track.ticks} ticks, score ${Math.min(10, Math.max(0, Math.floor(result.track.ticks / PROGRESS_TICKS_PER_BOX)))}.`
+      ? `${message} ${result.track.ticks} ticks, score ${Math.min(10, Math.max(0, Math.floor(result.track.ticks / PROGRESS_TICKS_PER_BOX)))}.${result.track.progressMode === 'manual_override' ? ' Manual override is active.' : ''}`
       : (result.errors[0]?.message ?? 'Progress update failed.');
+  }
+
+  protected returnToStandard(track: ProgressTrack): void {
+    const confirmed = window.confirm(
+      'Return this track to standard progress mode? The current value must be within normal bounds.',
+    );
+    if (!confirmed) {
+      this.progressMessage = 'Return to standard mode canceled; manual override remains active.';
+      return;
+    }
+    this.saveProgressTicks(track.id, track.ticks, 'Standard progress mode restored.');
   }
 
   private loadTrack(track: ProgressTrack): void {
@@ -254,19 +280,31 @@ export class Trackers {
         .map((error) => [error.field, error.message]),
     );
     this.formMessage = 'Fix the highlighted fields.';
+    this.focusFirstFieldError();
+  }
+
+  private focusFirstFieldError(): void {
+    const firstField = (['title', 'type', 'rank'] as const).find(
+      (field) => this.fieldErrors[field],
+    );
+    if (!firstField) return;
+    document.getElementById(`track-${firstField}`)?.focus();
   }
 
   private toListItem(track: ProgressTrack): ProgressTrackListItem {
     const title = this.cleanText(track.title) || 'Untitled progress track';
     const status = this.cleanText(track.status);
+    const manualOverride = track.progressMode === 'manual_override';
     const progress = progressScoreFromState({ ticks: track.ticks }, { mode: 'manual_correction' });
     const ticks = progress.ok ? progress.value.ticks : 0;
     const boxes = progress.ok ? progress.value.boxes : 0;
     const score = progress.ok ? progress.value.progressScore : 0;
     const increment = progressRankIncrementTicks(track.rank);
     const incrementTicks = increment.ok ? increment.value : 0;
-    const markDisabled = !increment.ok || ticks + incrementTicks > MAX_PROGRESS_TICKS;
-    const unmarkDisabled = !increment.ok || ticks - incrementTicks < MIN_PROGRESS_TICKS;
+    const markDisabled =
+      manualOverride || !increment.ok || ticks + incrementTicks > MAX_PROGRESS_TICKS;
+    const unmarkDisabled =
+      manualOverride || !increment.ok || ticks - incrementTicks < MIN_PROGRESS_TICKS;
 
     return {
       track,
@@ -276,15 +314,23 @@ export class Trackers {
       rankLabel: CHALLENGE_RANK_LABELS[track.rank] ?? null,
       progressLabel: `${ticks} progress tick${ticks === 1 ? '' : 's'}`,
       progressScoreLabel: `Score ${score}`,
+      isManualOverride: manualOverride,
+      overrideStatusLabel: manualOverride
+        ? 'Manual override active; value is kept as entered until standard mode is confirmed.'
+        : 'Standard progress mode',
       progressBoxes: Array.from({ length: 10 }, (_value, index) => index < boxes),
       markDisabled,
       unmarkDisabled,
-      markHelp: markDisabled
-        ? `Marking would exceed ${MAX_PROGRESS_TICKS} ticks.`
-        : `Mark ${incrementTicks} tick${incrementTicks === 1 ? '' : 's'}.`,
-      unmarkHelp: unmarkDisabled
-        ? `Removing would go below ${MIN_PROGRESS_TICKS} ticks.`
-        : `Remove ${incrementTicks} tick${incrementTicks === 1 ? '' : 's'}.`,
+      markHelp: manualOverride
+        ? 'Manual override active; normal marking is paused.'
+        : markDisabled
+          ? `Marking would exceed ${MAX_PROGRESS_TICKS} ticks.`
+          : `Mark ${incrementTicks} tick${incrementTicks === 1 ? '' : 's'}.`,
+      unmarkHelp: manualOverride
+        ? 'Manual override active; normal removing is paused.'
+        : unmarkDisabled
+          ? `Removing would go below ${MIN_PROGRESS_TICKS} ticks.`
+          : `Remove ${incrementTicks} tick${incrementTicks === 1 ? '' : 's'}.`,
       notes: this.cleanText(track.notes),
     };
   }

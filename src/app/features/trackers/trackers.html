@@ -152,9 +152,18 @@
               }
               <div>
                 <dt>Progress</dt>
-                <dd>{{ item.progressLabel }} · {{ item.progressScoreLabel }}</dd>
+                <dd>
+                  {{ item.progressLabel }} · {{ item.progressScoreLabel }} ·
+                  {{ item.overrideStatusLabel }}
+                </dd>
               </div>
             </dl>
+
+            @if (item.isManualOverride) {
+              <p class="override-status" role="status">
+                Manual override active. Normal marking is paused until you return to standard mode.
+              </p>
+            }
 
             <div
               class="progress-boxes"
@@ -191,8 +200,9 @@
                 Correct ticks
                 <input
                   #correctionInput
-                  type="number"
-                  step="1"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="-?[0-9]*"
                   [value]="item.track.ticks"
                   (focus)="prepareCorrection(item.track)"
                   [attr.aria-label]="'Correct progress ticks for ' + item.title"
@@ -201,6 +211,11 @@
               <button type="button" (click)="applyCorrection(item.track, correctionInput.value)">
                 Apply correction
               </button>
+              @if (item.isManualOverride) {
+                <button type="button" (click)="returnToStandard(item.track)">
+                  Return to standard
+                </button>
+              }
             </div>
             <p [id]="'progress-help-' + item.track.id" class="helper-text">
               {{ item.markHelp }} {{ item.unmarkHelp }}

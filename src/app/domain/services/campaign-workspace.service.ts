@@ -2,7 +2,8 @@ import { computed, Injectable, signal } from '@angular/core';
 
 import {
   createDefaultProgressTrack,
-  validateProgressTrackClassification,
+  validateProgressTrackDetails,
+  validateProgressTrackTicks,
   type ChallengeRank,
   type ProgressTrack,
   type ProgressTrackType,
@@ -73,18 +74,11 @@ export class CampaignWorkspaceService {
   saveProgressTrack(
     input: SaveProgressTrackInput,
   ): { ok: true; track: ProgressTrack } | { ok: false; errors: readonly ValidationError[] } {
-    const classification = validateProgressTrackClassification(input);
-    const title = input.title.trim();
-    const errors = classification.ok ? [] : [...classification.errors];
-
-    if (!title) {
-      errors.push({ code: 'required', field: 'title', message: 'Enter a track name.' });
-    }
-
-    if (errors.length > 0 || !classification.ok) return { ok: false, errors };
+    const details = validateProgressTrackDetails(input);
+    if (!details.ok) return { ok: false, errors: details.errors };
 
     const now = new Date().toISOString();
-    const notes = input.notes?.trim() || undefined;
+    const detailsValue = details.value;
     const existing = input.id
       ? this.progressTracksState().find((track) => track.id === input.id)
       : undefined;
@@ -92,19 +86,19 @@ export class CampaignWorkspaceService {
     const track = existing
       ? cloneProgressTrack({
           ...existing,
-          title,
-          type: classification.value.type,
-          rank: classification.value.rank,
-          notes,
+          title: detailsValue.title,
+          type: detailsValue.type,
+          rank: detailsValue.rank,
+          notes: detailsValue.notes,
           updatedAt: now,
         })
       : createDefaultProgressTrack({
           id: createEntityId('progress-track'),
           createdAt: now,
-          title,
-          type: classification.value.type,
-          rank: classification.value.rank,
-          notes,
+          title: detailsValue.title,
+          type: detailsValue.type,
+          rank: detailsValue.rank,
+          notes: detailsValue.notes,
         });
 
     this.progressTracksState.update((tracks) =>
@@ -129,7 +123,10 @@ export class CampaignWorkspaceService {
     ticks: number,
     options?: ProgressValidationOptions,
   ): { ok: true; track: ProgressTrack } | { ok: false; errors: readonly ValidationError[] } {
-    const progress = correctProgressTicks(ticks, options);
+    const progress = validateProgressTrackTicks({
+      ticks,
+      mode: options?.mode === 'manual_correction' ? 'manual_override' : 'standard',
+    });
     if (!progress.ok) return { ok: false, errors: progress.errors };
 
     const existing = this.progressTracksState().find((track) => track.id === trackId);
@@ -143,6 +140,7 @@ export class CampaignWorkspaceService {
     const track = cloneProgressTrack({
       ...existing,
       ticks: progress.value.ticks,
+      progressMode: progress.value.mode,
       updatedAt: new Date().toISOString(),
     });
 
