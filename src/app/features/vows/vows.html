@@ -174,8 +174,50 @@
                 <dd>{{ item.progressSummary }}</dd>
               </div>
             </dl>
+            <div class="progress-link-actions">
+              @if (item.linkedTrack) {
+                <button
+                  type="button"
+                  class="secondary"
+                  (click)="openLinkedTrack(item.linkedTrack.id)"
+                  [attr.aria-label]="'Open linked progress track for ' + item.title"
+                >
+                  Open linked track
+                </button>
+                <button
+                  type="button"
+                  class="danger"
+                  (click)="unlinkTrack(item.vow.id)"
+                  [attr.aria-label]="'Unlink progress track from ' + item.title"
+                >
+                  Unlink track
+                </button>
+              } @else {
+                <label [attr.for]="'link-track-' + item.vow.id" class="link-field">
+                  Link existing track
+                  <select
+                    [id]="'link-track-' + item.vow.id"
+                    [value]="linkSelections[item.vow.id] || ''"
+                    (change)="updateLinkSelection(item.vow.id, $any($event.target).value)"
+                    [attr.aria-label]="'Choose progress track for ' + item.title"
+                  >
+                    <option value="">Choose a track</option>
+                    @for (track of availableTracks(); track track.id) {
+                      <option [value]="track.id">{{ track.title }}</option>
+                    }
+                  </select>
+                </label>
+                <button type="button" (click)="linkExistingTrack(item.vow.id)">Link track</button>
+                <button type="button" class="secondary" (click)="createLinkedTrack(item.vow.id)">
+                  Create linked vow track
+                </button>
+              }
+            </div>
             @if (item.progressWarning) {
               <p class="progress-warning" role="status">{{ item.progressWarning }}</p>
+              <button type="button" class="danger" (click)="unlinkTrack(item.vow.id)">
+                Remove broken link
+              </button>
             }
             @if (item.description) {
               <p class="vow-text">{{ item.description }}</p>

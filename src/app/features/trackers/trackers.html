@@ -157,6 +157,10 @@
                   {{ item.overrideStatusLabel }}
                 </dd>
               </div>
+              <div>
+                <dt>Linked vow</dt>
+                <dd>{{ item.linkedVowSummary }}</dd>
+              </div>
             </dl>
 
             @if (item.isManualOverride) {
@@ -219,6 +223,17 @@
               <button type="button" (click)="applyCorrection(item.track, correctionInput.value)">
                 Apply correction
               </button>
+              @if (item.linkedVowId) {
+                <button
+                  type="button"
+                  class="secondary"
+                  (click)="openLinkedVow(item.linkedVowId)"
+                  [attr.aria-label]="'Open linked vow for ' + item.title"
+                >
+                  Open linked vow
+                </button>
+              }
+
               @if (item.isManualOverride) {
                 <button type="button" (click)="returnToStandard(item.track)">
                   Return to standard

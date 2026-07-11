@@ -90,6 +90,15 @@ export interface UpdateVowOutcomeInput {
   readonly summary: string;
 }
 
+export interface LinkVowProgressTrackInput {
+  readonly vowId: string;
+  readonly progressTrackId: string;
+}
+
+export interface CreateLinkedVowProgressTrackInput {
+  readonly vowId: string;
+}
+
 const compareVows = (left: Vow, right: Vow): number => {
   const leftCreated = typeof left.createdAt === 'string' ? left.createdAt : '';
   const rightCreated = typeof right.createdAt === 'string' ? right.createdAt : '';
@@ -395,6 +404,140 @@ export class CampaignWorkspaceService {
 
     this.vowsState.update((vows) =>
       vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
+    );
+    this.selectedVowIdState.set(vow.id);
+
+    return { ok: true, vow: cloneVow(vow) };
+  }
+
+  linkVowToProgressTrack(
+    input: LinkVowProgressTrackInput,
+  ):
+    | { ok: true; vow: Vow; track: ProgressTrack }
+    | { ok: false; errors: readonly ValidationError[] } {
+    const existingVow = this.vowsState().find((vow) => vow.id === input.vowId);
+    if (!existingVow) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+    if (existingVow.progressTrackId && existingVow.progressTrackId !== input.progressTrackId) {
+      return {
+        ok: false,
+        errors: [
+          {
+            code: 'conflict',
+            field: 'progressTrackId',
+            message: 'This vow already has a linked track. Unlink it first.',
+          },
+        ],
+      };
+    }
+
+    const existingTrack = this.progressTracksState().find(
+      (track) => track.id === input.progressTrackId,
+    );
+    if (!existingTrack) {
+      return {
+        ok: false,
+        errors: [
+          { code: 'not_found', field: 'progressTrackId', message: 'Progress track was not found.' },
+        ],
+      };
+    }
+
+    const linkedElsewhere = this.vowsState().find(
+      (vow) => vow.id !== existingVow.id && vow.progressTrackId === existingTrack.id,
+    );
+    if (linkedElsewhere) {
+      return {
+        ok: false,
+        errors: [
+          {
+            code: 'conflict',
+            field: 'progressTrackId',
+            message: 'That track is already linked to another vow.',
+          },
+        ],
+      };
+    }
+
+    const now = new Date().toISOString();
+    const vow = cloneVow({ ...existingVow, progressTrackId: existingTrack.id, updatedAt: now });
+    this.vowsState.update((vows) =>
+      vows.map((candidate) => (candidate.id === vow.id ? vow : candidate)),
+    );
+    this.selectedVowIdState.set(vow.id);
+    this.selectedProgressTrackIdState.set(existingTrack.id);
+
+    return { ok: true, vow: cloneVow(vow), track: cloneProgressTrack(existingTrack) };
+  }
+
+  createProgressTrackForVow(
+    input: CreateLinkedVowProgressTrackInput,
+  ):
+    | { ok: true; vow: Vow; track: ProgressTrack }
+    | { ok: false; errors: readonly ValidationError[] } {
+    const existingVow = this.vowsState().find((vow) => vow.id === input.vowId);
+    if (!existingVow) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+    if (existingVow.progressTrackId) {
+      return {
+        ok: false,
+        errors: [
+          {
+            code: 'conflict',
+            field: 'progressTrackId',
+            message: 'This vow already has a linked track. Unlink it first.',
+          },
+        ],
+      };
+    }
+
+    const now = new Date().toISOString();
+    const track = createDefaultProgressTrack({
+      id: createEntityId('progress-track'),
+      createdAt: now,
+      title: existingVow.title,
+      type: 'vow',
+      rank: existingVow.rank,
+      notes: existingVow.notes,
+    });
+    const vow = cloneVow({ ...existingVow, progressTrackId: track.id, updatedAt: now });
+
+    this.progressTracksState.update((tracks) => [...tracks, track]);
+    this.vowsState.update((vows) =>
+      vows.map((candidate) => (candidate.id === vow.id ? vow : candidate)),
+    );
+    this.selectedVowIdState.set(vow.id);
+    this.selectedProgressTrackIdState.set(track.id);
+
+    return { ok: true, vow: cloneVow(vow), track: cloneProgressTrack(track) };
+  }
+
+  unlinkVowProgressTrack(
+    vowId: string,
+  ): { ok: true; vow: Vow } | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.vowsState().find((vow) => vow.id === vowId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+
+    const vow = cloneVow({
+      ...existing,
+      progressTrackId: undefined,
+      updatedAt: new Date().toISOString(),
+    });
+    this.vowsState.update((vows) =>
+      vows.map((candidate) => (candidate.id === vow.id ? vow : candidate)),
     );
     this.selectedVowIdState.set(vow.id);
 

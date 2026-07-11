@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import {
@@ -42,6 +43,8 @@ interface ProgressTrackListItem {
   readonly isManualOverride: boolean;
   readonly overrideStatusLabel: string;
   readonly rollDisabled: boolean;
+  readonly linkedVowId?: string;
+  readonly linkedVowSummary: string;
 }
 
 interface SelectOption<T extends string> {
@@ -66,6 +69,7 @@ const statusLabels: Record<ProgressTrackStatus, string> = {
 export class Trackers {
   private readonly workspace = inject(CampaignWorkspaceService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
+  private readonly router = inject(Router);
 
   protected readonly typeOptions: readonly SelectOption<ProgressTrackType>[] =
     PROGRESS_TRACK_TYPES.map((type) => ({ value: type, label: PROGRESS_TRACK_TYPE_LABELS[type] }));
@@ -75,9 +79,15 @@ export class Trackers {
 
   protected readonly selectedProgressTrackId = this.workspace.selectedProgressTrackId;
   protected readonly selectedTrack = this.workspace.selectedProgressTrack;
-  protected readonly tracks = computed<readonly ProgressTrackListItem[]>(() =>
-    this.workspace.progressTracks().map((track) => this.toListItem(track)),
-  );
+  protected readonly tracks = computed<readonly ProgressTrackListItem[]>(() => {
+    const vows = this.workspace.vows();
+    return this.workspace.progressTracks().map((track) =>
+      this.toListItem(
+        track,
+        vows.find((vow) => vow.progressTrackId === track.id),
+      ),
+    );
+  });
 
   protected readonly trackForm = this.formBuilder.group({
     title: ['', [Validators.required, Validators.pattern(/\S/)]],
@@ -111,6 +121,11 @@ export class Trackers {
   protected openTrack(trackId: string): void {
     const selected = this.workspace.selectProgressTrack(trackId);
     if (selected) this.loadTrack(selected);
+  }
+
+  protected openLinkedVow(vowId: string): void {
+    this.workspace.selectVow(vowId);
+    void this.router.navigate(['/vows']);
   }
 
   protected markProgress(track: ProgressTrack): void {
@@ -320,7 +335,10 @@ export class Trackers {
     document.getElementById(`track-${firstField}`)?.focus();
   }
 
-  private toListItem(track: ProgressTrack): ProgressTrackListItem {
+  private toListItem(
+    track: ProgressTrack,
+    linkedVow?: { readonly id: string; readonly title: string; readonly status: string },
+  ): ProgressTrackListItem {
     const title = this.cleanText(track.title) || 'Untitled progress track';
     const status = this.cleanText(track.status);
     const manualOverride = track.progressMode === 'manual_override';
@@ -362,6 +380,10 @@ export class Trackers {
           ? `Removing would go below ${MIN_PROGRESS_TICKS} ticks.`
           : `Remove ${incrementTicks} tick${incrementTicks === 1 ? '' : 's'}.`,
       notes: this.cleanText(track.notes),
+      linkedVowId: linkedVow?.id,
+      linkedVowSummary: linkedVow
+        ? `${this.cleanText(linkedVow.title) || 'Untitled vow'} · ${linkedVow.status}`
+        : 'No linked vow.',
     };
   }
 

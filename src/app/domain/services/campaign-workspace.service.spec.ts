@@ -210,3 +210,81 @@ describe('CampaignWorkspaceService vow rank and status actions', () => {
     expect(service.vows()[0]).toEqual(selected);
   });
 });
+
+describe('CampaignWorkspaceService vow progress track links', () => {
+  let service: CampaignWorkspaceService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(CampaignWorkspaceService);
+    service.clearVows();
+    service.clearProgressTracks();
+  });
+
+  it('links one existing vow to one existing track and rejects duplicate/conflicting links', () => {
+    const vow = vowFixture({ id: 'vow-link', progressTrackId: undefined, notes: 'Keep note.' });
+    const other = vowFixture({ id: 'vow-other', progressTrackId: 'track-other' });
+    const track = createDefaultProgressTrack({
+      id: 'track-link',
+      createdAt: '2026-07-02T00:00:00.000Z',
+      title: 'User track',
+      type: 'vow',
+      rank: 'formidable',
+    });
+    const otherTrack = createDefaultProgressTrack({
+      id: 'track-other',
+      createdAt: '2026-07-03T00:00:00.000Z',
+      title: 'Other track',
+      type: 'vow',
+      rank: 'dangerous',
+    });
+    service.setVows([vow, other]);
+    service.setProgressTracks([track, otherTrack]);
+
+    const linked = service.linkVowToProgressTrack({ vowId: vow.id, progressTrackId: track.id });
+    const duplicate = service.linkVowToProgressTrack({
+      vowId: other.id,
+      progressTrackId: track.id,
+    });
+    const conflict = service.linkVowToProgressTrack({
+      vowId: vow.id,
+      progressTrackId: otherTrack.id,
+    });
+
+    expect(linked.ok).toBe(true);
+    expect(service.vows().find((candidate) => candidate.id === vow.id)).toMatchObject({
+      id: vow.id,
+      title: vow.title,
+      notes: vow.notes,
+      progressTrackId: track.id,
+    });
+    expect(service.progressTracks().find((candidate) => candidate.id === track.id)).toEqual(track);
+    expect(duplicate).toMatchObject({ ok: false, errors: [{ code: 'conflict' }] });
+    expect(conflict).toMatchObject({ ok: false, errors: [{ code: 'conflict' }] });
+  });
+
+  it('creates a single vow-type track for a vow and unlinks without deleting either record', () => {
+    const vow = vowFixture({ id: 'vow-create-link', progressTrackId: undefined });
+    service.setVows([vow]);
+
+    const created = service.createProgressTrackForVow({ vowId: vow.id });
+
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    expect(created.track).toMatchObject({
+      title: vow.title,
+      type: 'vow',
+      rank: vow.rank,
+      ticks: 0,
+    });
+    expect(service.progressTracks()).toHaveLength(1);
+    expect(service.vows()[0]).toMatchObject({ id: vow.id, progressTrackId: created.track.id });
+
+    const unlinked = service.unlinkVowProgressTrack(vow.id);
+
+    expect(unlinked.ok).toBe(true);
+    expect(service.vows()[0].progressTrackId).toBeUndefined();
+    expect(service.progressTracks()).toHaveLength(1);
+    expect(service.progressTracks()[0]).toMatchObject({ id: created.track.id, title: vow.title });
+  });
+});

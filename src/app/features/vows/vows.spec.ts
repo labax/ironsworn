@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
+import { provideRouter } from '@angular/router';
 
 import { createDefaultProgressTrack, type ProgressTrack } from '@app/domain/progress';
 import { createDefaultVow, type Vow } from '@app/domain/vows';
@@ -42,7 +43,10 @@ describe('Vows', () => {
 
   beforeEach(async () => {
     vi.restoreAllMocks();
-    await TestBed.configureTestingModule({ imports: [Vows] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [Vows],
+      providers: [provideRouter([])],
+    }).compileComponents();
     workspace = TestBed.inject(CampaignWorkspaceService);
     workspace.clearVows();
     workspace.clearProgressTracks();
