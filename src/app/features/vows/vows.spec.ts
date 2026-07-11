@@ -6,7 +6,7 @@ import { createDefaultProgressTrack, type ProgressTrack } from '@app/domain/prog
 import { createDefaultVow, type Vow } from '@app/domain/vows';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
 
-import { Vows } from './vows';
+import { deriveVisibleVows, type VowListItem, Vows } from './vows';
 
 const progressFixture = (overrides: Partial<ProgressTrack> = {}): ProgressTrack => ({
   ...createDefaultProgressTrack({
@@ -30,6 +30,23 @@ const vowFixture = (overrides: Partial<Vow> = {}): Vow => ({
     notes: 'Ask Mara about the east road.',
   }),
   ...overrides,
+});
+
+const listItemFixture = (vow: Vow, linkedTrack?: ProgressTrack): VowListItem => ({
+  vow,
+  title: vow.title,
+  rankLabel: vow.rank,
+  statusLabel: vow.status,
+  description: vow.description ?? '',
+  notes: vow.notes ?? '',
+  updatedLabel: vow.updatedAt ?? vow.createdAt,
+  updatedMachineValue: vow.updatedAt ?? vow.createdAt,
+  progressSummary: linkedTrack ? `${linkedTrack.ticks}` : 'No linked progress track.',
+  linkedTrack,
+  milestones: vow.milestones,
+  outcomeSummary: vow.outcome?.summary ?? '',
+  outcomeResolvedLabel: vow.outcome?.resolvedAt ?? 'Not recorded',
+  outcomeResolvedMachineValue: vow.outcome?.resolvedAt,
 });
 
 describe('Vows', () => {
@@ -61,7 +78,7 @@ describe('Vows', () => {
     ).toContain('Create vow');
   });
 
-  it('lists active vows first with deterministic timestamp and stable-id ordering', () => {
+  it('sorts visible vows by timestamp with stable-id tie ordering', () => {
     workspace.setVows([
       vowFixture({
         id: 'vow-fulfilled',
@@ -84,13 +101,180 @@ describe('Vows', () => {
     ]);
     createComponent();
 
+    fixture.componentInstance['updateStatusFilter']('all');
+    fixture.detectChanges();
+
     const titles = Array.from(compiled().querySelectorAll('.vow-title-block h3')).map((node) =>
       node.textContent?.trim(),
     );
-    expect(titles).toEqual(['First active', 'Second active', 'Past promise']);
-    expect(compiled().textContent).toContain(
-      'Active vows are listed first; archived vows are hidden unless you show the archived view.',
+    expect(titles).toEqual(['Past promise', 'First active', 'Second active']);
+    expect(compiled().textContent).toContain('Default view shows active vows only.');
+  });
+
+  it('derives search filter sort reset and no-results views without mutating source records', () => {
+    const items = [
+      listItemFixture(
+        vowFixture({
+          id: 'vow-active-dangerous',
+          title: 'Mend the watchtower',
+          rank: 'dangerous',
+          status: 'active',
+          description: 'Raise a signal fire.',
+          createdAt: '2026-07-01T00:00:00.000Z',
+          updatedAt: '2026-07-04T00:00:00.000Z',
+          progressTrackId: 'track-low',
+        }),
+        progressFixture({ id: 'track-low', ticks: 8 }),
+      ),
+      listItemFixture(
+        vowFixture({
+          id: 'vow-active-epic',
+          title: 'Cross the silent ice',
+          rank: 'epic',
+          status: 'active',
+          description: 'Find the hidden bell.',
+          createdAt: '2026-07-02T00:00:00.000Z',
+          updatedAt: '2026-07-03T00:00:00.000Z',
+          progressTrackId: 'track-high',
+        }),
+        progressFixture({ id: 'track-high', ticks: 28 }),
+      ),
+      listItemFixture(
+        vowFixture({
+          id: 'vow-fulfilled',
+          title: 'Settle the river debt',
+          rank: 'formidable',
+          status: 'fulfilled',
+          description: 'A completed user promise.',
+          createdAt: '2026-07-05T00:00:00.000Z',
+          updatedAt: '2026-07-05T00:00:00.000Z',
+        }),
+      ),
+      listItemFixture(
+        vowFixture({
+          id: 'vow-forsaken',
+          title: 'Chart the western fog',
+          rank: 'troublesome',
+          status: 'forsaken',
+          description: 'Abandoned by choice.',
+          createdAt: '2026-07-06T00:00:00.000Z',
+          updatedAt: '2026-07-06T00:00:00.000Z',
+        }),
+      ),
+      listItemFixture(
+        vowFixture({
+          id: 'vow-archived',
+          title: 'Archive the ember map',
+          rank: 'extreme',
+          status: 'archived',
+          description: 'Stored for later discovery.',
+          createdAt: '2026-07-07T00:00:00.000Z',
+          updatedAt: '2026-07-07T00:00:00.000Z',
+        }),
+      ),
+    ];
+    const snapshot = JSON.stringify(items);
+    const ids = (result: readonly VowListItem[]) => result.map((item) => item.vow.id);
+
+    expect(
+      ids(deriveVisibleVows(items, { status: 'active', rank: 'all', search: '', sort: 'updated' })),
+    ).toEqual(['vow-active-dangerous', 'vow-active-epic']);
+    expect(
+      ids(
+        deriveVisibleVows(items, { status: 'fulfilled', rank: 'all', search: '', sort: 'updated' }),
+      ),
+    ).toEqual(['vow-fulfilled']);
+    expect(
+      ids(
+        deriveVisibleVows(items, { status: 'forsaken', rank: 'all', search: '', sort: 'updated' }),
+      ),
+    ).toEqual(['vow-forsaken']);
+    expect(
+      ids(
+        deriveVisibleVows(items, { status: 'archived', rank: 'all', search: '', sort: 'updated' }),
+      ),
+    ).toEqual(['vow-archived']);
+    expect(
+      ids(deriveVisibleVows(items, { status: 'all', rank: 'epic', search: '', sort: 'updated' })),
+    ).toEqual(['vow-active-epic']);
+    expect(
+      ids(
+        deriveVisibleVows(items, {
+          status: 'all',
+          rank: 'all',
+          search: 'hidden bell',
+          sort: 'updated',
+        }),
+      ),
+    ).toEqual(['vow-active-epic']);
+    expect(
+      ids(
+        deriveVisibleVows(items, { status: 'all', rank: 'all', search: '', sort: 'created' }),
+      ).slice(0, 2),
+    ).toEqual(['vow-archived', 'vow-forsaken']);
+    expect(
+      ids(deriveVisibleVows(items, { status: 'active', rank: 'all', search: '', sort: 'rank' })),
+    ).toEqual(['vow-active-dangerous', 'vow-active-epic']);
+    expect(
+      ids(deriveVisibleVows(items, { status: 'active', rank: 'all', search: '', sort: 'title' })),
+    ).toEqual(['vow-active-epic', 'vow-active-dangerous']);
+    expect(
+      ids(
+        deriveVisibleVows(items, { status: 'active', rank: 'all', search: '', sort: 'progress' }),
+      ),
+    ).toEqual(['vow-active-epic', 'vow-active-dangerous']);
+    expect(
+      deriveVisibleVows(items, {
+        status: 'active',
+        rank: 'epic',
+        search: 'signal',
+        sort: 'updated',
+      }),
+    ).toEqual([]);
+    expect(JSON.stringify(items)).toBe(snapshot);
+  });
+
+  it('renders accessible discovery controls, preserves them while editing, resets, and recovers from no results', () => {
+    workspace.setVows([
+      vowFixture({
+        id: 'vow-active-ui',
+        title: 'Signal the ford',
+        description: 'Light a lamp.',
+        status: 'active',
+      }),
+      vowFixture({
+        id: 'vow-archived-ui',
+        title: 'Buried oath',
+        description: 'Hidden cache.',
+        status: 'archived',
+      }),
+    ]);
+    createComponent();
+
+    expect(compiled().textContent).toContain('Default view shows active vows only.');
+    expect(compiled().textContent).toContain('Signal the ford');
+    expect(compiled().textContent).not.toContain('Buried oath');
+    expect(compiled().querySelector('#vow-search')?.getAttribute('aria-describedby')).toBe(
+      'vow-search-help',
     );
+
+    fixture.componentInstance['updateStatusFilter']('archived');
+    fixture.detectChanges();
+    expect(compiled().textContent).toContain('Buried oath');
+
+    fixture.componentInstance['openVow']('vow-archived-ui');
+    fixture.detectChanges();
+    expect(fixture.componentInstance['statusFilter']()).toBe('archived');
+
+    fixture.componentInstance['updateSearchText']('not present');
+    fixture.detectChanges();
+    expect(compiled().textContent).toContain('No vows match this view.');
+
+    fixture.componentInstance['resetDiscovery']();
+    fixture.detectChanges();
+    expect(fixture.componentInstance['statusFilter']()).toBe('active');
+    expect(fixture.componentInstance['searchText']()).toBe('');
+    expect(compiled().textContent).toContain('Signal the ford');
   });
 
   it('opens the selected vow by stable id', () => {
@@ -342,6 +526,8 @@ describe('Vows', () => {
     workspace.setVows([original]);
     workspace.setProgressTracks([track]);
     createComponent();
+    fixture.componentInstance['updateStatusFilter']('fulfilled');
+    fixture.detectChanges();
 
     expect(compiled().textContent).toContain('Outcome notes');
     expect(compiled().textContent).toContain('First player resolution.');
@@ -593,7 +779,7 @@ describe('Vows', () => {
     });
     expect(compiled().textContent).not.toContain('Archive me');
 
-    fixture.componentInstance['toggleArchivedView']();
+    fixture.componentInstance['updateStatusFilter']('archived');
     fixture.detectChanges();
     expect(compiled().textContent).toContain('Archive me');
 

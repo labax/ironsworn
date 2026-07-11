@@ -126,444 +126,522 @@
       <button type="button" (click)="openCreate()">Create vow</button>
     </section>
   } @else {
-    <div class="archive-view-actions">
-      <p class="helper-text">
-        Active vows are listed first; archived vows are hidden unless you show the archived view.
-      </p>
+    <section class="vow-discovery" aria-labelledby="vow-discovery-title">
+      <div>
+        <h3 id="vow-discovery-title">Find vows</h3>
+        <p class="helper-text">
+          Default view shows active vows only. Choose Archived or All statuses to find archived
+          vows.
+        </p>
+      </div>
+      <div class="discovery-grid">
+        <label for="vow-search"
+          >Search title or description
+          <input
+            id="vow-search"
+            type="search"
+            [value]="searchText()"
+            (input)="updateSearchText($any($event.target).value)"
+            aria-describedby="vow-search-help"
+          />
+          <span id="vow-search-help" class="helper-text"
+            >Searches only your vow title and description.</span
+          >
+        </label>
+        <label for="vow-filter-status"
+          >Status
+          <select
+            id="vow-filter-status"
+            [value]="statusFilter()"
+            (change)="updateStatusFilter($any($event.target).value)"
+          >
+            <option value="all">All statuses</option>
+            @for (option of statusOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+        <label for="vow-filter-rank"
+          >Rank
+          <select
+            id="vow-filter-rank"
+            [value]="rankFilter()"
+            (change)="updateRankFilter($any($event.target).value)"
+          >
+            <option value="all">All ranks</option>
+            @for (option of rankOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+        <label for="vow-sort"
+          >Sort by
+          <select
+            id="vow-sort"
+            [value]="sortKey()"
+            (change)="updateSortKey($any($event.target).value)"
+          >
+            <option value="updated">Updated date</option>
+            <option value="created">Created date</option>
+            <option value="rank">Rank</option>
+            <option value="title">Title</option>
+            <option value="progress">Linked progress</option>
+          </select>
+        </label>
+      </div>
       <button
         type="button"
         class="secondary"
-        (click)="toggleArchivedView()"
-        [attr.aria-pressed]="showArchived()"
+        (click)="resetDiscovery()"
+        [disabled]="!hasDiscoveryControls()"
       >
-        {{ showArchived() ? 'Hide archived vows' : 'Show archived vows' }}
+        Reset view
       </button>
-    </div>
-    <ul class="vow-list" aria-label="Vows">
-      @for (item of vows(); track item.vow.id) {
-        <li
-          class="vow-card"
-          [class.vow-card-active]="item.vow.status === 'active'"
-          [class.vow-card-selected]="selectedVowId() === item.vow.id"
-        >
-          <article [attr.aria-labelledby]="'vow-title-' + item.vow.id">
-            <div class="vow-card-heading">
-              <div class="vow-title-block">
-                <p class="vow-status">Status: {{ item.statusLabel }}</p>
-                <h3 [id]="'vow-title-' + item.vow.id">{{ item.title }}</h3>
-              </div>
-              <button
-                type="button"
-                (click)="openVow(item.vow.id)"
-                [id]="'vow-edit-' + item.vow.id"
-                [attr.aria-label]="'Edit vow: ' + item.title"
-              >
-                Edit
-              </button>
-            </div>
-            <div class="vow-record-actions">
-              @if (item.vow.status === 'archived') {
+    </section>
+    @if (visibleVows().length === 0) {
+      <section class="empty-state" aria-labelledby="no-vow-results-title">
+        <div>
+          <h3 id="no-vow-results-title">No vows match this view.</h3>
+          <p>Clear search or reset filters to return to the active vow view.</p>
+        </div>
+        <button type="button" (click)="resetDiscovery()">Reset view</button>
+      </section>
+    } @else {
+      <ul class="vow-list" aria-label="Vows">
+        @for (item of visibleVows(); track item.vow.id) {
+          <li
+            class="vow-card"
+            [class.vow-card-active]="item.vow.status === 'active'"
+            [class.vow-card-selected]="selectedVowId() === item.vow.id"
+          >
+            <article [attr.aria-labelledby]="'vow-title-' + item.vow.id">
+              <div class="vow-card-heading">
+                <div class="vow-title-block">
+                  <p class="vow-status">Status: {{ item.statusLabel }}</p>
+                  <h3 [id]="'vow-title-' + item.vow.id">{{ item.title }}</h3>
+                </div>
                 <button
                   type="button"
-                  class="secondary"
-                  [id]="'vow-restore-' + item.vow.id"
-                  (click)="restoreVow(item.vow.id)"
-                  [attr.aria-label]="'Restore vow: ' + item.title"
+                  (click)="openVow(item.vow.id)"
+                  [id]="'vow-edit-' + item.vow.id"
+                  [attr.aria-label]="'Edit vow: ' + item.title"
                 >
-                  Restore vow
+                  Edit
                 </button>
-              } @else {
-                <button
-                  type="button"
-                  class="secondary"
-                  (click)="archiveVow(item.vow.id)"
-                  [attr.aria-label]="'Archive vow: ' + item.title"
-                >
-                  Archive vow
-                </button>
-              }
-              <button
-                type="button"
-                class="danger"
-                [id]="'vow-delete-' + item.vow.id"
-                (click)="deleteVow(item.vow.id)"
-                [attr.aria-label]="'Delete vow: ' + item.title"
-              >
-                Delete vow
-              </button>
-            </div>
-            <dl class="vow-facts" aria-label="Vow details">
-              <div>
-                <dt>Rank</dt>
-                <dd>{{ item.rankLabel }}</dd>
               </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{{ item.statusLabel }}</dd>
-              </div>
-              <div>
-                <dt>Updated</dt>
-                <dd>
-                  @if (item.updatedMachineValue) {
-                    <time [attr.datetime]="item.updatedMachineValue">{{ item.updatedLabel }}</time>
-                  } @else {
-                    {{ item.updatedLabel }}
-                  }
-                </dd>
-              </div>
-              <div>
-                <dt>Progress</dt>
-                <dd>{{ item.progressSummary }}</dd>
-              </div>
-            </dl>
-            <div class="progress-link-actions">
-              @if (item.linkedTrack) {
-                <button
-                  type="button"
-                  class="secondary"
-                  (click)="openLinkedTrack(item.linkedTrack.id)"
-                  [attr.aria-label]="'Open linked progress track for ' + item.title"
-                >
-                  Open linked track
-                </button>
-                <button
-                  type="button"
-                  (click)="rollVowProgress(item)"
-                  [attr.aria-describedby]="'progress-roll-help-' + item.vow.id"
-                  [attr.aria-label]="'Roll linked progress for ' + item.title"
-                >
-                  Roll progress
-                </button>
+              <div class="vow-record-actions">
+                @if (item.vow.status === 'archived') {
+                  <button
+                    type="button"
+                    class="secondary"
+                    [id]="'vow-restore-' + item.vow.id"
+                    (click)="restoreVow(item.vow.id)"
+                    [attr.aria-label]="'Restore vow: ' + item.title"
+                  >
+                    Restore vow
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="secondary"
+                    (click)="archiveVow(item.vow.id)"
+                    [attr.aria-label]="'Archive vow: ' + item.title"
+                  >
+                    Archive vow
+                  </button>
+                }
                 <button
                   type="button"
                   class="danger"
-                  (click)="unlinkTrack(item.vow.id)"
-                  [attr.aria-label]="'Unlink progress track from ' + item.title"
+                  [id]="'vow-delete-' + item.vow.id"
+                  (click)="deleteVow(item.vow.id)"
+                  [attr.aria-label]="'Delete vow: ' + item.title"
                 >
-                  Unlink track
+                  Delete vow
                 </button>
-              } @else {
-                <label [attr.for]="'link-track-' + item.vow.id" class="link-field">
-                  Link existing track
-                  <select
-                    [id]="'link-track-' + item.vow.id"
-                    [value]="linkSelections[item.vow.id] || ''"
-                    (change)="updateLinkSelection(item.vow.id, $any($event.target).value)"
-                    [attr.aria-label]="'Choose progress track for ' + item.title"
-                  >
-                    <option value="">Choose a track</option>
-                    @for (track of availableTracks(); track track.id) {
-                      <option [value]="track.id">{{ track.title }}</option>
+              </div>
+              <dl class="vow-facts" aria-label="Vow details">
+                <div>
+                  <dt>Rank</dt>
+                  <dd>{{ item.rankLabel }}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{{ item.statusLabel }}</dd>
+                </div>
+                <div>
+                  <dt>Updated</dt>
+                  <dd>
+                    @if (item.updatedMachineValue) {
+                      <time [attr.datetime]="item.updatedMachineValue">{{
+                        item.updatedLabel
+                      }}</time>
+                    } @else {
+                      {{ item.updatedLabel }}
                     }
-                  </select>
-                </label>
-                <button type="button" (click)="linkExistingTrack(item.vow.id)">Link track</button>
-                <button type="button" class="secondary" (click)="createLinkedTrack(item.vow.id)">
-                  Create linked vow track
+                  </dd>
+                </div>
+                <div>
+                  <dt>Progress</dt>
+                  <dd>{{ item.progressSummary }}</dd>
+                </div>
+              </dl>
+              <div class="progress-link-actions">
+                @if (item.linkedTrack) {
+                  <button
+                    type="button"
+                    class="secondary"
+                    (click)="openLinkedTrack(item.linkedTrack.id)"
+                    [attr.aria-label]="'Open linked progress track for ' + item.title"
+                  >
+                    Open linked track
+                  </button>
+                  <button
+                    type="button"
+                    (click)="rollVowProgress(item)"
+                    [attr.aria-describedby]="'progress-roll-help-' + item.vow.id"
+                    [attr.aria-label]="'Roll linked progress for ' + item.title"
+                  >
+                    Roll progress
+                  </button>
+                  <button
+                    type="button"
+                    class="danger"
+                    (click)="unlinkTrack(item.vow.id)"
+                    [attr.aria-label]="'Unlink progress track from ' + item.title"
+                  >
+                    Unlink track
+                  </button>
+                } @else {
+                  <label [attr.for]="'link-track-' + item.vow.id" class="link-field">
+                    Link existing track
+                    <select
+                      [id]="'link-track-' + item.vow.id"
+                      [value]="linkSelections[item.vow.id] || ''"
+                      (change)="updateLinkSelection(item.vow.id, $any($event.target).value)"
+                      [attr.aria-label]="'Choose progress track for ' + item.title"
+                    >
+                      <option value="">Choose a track</option>
+                      @for (track of availableTracks(); track track.id) {
+                        <option [value]="track.id">{{ track.title }}</option>
+                      }
+                    </select>
+                  </label>
+                  <button type="button" (click)="linkExistingTrack(item.vow.id)">Link track</button>
+                  <button type="button" class="secondary" (click)="createLinkedTrack(item.vow.id)">
+                    Create linked vow track
+                  </button>
+                }
+              </div>
+              @if (item.progressWarning) {
+                <p class="progress-warning" role="status">{{ item.progressWarning }}</p>
+                <button type="button" class="danger" (click)="unlinkTrack(item.vow.id)">
+                  Remove broken link
                 </button>
               }
-            </div>
-            @if (item.progressWarning) {
-              <p class="progress-warning" role="status">{{ item.progressWarning }}</p>
-              <button type="button" class="danger" (click)="unlinkTrack(item.vow.id)">
-                Remove broken link
-              </button>
-            }
 
-            @if (item.linkedTrack) {
+              @if (item.linkedTrack) {
+                <section
+                  class="progress-roll-panel"
+                  [attr.aria-labelledby]="'progress-roll-title-' + item.vow.id"
+                >
+                  <div class="progress-roll-heading">
+                    <h4 [id]="'progress-roll-title-' + item.vow.id">Linked progress roll</h4>
+                    <p [id]="'progress-roll-help-' + item.vow.id" class="helper-text">
+                      Uses the linked track's current progress. Status, outcome, milestones, and
+                      track progress stay unchanged.
+                    </p>
+                  </div>
+                  @if (progressRollErrors[item.vow.id]) {
+                    <p class="field-error" role="alert">{{ progressRollErrors[item.vow.id] }}</p>
+                  }
+                  @if (latestVowProgressRoll && latestVowProgressRoll.vowId === item.vow.id) {
+                    <article
+                      class="progress-roll-result"
+                      aria-label="Latest vow progress roll result"
+                      role="status"
+                    >
+                      <h5>Mechanical result</h5>
+                      <dl class="vow-facts" aria-label="Progress roll mechanical data">
+                        <div>
+                          <dt>Progress</dt>
+                          <dd>{{ latestVowProgressRoll.progressScore }}</dd>
+                        </div>
+                        <div>
+                          <dt>Challenge dice</dt>
+                          <dd>
+                            {{ latestVowProgressRoll.challengeDice[0] }} and
+                            {{ latestVowProgressRoll.challengeDice[1] }}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Result</dt>
+                          <dd>{{ outcomeLabel(latestVowProgressRoll.outcome) }}</dd>
+                        </div>
+                        <div>
+                          <dt>Challenge match</dt>
+                          <dd>{{ latestVowProgressRoll.isMatch ? 'Match' : 'No match' }}</dd>
+                        </div>
+                        <div>
+                          <dt>Vow</dt>
+                          <dd>
+                            {{ latestVowProgressRoll.vowTitle }} ({{ latestVowProgressRoll.vowId }})
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Track</dt>
+                          <dd>
+                            {{
+                              latestVowProgressRoll.trackTitle ||
+                                latestVowProgressRoll.progressTrackId
+                            }}
+                            ({{ latestVowProgressRoll.progressTrackId }})
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Rolled</dt>
+                          <dd>
+                            <time [attr.datetime]="latestVowProgressRoll.rolledAt">{{
+                              formatRollTime(latestVowProgressRoll.rolledAt)
+                            }}</time>
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Source</dt>
+                          <dd>{{ latestVowProgressRoll.source }}</dd>
+                        </div>
+                      </dl>
+                      <p class="helper-text">
+                        Mechanical result only. Choose any narrative or status changes separately.
+                      </p>
+                    </article>
+                  }
+                </section>
+              }
+              @if (item.description) {
+                <p class="vow-text">{{ item.description }}</p>
+              }
+              @if (item.notes) {
+                <p class="vow-text">{{ item.notes }}</p>
+              }
               <section
-                class="progress-roll-panel"
-                [attr.aria-labelledby]="'progress-roll-title-' + item.vow.id"
+                class="outcome-panel"
+                [attr.aria-labelledby]="'outcome-title-' + item.vow.id"
               >
-                <div class="progress-roll-heading">
-                  <h4 [id]="'progress-roll-title-' + item.vow.id">Linked progress roll</h4>
-                  <p [id]="'progress-roll-help-' + item.vow.id" class="helper-text">
-                    Uses the linked track's current progress. Status, outcome, milestones, and track
-                    progress stay unchanged.
-                  </p>
+                <div class="outcome-heading">
+                  <div>
+                    <h4 [id]="'outcome-title-' + item.vow.id">Outcome notes</h4>
+                    <p class="helper-text">
+                      Optional notes in your own words. Saving notes records the outcome time only;
+                      status and progress stay separate.
+                    </p>
+                  </div>
                 </div>
-                @if (progressRollErrors[item.vow.id]) {
-                  <p class="field-error" role="alert">{{ progressRollErrors[item.vow.id] }}</p>
-                }
-                @if (latestVowProgressRoll && latestVowProgressRoll.vowId === item.vow.id) {
-                  <article
-                    class="progress-roll-result"
-                    aria-label="Latest vow progress roll result"
-                    role="status"
-                  >
-                    <h5>Mechanical result</h5>
-                    <dl class="vow-facts" aria-label="Progress roll mechanical data">
+
+                @if (item.outcomeSummary && !editingOutcomeIds[item.vow.id]) {
+                  <article class="outcome-record">
+                    <div class="vow-record-actions">
+                      @if (item.vow.status === 'archived') {
+                        <button
+                          type="button"
+                          class="secondary"
+                          [id]="'vow-restore-' + item.vow.id"
+                          (click)="restoreVow(item.vow.id)"
+                          [attr.aria-label]="'Restore vow: ' + item.title"
+                        >
+                          Restore vow
+                        </button>
+                      } @else {
+                        <button
+                          type="button"
+                          class="secondary"
+                          (click)="archiveVow(item.vow.id)"
+                          [attr.aria-label]="'Archive vow: ' + item.title"
+                        >
+                          Archive vow
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="danger"
+                        [id]="'vow-delete-' + item.vow.id"
+                        (click)="deleteVow(item.vow.id)"
+                        [attr.aria-label]="'Delete vow: ' + item.title"
+                      >
+                        Delete vow
+                      </button>
+                    </div>
+                    <dl class="vow-facts" aria-label="Outcome details">
                       <div>
-                        <dt>Progress</dt>
-                        <dd>{{ latestVowProgressRoll.progressScore }}</dd>
-                      </div>
-                      <div>
-                        <dt>Challenge dice</dt>
+                        <dt>Outcome saved</dt>
                         <dd>
-                          {{ latestVowProgressRoll.challengeDice[0] }} and
-                          {{ latestVowProgressRoll.challengeDice[1] }}
+                          @if (item.outcomeResolvedMachineValue) {
+                            <time [attr.datetime]="item.outcomeResolvedMachineValue">{{
+                              item.outcomeResolvedLabel
+                            }}</time>
+                          } @else {
+                            {{ item.outcomeResolvedLabel }}
+                          }
                         </dd>
-                      </div>
-                      <div>
-                        <dt>Result</dt>
-                        <dd>{{ outcomeLabel(latestVowProgressRoll.outcome) }}</dd>
-                      </div>
-                      <div>
-                        <dt>Challenge match</dt>
-                        <dd>{{ latestVowProgressRoll.isMatch ? 'Match' : 'No match' }}</dd>
-                      </div>
-                      <div>
-                        <dt>Vow</dt>
-                        <dd>
-                          {{ latestVowProgressRoll.vowTitle }} ({{ latestVowProgressRoll.vowId }})
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Track</dt>
-                        <dd>
-                          {{
-                            latestVowProgressRoll.trackTitle ||
-                              latestVowProgressRoll.progressTrackId
-                          }}
-                          ({{ latestVowProgressRoll.progressTrackId }})
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Rolled</dt>
-                        <dd>
-                          <time [attr.datetime]="latestVowProgressRoll.rolledAt">{{
-                            formatRollTime(latestVowProgressRoll.rolledAt)
-                          }}</time>
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Source</dt>
-                        <dd>{{ latestVowProgressRoll.source }}</dd>
                       </div>
                     </dl>
-                    <p class="helper-text">
-                      Mechanical result only. Choose any narrative or status changes separately.
-                    </p>
+                    <p class="vow-text">{{ item.outcomeSummary }}</p>
                   </article>
+                } @else if (!editingOutcomeIds[item.vow.id]) {
+                  <p class="helper-text">No outcome notes saved yet.</p>
+                }
+
+                @if (editingOutcomeIds[item.vow.id]) {
+                  <div class="outcome-editor">
+                    <label [attr.for]="'outcome-note-' + item.vow.id"
+                      >Outcome/resolution notes</label
+                    >
+                    <textarea
+                      [id]="'outcome-note-' + item.vow.id"
+                      rows="6"
+                      [value]="outcomeNote(item.vow.id)"
+                      (input)="updateOutcomeDraft(item.vow.id, $any($event.target).value)"
+                      [attr.aria-describedby]="
+                        'outcome-help-' + item.vow.id + ' outcome-error-' + item.vow.id
+                      "
+                      [attr.aria-invalid]="outcomeErrors[item.vow.id] ? 'true' : null"
+                    ></textarea>
+                    <p [id]="'outcome-help-' + item.vow.id" class="helper-text">
+                      Use your own notes. This does not change vow status, rank, or progress.
+                    </p>
+                    @if (outcomeErrors[item.vow.id]) {
+                      <p [id]="'outcome-error-' + item.vow.id" class="field-error">
+                        {{ outcomeErrors[item.vow.id] }}
+                      </p>
+                    }
+                    <div class="outcome-actions">
+                      <button type="button" (click)="saveOutcome(item.vow.id)">
+                        Save outcome notes
+                      </button>
+                      <button
+                        type="button"
+                        class="secondary"
+                        (click)="cancelOutcomeEdit(item.vow.id)"
+                      >
+                        Cancel outcome edit
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <button
+                    type="button"
+                    class="secondary"
+                    [id]="'outcome-note-' + item.vow.id"
+                    (click)="startOutcomeEdit(item.vow.id, item.outcomeSummary)"
+                    [attr.aria-label]="'Edit outcome notes for ' + item.title"
+                  >
+                    {{ item.outcomeSummary ? 'Edit outcome notes' : 'Add outcome notes' }}
+                  </button>
                 }
               </section>
-            }
-            @if (item.description) {
-              <p class="vow-text">{{ item.description }}</p>
-            }
-            @if (item.notes) {
-              <p class="vow-text">{{ item.notes }}</p>
-            }
-            <section class="outcome-panel" [attr.aria-labelledby]="'outcome-title-' + item.vow.id">
-              <div class="outcome-heading">
-                <div>
-                  <h4 [id]="'outcome-title-' + item.vow.id">Outcome notes</h4>
-                  <p class="helper-text">
-                    Optional notes in your own words. Saving notes records the outcome time only;
-                    status and progress stay separate.
-                  </p>
-                </div>
-              </div>
-
-              @if (item.outcomeSummary && !editingOutcomeIds[item.vow.id]) {
-                <article class="outcome-record">
-                  <div class="vow-record-actions">
-                    @if (item.vow.status === 'archived') {
-                      <button
-                        type="button"
-                        class="secondary"
-                        [id]="'vow-restore-' + item.vow.id"
-                        (click)="restoreVow(item.vow.id)"
-                        [attr.aria-label]="'Restore vow: ' + item.title"
-                      >
-                        Restore vow
-                      </button>
-                    } @else {
-                      <button
-                        type="button"
-                        class="secondary"
-                        (click)="archiveVow(item.vow.id)"
-                        [attr.aria-label]="'Archive vow: ' + item.title"
-                      >
-                        Archive vow
-                      </button>
-                    }
-                    <button
-                      type="button"
-                      class="danger"
-                      [id]="'vow-delete-' + item.vow.id"
-                      (click)="deleteVow(item.vow.id)"
-                      [attr.aria-label]="'Delete vow: ' + item.title"
-                    >
-                      Delete vow
-                    </button>
+              <section
+                class="milestone-panel"
+                [attr.aria-labelledby]="'milestones-title-' + item.vow.id"
+              >
+                <div class="milestone-heading">
+                  <div>
+                    <h4 [id]="'milestones-title-' + item.vow.id">Milestones</h4>
+                    <p class="helper-text">
+                      Record your narrative milestone notes here. Mark progress only from the linked
+                      progress tracker.
+                    </p>
                   </div>
-                  <dl class="vow-facts" aria-label="Outcome details">
-                    <div>
-                      <dt>Outcome saved</dt>
-                      <dd>
-                        @if (item.outcomeResolvedMachineValue) {
-                          <time [attr.datetime]="item.outcomeResolvedMachineValue">{{
-                            item.outcomeResolvedLabel
-                          }}</time>
-                        } @else {
-                          {{ item.outcomeResolvedLabel }}
-                        }
-                      </dd>
-                    </div>
-                  </dl>
-                  <p class="vow-text">{{ item.outcomeSummary }}</p>
-                </article>
-              } @else if (!editingOutcomeIds[item.vow.id]) {
-                <p class="helper-text">No outcome notes saved yet.</p>
-              }
+                </div>
 
-              @if (editingOutcomeIds[item.vow.id]) {
-                <div class="outcome-editor">
-                  <label [attr.for]="'outcome-note-' + item.vow.id">Outcome/resolution notes</label>
+                @if (item.milestones.length === 0) {
+                  <p class="helper-text">No milestones recorded yet.</p>
+                } @else {
+                  <ol class="milestone-list">
+                    @for (milestone of item.milestones; track milestone.id) {
+                      <li>
+                        <article class="milestone-record">
+                          <header>
+                            <time [attr.datetime]="milestone.createdAt">{{
+                              formatMilestoneTimestamp(milestone.createdAt)
+                            }}</time>
+                          </header>
+                          @if (milestone.note) {
+                            <p class="vow-text">{{ milestone.note }}</p>
+                          } @else {
+                            <p class="helper-text">No note added.</p>
+                          }
+                          <div class="milestone-actions">
+                            <button
+                              type="button"
+                              class="secondary"
+                              [id]="'milestone-edit-' + item.vow.id + '-' + milestone.id"
+                              (click)="startMilestoneEdit(item.vow.id, milestone)"
+                              [attr.aria-label]="'Edit milestone for ' + item.title"
+                            >
+                              Edit milestone
+                            </button>
+                            <button
+                              type="button"
+                              class="danger"
+                              (click)="removeMilestone(item.vow.id, milestone.id)"
+                              [attr.aria-label]="'Delete milestone for ' + item.title"
+                            >
+                              Delete milestone
+                            </button>
+                          </div>
+                        </article>
+                      </li>
+                    }
+                  </ol>
+                }
+
+                <div class="milestone-editor">
+                  <label [attr.for]="'milestone-note-' + item.vow.id">
+                    {{
+                      editingMilestoneIds[item.vow.id]
+                        ? 'Edit milestone note'
+                        : 'New milestone note'
+                    }}
+                  </label>
                   <textarea
-                    [id]="'outcome-note-' + item.vow.id"
-                    rows="6"
-                    [value]="outcomeNote(item.vow.id)"
-                    (input)="updateOutcomeDraft(item.vow.id, $any($event.target).value)"
+                    [id]="'milestone-note-' + item.vow.id"
+                    rows="4"
+                    [value]="milestoneNote(item.vow.id)"
+                    (input)="updateMilestoneDraft(item.vow.id, $any($event.target).value)"
                     [attr.aria-describedby]="
-                      'outcome-help-' + item.vow.id + ' outcome-error-' + item.vow.id
+                      'milestone-help-' + item.vow.id + ' milestone-error-' + item.vow.id
                     "
-                    [attr.aria-invalid]="outcomeErrors[item.vow.id] ? 'true' : null"
+                    [attr.aria-invalid]="milestoneErrors[item.vow.id] ? 'true' : null"
                   ></textarea>
-                  <p [id]="'outcome-help-' + item.vow.id" class="helper-text">
-                    Use your own notes. This does not change vow status, rank, or progress.
+                  <p [id]="'milestone-help-' + item.vow.id" class="helper-text">
+                    Notes are optional and user-authored. Saving this does not mark or remove
+                    progress.
                   </p>
-                  @if (outcomeErrors[item.vow.id]) {
-                    <p [id]="'outcome-error-' + item.vow.id" class="field-error">
-                      {{ outcomeErrors[item.vow.id] }}
+                  @if (milestoneErrors[item.vow.id]) {
+                    <p [id]="'milestone-error-' + item.vow.id" class="field-error">
+                      {{ milestoneErrors[item.vow.id] }}
                     </p>
                   }
-                  <div class="outcome-actions">
-                    <button type="button" (click)="saveOutcome(item.vow.id)">
-                      Save outcome notes
+                  <div class="milestone-actions">
+                    <button type="button" (click)="saveMilestone(item.vow.id)">
+                      {{ editingMilestoneIds[item.vow.id] ? 'Save milestone' : 'Add milestone' }}
                     </button>
-                    <button
-                      type="button"
-                      class="secondary"
-                      (click)="cancelOutcomeEdit(item.vow.id)"
-                    >
-                      Cancel outcome edit
-                    </button>
+                    @if (editingMilestoneIds[item.vow.id]) {
+                      <button
+                        type="button"
+                        class="secondary"
+                        (click)="cancelMilestoneEdit(item.vow.id)"
+                      >
+                        Cancel milestone edit
+                      </button>
+                    }
                   </div>
                 </div>
-              } @else {
-                <button
-                  type="button"
-                  class="secondary"
-                  [id]="'outcome-note-' + item.vow.id"
-                  (click)="startOutcomeEdit(item.vow.id, item.outcomeSummary)"
-                  [attr.aria-label]="'Edit outcome notes for ' + item.title"
-                >
-                  {{ item.outcomeSummary ? 'Edit outcome notes' : 'Add outcome notes' }}
-                </button>
-              }
-            </section>
-            <section
-              class="milestone-panel"
-              [attr.aria-labelledby]="'milestones-title-' + item.vow.id"
-            >
-              <div class="milestone-heading">
-                <div>
-                  <h4 [id]="'milestones-title-' + item.vow.id">Milestones</h4>
-                  <p class="helper-text">
-                    Record your narrative milestone notes here. Mark progress only from the linked
-                    progress tracker.
-                  </p>
-                </div>
-              </div>
-
-              @if (item.milestones.length === 0) {
-                <p class="helper-text">No milestones recorded yet.</p>
-              } @else {
-                <ol class="milestone-list">
-                  @for (milestone of item.milestones; track milestone.id) {
-                    <li>
-                      <article class="milestone-record">
-                        <header>
-                          <time [attr.datetime]="milestone.createdAt">{{
-                            formatMilestoneTimestamp(milestone.createdAt)
-                          }}</time>
-                        </header>
-                        @if (milestone.note) {
-                          <p class="vow-text">{{ milestone.note }}</p>
-                        } @else {
-                          <p class="helper-text">No note added.</p>
-                        }
-                        <div class="milestone-actions">
-                          <button
-                            type="button"
-                            class="secondary"
-                            [id]="'milestone-edit-' + item.vow.id + '-' + milestone.id"
-                            (click)="startMilestoneEdit(item.vow.id, milestone)"
-                            [attr.aria-label]="'Edit milestone for ' + item.title"
-                          >
-                            Edit milestone
-                          </button>
-                          <button
-                            type="button"
-                            class="danger"
-                            (click)="removeMilestone(item.vow.id, milestone.id)"
-                            [attr.aria-label]="'Delete milestone for ' + item.title"
-                          >
-                            Delete milestone
-                          </button>
-                        </div>
-                      </article>
-                    </li>
-                  }
-                </ol>
-              }
-
-              <div class="milestone-editor">
-                <label [attr.for]="'milestone-note-' + item.vow.id">
-                  {{
-                    editingMilestoneIds[item.vow.id] ? 'Edit milestone note' : 'New milestone note'
-                  }}
-                </label>
-                <textarea
-                  [id]="'milestone-note-' + item.vow.id"
-                  rows="4"
-                  [value]="milestoneNote(item.vow.id)"
-                  (input)="updateMilestoneDraft(item.vow.id, $any($event.target).value)"
-                  [attr.aria-describedby]="
-                    'milestone-help-' + item.vow.id + ' milestone-error-' + item.vow.id
-                  "
-                  [attr.aria-invalid]="milestoneErrors[item.vow.id] ? 'true' : null"
-                ></textarea>
-                <p [id]="'milestone-help-' + item.vow.id" class="helper-text">
-                  Notes are optional and user-authored. Saving this does not mark or remove
-                  progress.
-                </p>
-                @if (milestoneErrors[item.vow.id]) {
-                  <p [id]="'milestone-error-' + item.vow.id" class="field-error">
-                    {{ milestoneErrors[item.vow.id] }}
-                  </p>
-                }
-                <div class="milestone-actions">
-                  <button type="button" (click)="saveMilestone(item.vow.id)">
-                    {{ editingMilestoneIds[item.vow.id] ? 'Save milestone' : 'Add milestone' }}
-                  </button>
-                  @if (editingMilestoneIds[item.vow.id]) {
-                    <button
-                      type="button"
-                      class="secondary"
-                      (click)="cancelMilestoneEdit(item.vow.id)"
-                    >
-                      Cancel milestone edit
-                    </button>
-                  }
-                </div>
-              </div>
-            </section>
-          </article>
-        </li>
-      }
-    </ul>
+              </section>
+            </article>
+          </li>
+        }
+      </ul>
+    }
   }
 </section>
