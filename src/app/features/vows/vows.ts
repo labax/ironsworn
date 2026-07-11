@@ -10,7 +10,10 @@ import {
   type ChallengeRank,
   type ProgressTrack,
 } from '@app/domain/progress';
-import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
+import {
+  CampaignWorkspaceService,
+  type VowProgressRollResult,
+} from '@app/domain/services/campaign-workspace.service';
 import {
   VOW_STATUS_LABELS,
   VOW_STATUSES,
@@ -18,7 +21,7 @@ import {
   type VowMilestone,
   type VowStatus,
 } from '@app/domain/vows';
-import { PROGRESS_TICKS_PER_BOX } from '@app/rules/progress-rolls';
+import { progressScoreFromState, PROGRESS_TICKS_PER_BOX } from '@app/rules/progress-rolls';
 import type { ValidationError } from '@app/rules/validation';
 
 interface SelectOption<T extends string> {
@@ -193,6 +196,8 @@ export class Vows {
   protected editingOutcomeIds: Record<string, boolean | undefined> = {};
   protected outcomeErrors: Record<string, string | undefined> = {};
   protected linkSelections: Record<string, string | undefined> = {};
+  protected latestVowProgressRoll: Readonly<VowProgressRollResult> | null = null;
+  protected progressRollErrors: Record<string, string | undefined> = {};
   private milestoneFocusReturnId: string | null = null;
   private cleanFormSnapshot = JSON.stringify(this.vowForm.getRawValue());
 
@@ -270,6 +275,64 @@ export class Vows {
   protected openLinkedTrack(trackId: string): void {
     this.workspace.selectProgressTrack(trackId);
     void this.router.navigate(['/trackers']);
+  }
+
+  protected rollVowProgress(item: VowListItem): void {
+    this.latestVowProgressRoll = null;
+    this.progressRollErrors = { ...this.progressRollErrors, [item.vow.id]: undefined };
+    if (!item.linkedTrack) {
+      this.progressRollErrors = {
+        ...this.progressRollErrors,
+        [item.vow.id]: item.vow.progressTrackId
+          ? 'Repair the linked progress track before rolling.'
+          : 'Link a progress track before rolling.',
+      };
+      return;
+    }
+
+    const current = this.workspace
+      .progressTracks()
+      .find((track) => track.id === item.linkedTrack?.id);
+    if (
+      !current ||
+      current.updatedAt !== item.linkedTrack.updatedAt ||
+      !Object.is(current.ticks, item.linkedTrack.ticks)
+    ) {
+      this.progressRollErrors = {
+        ...this.progressRollErrors,
+        [item.vow.id]: 'Progress roll unavailable because this track snapshot is stale.',
+      };
+      return;
+    }
+
+    const progress = progressScoreFromState({ ticks: current.ticks });
+    if (!progress.ok) {
+      this.progressRollErrors = {
+        ...this.progressRollErrors,
+        [item.vow.id]: progress.errors[0]?.message ?? 'Progress roll could not be resolved.',
+      };
+      return;
+    }
+
+    const result = this.workspace.resolveProgressRollForVow({ vowId: item.vow.id });
+    if (!result.ok) {
+      this.progressRollErrors = {
+        ...this.progressRollErrors,
+        [item.vow.id]: result.errors[0]?.message ?? 'Progress roll could not be resolved.',
+      };
+      return;
+    }
+
+    this.latestVowProgressRoll = result.value;
+    this.formMessage = `Progress roll: score ${result.value.progressScore} vs ${result.value.challengeDice[0]} and ${result.value.challengeDice[1]} — ${this.outcomeLabel(result.value.outcome)}${result.value.isMatch ? ', match' : ', no match'}. Choose the narrative outcome separately.`;
+  }
+
+  protected outcomeLabel(outcome: VowProgressRollResult['outcome']): string {
+    return outcome.replace('_', ' ');
+  }
+
+  protected formatRollTime(value: string): string {
+    return formatTimestamp(value);
   }
 
   protected milestoneNote(vowId: string): string {

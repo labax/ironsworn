@@ -29,7 +29,6 @@ const vowFixture = (overrides: Partial<Vow> = {}): Vow => ({
   },
   ...overrides,
 });
-
 describe('CampaignWorkspaceService vow rank and status actions', () => {
   let service: CampaignWorkspaceService;
 
@@ -286,5 +285,118 @@ describe('CampaignWorkspaceService vow progress track links', () => {
     expect(service.vows()[0].progressTrackId).toBeUndefined();
     expect(service.progressTracks()).toHaveLength(1);
     expect(service.progressTracks()[0]).toMatchObject({ id: created.track.id, title: vow.title });
+  });
+  it('resolves a vow progress roll with stable vow and track snapshots without mutating state', () => {
+    const vow = vowFixture({
+      id: 'vow-roll',
+      title: 'Swear a test vow',
+      progressTrackId: 'track-roll',
+    });
+    const unrelated = vowFixture({
+      id: 'vow-other',
+      title: 'Unrelated',
+      progressTrackId: undefined,
+    });
+    const track = {
+      ...createDefaultProgressTrack({
+        id: 'track-roll',
+        createdAt: '2026-07-02T00:00:00.000Z',
+        title: 'Track the vow',
+        type: 'vow',
+        rank: 'formidable',
+      }),
+      ticks: 24,
+    };
+    service.setVows([vow, unrelated]);
+    service.setProgressTracks([track]);
+
+    const result = service.resolveProgressRollForVow({
+      vowId: 'vow-roll',
+      challengeDice: [4, 4],
+      rolledAt: '2026-07-11T00:00:00.000Z',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toMatchObject({
+      type: 'progress',
+      vowId: 'vow-roll',
+      vowTitle: 'Swear a test vow',
+      trackId: 'track-roll',
+      progressTrackId: 'track-roll',
+      trackTitle: 'Track the vow',
+      trackType: 'vow',
+      progressScore: 6,
+      challengeDice: [4, 4],
+      outcome: 'strong_hit',
+      isMatch: true,
+      rolledAt: '2026-07-11T00:00:00.000Z',
+      source: 'manual',
+    });
+    expect(service.vows().find((candidate) => candidate.id === 'vow-roll')).toEqual(vow);
+    expect(service.vows().find((candidate) => candidate.id === 'vow-other')).toEqual(unrelated);
+    expect(service.progressTracks()[0]).toEqual(track);
+  });
+
+  it.each([
+    ['strong_hit', 8, [2, 7]],
+    ['weak_hit', 5, [2, 7]],
+    ['miss', 5, [5, 7]],
+    ['strong_hit', 9, [6, 6]],
+  ] as const)('resolves deterministic vow progress roll outcome %s', (outcome, score, dice) => {
+    const vow = vowFixture({ id: `vow-${outcome}`, progressTrackId: `track-${outcome}` });
+    const track = {
+      ...createDefaultProgressTrack({
+        id: `track-${outcome}`,
+        createdAt: '2026-07-02T00:00:00.000Z',
+        title: 'Mechanics-only fixture',
+        type: 'vow',
+        rank: 'dangerous',
+      }),
+      ticks: score * 4,
+    };
+    service.setVows([vow]);
+    service.setProgressTracks([track]);
+
+    const result = service.resolveProgressRollForVow({ vowId: vow.id, challengeDice: dice });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.outcome).toBe(outcome);
+    expect(result.value.challengeDice).toEqual(dice);
+    expect(result.value.isMatch).toBe(dice[0] === dice[1]);
+  });
+
+  it('rejects missing broken and malformed vow progress links without mutating state', () => {
+    const missing = vowFixture({ id: 'vow-missing-link', progressTrackId: undefined });
+    const broken = vowFixture({ id: 'vow-broken-link', progressTrackId: 'track-missing' });
+    const malformed = vowFixture({ id: 'vow-malformed-link', progressTrackId: 'track-malformed' });
+    const track = {
+      ...createDefaultProgressTrack({
+        id: 'track-malformed',
+        createdAt: '2026-07-02T00:00:00.000Z',
+        title: 'Malformed',
+        type: 'vow',
+        rank: 'dangerous',
+      }),
+      ticks: Number.NaN,
+    };
+    service.setVows([missing, broken, malformed]);
+    service.setProgressTracks([track]);
+
+    expect(service.resolveProgressRollForVow({ vowId: missing.id })).toMatchObject({
+      ok: false,
+      errors: [{ code: 'missing_link' }],
+    });
+    expect(service.resolveProgressRollForVow({ vowId: broken.id })).toMatchObject({
+      ok: false,
+      errors: [{ code: 'broken_link' }],
+    });
+    expect(service.resolveProgressRollForVow({ vowId: malformed.id })).toMatchObject({
+      ok: false,
+      errors: [{ code: 'not_numeric' }],
+    });
+    expect(service.vows()).toEqual(expect.arrayContaining([missing, broken, malformed]));
+    expect(service.progressTracks()[0]).toEqual(track);
   });
 });

@@ -20,11 +20,12 @@ import {
   correctProgressTicks,
   progressScoreFromState,
   resolveProgressRoll,
+  type ProgressRollInput,
   type ProgressRollResult,
   type ProgressValidationOptions,
 } from '@app/rules/progress-rolls';
 import type { RulesResult, ValidationError } from '@app/rules/validation';
-import { rulesFailure } from '@app/rules/validation';
+import { rulesFailure, rulesSuccess } from '@app/rules/validation';
 
 const cloneProgressTrack = (track: ProgressTrack): ProgressTrack => ({
   ...track,
@@ -97,6 +98,20 @@ export interface LinkVowProgressTrackInput {
 
 export interface CreateLinkedVowProgressTrackInput {
   readonly vowId: string;
+}
+
+export interface VowProgressRollResult extends ProgressRollResult {
+  readonly vowId: string;
+  readonly vowTitle: string;
+  readonly progressTrackId: string;
+  readonly trackTitle?: string;
+  readonly trackType?: ProgressTrackType;
+}
+
+export interface ResolveVowProgressRollInput {
+  readonly vowId: string;
+  readonly challengeDice?: ProgressRollInput['challengeDice'];
+  readonly rolledAt?: string;
 }
 
 const compareVows = (left: Vow, right: Vow): number => {
@@ -654,6 +669,59 @@ export class CampaignWorkspaceService {
       trackId: existing.id,
       progressScore: progress.value.progressScore,
     });
+  }
+
+  resolveProgressRollForVow(
+    input: ResolveVowProgressRollInput,
+  ): RulesResult<Readonly<VowProgressRollResult>> {
+    const vow = this.vowsState().find((candidate) => candidate.id === input.vowId);
+    if (!vow) {
+      return rulesFailure([{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }]);
+    }
+    if (!vow.progressTrackId) {
+      return rulesFailure([
+        {
+          code: 'missing_link',
+          field: 'progressTrackId',
+          message: 'Link a progress track to roll.',
+        },
+      ]);
+    }
+
+    const track = this.progressTracksState().find(
+      (candidate) => candidate.id === vow.progressTrackId,
+    );
+    if (!track) {
+      return rulesFailure([
+        {
+          code: 'broken_link',
+          field: 'progressTrackId',
+          message: 'Linked progress track is missing.',
+        },
+      ]);
+    }
+
+    const progress = progressScoreFromState({ ticks: track.ticks });
+    if (!progress.ok) return rulesFailure(progress.errors);
+
+    const roll = resolveProgressRoll({
+      trackId: track.id,
+      progressScore: progress.value.progressScore,
+      challengeDice: input.challengeDice,
+      rolledAt: input.rolledAt,
+    });
+    if (!roll.ok) return roll;
+
+    return rulesSuccess(
+      Object.freeze({
+        ...roll.value,
+        vowId: vow.id,
+        vowTitle: vow.title,
+        progressTrackId: track.id,
+        trackTitle: track.title,
+        trackType: track.type,
+      }),
+    );
   }
 
   clearProgressTracks(): void {

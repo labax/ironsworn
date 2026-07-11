@@ -479,4 +479,90 @@ describe('Vows', () => {
     ).toBeTruthy();
     expect(compiled().querySelector('.form-actions')).toBeTruthy();
   });
+  it('rolls linked vow progress through the workspace and renders accessible mechanical result without mutation', () => {
+    const vow = vowFixture({
+      id: 'vow-roll-ui',
+      title: 'Carry word',
+      progressTrackId: 'track-roll-ui',
+    });
+    const track = progressFixture({ id: 'track-roll-ui', title: 'Carry word track', ticks: 24 });
+    workspace.setVows([vow]);
+    workspace.setProgressTracks([track]);
+    const rollSpy = vi.spyOn(workspace, 'resolveProgressRollForVow').mockReturnValue({
+      ok: true,
+      value: Object.freeze({
+        type: 'progress',
+        trackId: 'track-roll-ui',
+        progressTrackId: 'track-roll-ui',
+        trackTitle: 'Carry word track',
+        trackType: 'vow',
+        vowId: 'vow-roll-ui',
+        vowTitle: 'Carry word',
+        progressScore: 6,
+        challengeDice: [4, 4] as [number, number],
+        challengeResults: [true, true] as [boolean, boolean],
+        outcome: 'strong_hit',
+        isMatch: true,
+        rolledAt: '2026-07-11T00:00:00.000Z',
+        source: 'manual',
+        trace: ['test fixture'],
+      }),
+    });
+    createComponent();
+
+    const button = compiled().querySelector<HTMLButtonElement>(
+      '[aria-label="Roll linked progress for Carry word"]',
+    );
+    expect(button?.type).toBe('button');
+    expect(button?.getAttribute('aria-describedby')).toBe('progress-roll-help-vow-roll-ui');
+    button?.click();
+    fixture.detectChanges();
+
+    expect(rollSpy).toHaveBeenCalledWith({ vowId: 'vow-roll-ui' });
+    expect(compiled().textContent).toContain('Mechanical result');
+    expect(compiled().textContent).toContain('6');
+    expect(compiled().textContent).toContain('4 and 4');
+    expect(compiled().textContent).toContain('strong hit');
+    expect(compiled().textContent).toContain('Match');
+    expect(compiled().textContent).toContain('Choose any narrative or status changes separately.');
+    expect(workspace.vows()[0]).toEqual(vow);
+    expect(workspace.progressTracks()[0]).toEqual(track);
+  });
+
+  it('prevents rolling broken links and displays safe roll errors with repair navigation', () => {
+    workspace.setVows([
+      vowFixture({ id: 'vow-broken-ui', title: 'Broken UI', progressTrackId: 'track-missing' }),
+    ]);
+    createComponent();
+    expect(compiled().textContent).toContain('Linked progress track is missing.');
+    expect(
+      compiled().querySelector<HTMLButtonElement>('.progress-warning + button')?.textContent,
+    ).toContain('Remove broken link');
+    expect(
+      compiled().querySelector('[aria-label="Roll linked progress for Broken UI"]'),
+    ).toBeNull();
+
+    workspace.setVows([
+      vowFixture({ id: 'vow-error-ui', title: 'Error UI', progressTrackId: 'track-error-ui' }),
+    ]);
+    workspace.setProgressTracks([progressFixture({ id: 'track-error-ui', ticks: 20 })]);
+    vi.spyOn(workspace, 'resolveProgressRollForVow').mockReturnValue({
+      ok: false,
+      errors: [
+        {
+          code: 'broken_link',
+          field: 'progressTrackId',
+          message: 'Linked progress track is missing.',
+        },
+      ],
+    });
+    createComponent();
+    compiled()
+      .querySelector<HTMLButtonElement>('[aria-label="Roll linked progress for Error UI"]')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(compiled().textContent).toContain('Linked progress track is missing.');
+    expect(workspace.progressTracks()[0].ticks).toBe(20);
+  });
 });
