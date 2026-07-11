@@ -400,3 +400,117 @@ describe('CampaignWorkspaceService vow progress track links', () => {
     expect(service.progressTracks()[0]).toEqual(track);
   });
 });
+
+describe('CampaignWorkspaceService progress track archive restore delete actions', () => {
+  let service: CampaignWorkspaceService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(CampaignWorkspaceService);
+    service.clearVows();
+    service.clearProgressTracks();
+  });
+
+  it('archives and restores only the selected progress track while preserving identity and fields', () => {
+    const selected = createDefaultProgressTrack({
+      id: 'track-archive',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      title: 'User-authored track',
+      type: 'journey',
+      rank: 'formidable',
+      notes: 'Keep these notes.',
+    });
+    const complete = {
+      ...selected,
+      ticks: 16,
+      events: [{ id: 'event-1', createdAt: '2026-07-02T00:00:00.000Z', ticksDelta: 8 }],
+    };
+    const unrelated = createDefaultProgressTrack({
+      id: 'track-unrelated',
+      createdAt: '2026-07-03T00:00:00.000Z',
+      title: 'Unrelated track',
+      type: 'custom',
+      rank: 'dangerous',
+    });
+    service.setProgressTracks([complete, unrelated]);
+
+    const archived = service.archiveProgressTrack('track-archive');
+
+    expect(archived.ok).toBe(true);
+    const archivedTrack = service.progressTracks().find((track) => track.id === 'track-archive');
+    expect(archivedTrack).toMatchObject({
+      id: complete.id,
+      status: 'archived',
+      title: complete.title,
+      type: complete.type,
+      rank: complete.rank,
+      ticks: complete.ticks,
+      notes: complete.notes,
+      createdAt: complete.createdAt,
+    });
+    expect(archivedTrack?.events).toEqual(complete.events);
+    expect(service.progressTracks().find((track) => track.id === 'track-unrelated')).toEqual(
+      unrelated,
+    );
+
+    const restored = service.restoreProgressTrack('track-archive');
+
+    expect(restored.ok).toBe(true);
+    const restoredTrack = service.progressTracks().find((track) => track.id === 'track-archive');
+    expect(restoredTrack).toMatchObject({
+      id: complete.id,
+      status: 'active',
+      ticks: complete.ticks,
+    });
+    expect(restoredTrack?.events).toEqual(complete.events);
+  });
+
+  it('previews warnings and deletes only the selected track without cascading linked vows', () => {
+    const selected = createDefaultProgressTrack({
+      id: 'track-delete',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      title: 'Delete candidate',
+      type: 'vow',
+      rank: 'dangerous',
+      notes: 'Player note.',
+    });
+    const unrelated = createDefaultProgressTrack({
+      id: 'track-keep',
+      createdAt: '2026-07-02T00:00:00.000Z',
+      title: 'Keep candidate',
+      type: 'custom',
+      rank: 'troublesome',
+    });
+    const vow = vowFixture({ id: 'vow-linked', progressTrackId: selected.id });
+    service.setVows([vow]);
+    service.setProgressTracks([{ ...selected, ticks: 12 }, unrelated]);
+
+    const preview = service.previewDeleteProgressTrack(selected.id);
+
+    expect(preview.ok).toBe(true);
+    if (!preview.ok) return;
+    expect(preview.warnings.map((warning) => warning.code)).toEqual([
+      'linked_vow',
+      'has_progress',
+      'has_notes',
+    ]);
+
+    const deleted = service.deleteProgressTrack(selected.id);
+
+    expect(deleted.ok).toBe(true);
+    expect(service.progressTracks()).toEqual([unrelated]);
+    expect(service.vows()).toEqual([vow]);
+  });
+
+  it('fails stale progress track archive, restore, preview, and delete requests safely', () => {
+    const beforeTracks = service.progressTracks();
+    const beforeVows = service.vows();
+
+    expect(service.archiveProgressTrack('missing-track')).toMatchObject({ ok: false });
+    expect(service.restoreProgressTrack('missing-track')).toMatchObject({ ok: false });
+    expect(service.previewDeleteProgressTrack('missing-track')).toMatchObject({ ok: false });
+    expect(service.deleteProgressTrack('missing-track')).toMatchObject({ ok: false });
+    expect(service.progressTracks()).toEqual(beforeTracks);
+    expect(service.vows()).toEqual(beforeVows);
+  });
+});

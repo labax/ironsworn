@@ -6,6 +6,7 @@ import {
   validateProgressTrackTicks,
   type ChallengeRank,
   type ProgressTrack,
+  type ProgressTrackStatus,
   type ProgressTrackType,
 } from '@app/domain/progress';
 import {
@@ -112,6 +113,22 @@ export interface ResolveVowProgressRollInput {
   readonly vowId: string;
   readonly challengeDice?: ProgressRollInput['challengeDice'];
   readonly rolledAt?: string;
+}
+
+export interface DeleteProgressTrackWarning {
+  readonly code: 'linked_vow' | 'has_progress' | 'has_notes';
+  readonly message: string;
+}
+
+export interface ProgressTrackArchiveResult {
+  readonly ok: true;
+  readonly track: ProgressTrack;
+}
+
+export interface DeleteProgressTrackPreview {
+  readonly ok: true;
+  readonly track: ProgressTrack;
+  readonly warnings: readonly DeleteProgressTrackWarning[];
 }
 
 const compareVows = (left: Vow, right: Vow): number => {
@@ -646,6 +663,98 @@ export class CampaignWorkspaceService {
       updatedAt: new Date().toISOString(),
     });
 
+    this.progressTracksState.update((tracks) =>
+      tracks.map((candidate) => (candidate.id === trackId ? track : candidate)),
+    );
+    this.selectedProgressTrackIdState.set(track.id);
+
+    return { ok: true, track: cloneProgressTrack(track) };
+  }
+
+  archiveProgressTrack(
+    trackId: string,
+  ): ProgressTrackArchiveResult | { ok: false; errors: readonly ValidationError[] } {
+    return this.updateProgressTrackStatus(trackId, 'archived');
+  }
+
+  restoreProgressTrack(
+    trackId: string,
+  ): ProgressTrackArchiveResult | { ok: false; errors: readonly ValidationError[] } {
+    return this.updateProgressTrackStatus(trackId, 'active');
+  }
+
+  previewDeleteProgressTrack(
+    trackId: string,
+  ): DeleteProgressTrackPreview | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.progressTracksState().find((track) => track.id === trackId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'trackId', message: 'Progress track was not found.' }],
+      };
+    }
+
+    const linkedVow = this.vowsState().find((vow) => vow.progressTrackId === trackId);
+    const warnings: DeleteProgressTrackWarning[] = [];
+    if (linkedVow) {
+      warnings.push({
+        code: 'linked_vow',
+        message: `Linked vow "${linkedVow.title.trim() || 'Untitled vow'}" will remain and may need repair later.`,
+      });
+    }
+    if (existing.ticks > 0 || (existing.events ?? []).length > 0) {
+      warnings.push({
+        code: 'has_progress',
+        message: 'This track contains marked progress. Deleting removes the track record only.',
+      });
+    }
+    if (typeof existing.notes === 'string' && existing.notes.trim()) {
+      warnings.push({
+        code: 'has_notes',
+        message:
+          'This track contains user-authored notes. Deleting removes those notes with the track.',
+      });
+    }
+
+    return { ok: true, track: cloneProgressTrack(existing), warnings };
+  }
+
+  deleteProgressTrack(
+    trackId: string,
+  ): { ok: true; track: ProgressTrack } | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.progressTracksState().find((track) => track.id === trackId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'trackId', message: 'Progress track was not found.' }],
+      };
+    }
+
+    this.progressTracksState.update((tracks) => tracks.filter((track) => track.id !== trackId));
+    if (this.selectedProgressTrackIdState() === trackId) {
+      this.selectedProgressTrackIdState.set(null);
+    }
+
+    return { ok: true, track: cloneProgressTrack(existing) };
+  }
+
+  private updateProgressTrackStatus(
+    trackId: string,
+    status: ProgressTrackStatus,
+  ): ProgressTrackArchiveResult | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.progressTracksState().find((track) => track.id === trackId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'trackId', message: 'Progress track was not found.' }],
+      };
+    }
+
+    const track = cloneProgressTrack({
+      ...existing,
+      status,
+      updatedAt: new Date().toISOString(),
+    });
     this.progressTracksState.update((tracks) =>
       tracks.map((candidate) => (candidate.id === trackId ? track : candidate)),
     );

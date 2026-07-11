@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -47,6 +47,8 @@ interface ProgressTrackListItem {
   readonly linkedVowSummary: string;
 }
 
+type TrackViewMode = 'active' | 'archived';
+
 interface SelectOption<T extends string> {
   readonly value: T;
   readonly label: string;
@@ -79,14 +81,23 @@ export class Trackers {
 
   protected readonly selectedProgressTrackId = this.workspace.selectedProgressTrackId;
   protected readonly selectedTrack = this.workspace.selectedProgressTrack;
+  protected readonly trackViewMode = signal<TrackViewMode>('active');
+  protected actionFocusReturnId: string | null = null;
   protected readonly tracks = computed<readonly ProgressTrackListItem[]>(() => {
     const vows = this.workspace.vows();
-    return this.workspace.progressTracks().map((track) =>
-      this.toListItem(
-        track,
-        vows.find((vow) => vow.progressTrackId === track.id),
-      ),
-    );
+    return this.workspace
+      .progressTracks()
+      .filter((track) =>
+        this.trackViewMode() === 'archived'
+          ? track.status === 'archived'
+          : track.status !== 'archived',
+      )
+      .map((track) =>
+        this.toListItem(
+          track,
+          vows.find((vow) => vow.progressTrackId === track.id),
+        ),
+      );
   });
 
   protected readonly trackForm = this.formBuilder.group({
@@ -126,6 +137,71 @@ export class Trackers {
   protected openLinkedVow(vowId: string): void {
     this.workspace.selectVow(vowId);
     void this.router.navigate(['/vows']);
+  }
+
+  protected showActiveTracks(): void {
+    this.trackViewMode.set('active');
+    this.progressMessage = 'Showing active progress tracks.';
+  }
+
+  protected showArchivedTracks(): void {
+    this.trackViewMode.set('archived');
+    this.progressMessage = 'Showing archived progress tracks.';
+  }
+
+  protected archiveTrack(track: ProgressTrack, returnFocusId: string): void {
+    this.actionFocusReturnId = returnFocusId;
+    const confirmed = window.confirm(
+      'Archive this progress track? It will leave the active list, but its fields and links will be preserved for restore.',
+    );
+    if (!confirmed) {
+      this.progressMessage = 'Archive canceled; progress track was unchanged.';
+      this.focusActionReturn();
+      return;
+    }
+
+    const result = this.workspace.archiveProgressTrack(track.id);
+    this.progressMessage = result.ok
+      ? 'Progress track archived. Open Archived tracks to restore it.'
+      : (result.errors[0]?.message ?? 'Progress track could not be archived.');
+    this.focusActionReturn();
+  }
+
+  protected restoreTrack(track: ProgressTrack, returnFocusId: string): void {
+    this.actionFocusReturnId = returnFocusId;
+    const result = this.workspace.restoreProgressTrack(track.id);
+    this.progressMessage = result.ok
+      ? 'Progress track restored to the active list.'
+      : (result.errors[0]?.message ?? 'Progress track could not be restored.');
+    this.focusActionReturn();
+  }
+
+  protected deleteTrack(track: ProgressTrack, returnFocusId: string): void {
+    this.actionFocusReturnId = returnFocusId;
+    const preview = this.workspace.previewDeleteProgressTrack(track.id);
+    if (!preview.ok) {
+      this.progressMessage = preview.errors[0]?.message ?? 'Progress track could not be deleted.';
+      this.focusActionReturn();
+      return;
+    }
+
+    const warningText = preview.warnings.length
+      ? `\n\nWarnings:\n${preview.warnings.map((warning) => `- ${warning.message}`).join('\n')}`
+      : '';
+    const confirmed = window.confirm(
+      `Delete this progress track? This removes only the selected track and cannot be undone. Linked vows are not deleted or changed.${warningText}`,
+    );
+    if (!confirmed) {
+      this.progressMessage = 'Delete canceled; progress track was unchanged.';
+      this.focusActionReturn();
+      return;
+    }
+
+    const result = this.workspace.deleteProgressTrack(track.id);
+    this.progressMessage = result.ok
+      ? 'Progress track deleted. No vows or unrelated records were changed.'
+      : (result.errors[0]?.message ?? 'Progress track could not be deleted.');
+    this.focusActionReturn();
   }
 
   protected markProgress(track: ProgressTrack): void {
@@ -333,6 +409,12 @@ export class Trackers {
     );
     if (!firstField) return;
     document.getElementById(`track-${firstField}`)?.focus();
+  }
+
+  private focusActionReturn(): void {
+    const targetId = this.actionFocusReturnId;
+    if (!targetId) return;
+    queueMicrotask(() => document.getElementById(targetId)?.focus());
   }
 
   private toListItem(

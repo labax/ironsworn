@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { rulesFailure, rulesSuccess } from '@app/rules/validation';
 
 import { createDefaultProgressTrack, type ProgressTrack } from '@app/domain/progress';
+import { createDefaultVow } from '@app/domain/vows';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
 
 import { Trackers } from './trackers';
@@ -505,5 +506,110 @@ describe('Trackers', () => {
       unrelated,
     );
     expect(compiled().textContent).toContain('ticks must be a finite number.');
+  });
+
+  it('keeps archived tracks out of the active view and restores them intact from the archived view', () => {
+    const archived = progressTrack({
+      id: 'track-archived',
+      title: 'Archived path',
+      status: 'archived',
+      ticks: 20,
+      notes: 'Restore this note.',
+    });
+    const active = progressTrack({ id: 'track-active', title: 'Active path' });
+    workspace.setProgressTracks([archived, active]);
+    createComponent();
+
+    expect(compiled().textContent).toContain('Active path');
+    expect(compiled().textContent).not.toContain('Archived path');
+
+    fixture.componentInstance['showArchivedTracks']();
+    fixture.detectChanges();
+    expect(compiled().textContent).toContain('Archived path');
+    expect(compiled().textContent).not.toContain('Active path');
+
+    compiled()
+      .querySelector<HTMLButtonElement>('[aria-label="Restore progress track: Archived path"]')
+      ?.click();
+    fixture.detectChanges();
+
+    const restored = workspace.progressTracks().find((track) => track.id === 'track-archived');
+    expect(restored).toMatchObject({
+      id: archived.id,
+      status: 'active',
+      ticks: 20,
+      notes: archived.notes,
+    });
+  });
+
+  it('requires archive confirmation and leaves state unchanged when canceled', () => {
+    const track = progressTrack({ id: 'track-cancel-archive', title: 'Archive cancel' });
+    workspace.setProgressTracks([track]);
+    createComponent();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    compiled()
+      .querySelector<HTMLButtonElement>('[aria-label="Archive progress track: Archive cancel"]')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Archive this progress track?'),
+    );
+    expect(workspace.progressTracks()).toEqual([track]);
+    expect(fixture.componentInstance['progressMessage']).toContain('Archive canceled');
+  });
+
+  it('warns about linked vows, notes, and progress before confirmed delete without altering the vow', () => {
+    const track = progressTrack({
+      id: 'track-delete-ui',
+      title: 'Delete with warnings',
+      ticks: 12,
+      notes: 'Player note.',
+    });
+    const vow = createDefaultVow({
+      id: 'vow-linked-ui',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      title: 'Linked player vow',
+      rank: 'dangerous',
+      progressTrackId: track.id,
+    });
+    workspace.setProgressTracks([track]);
+    workspace.setVows([vow]);
+    createComponent();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    compiled()
+      .querySelector<HTMLButtonElement>(
+        '[aria-label="Delete progress track: Delete with warnings"]',
+      )
+      ?.click();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Linked vow'));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('marked progress'));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('user-authored notes'));
+    expect(workspace.progressTracks()).toEqual([]);
+    expect(workspace.vows()).toEqual([vow]);
+  });
+
+  it('cancels delete without mutation and returns focus to the action control when it remains', async () => {
+    const track = progressTrack({ id: 'track-delete-cancel', title: 'Delete cancel' });
+    workspace.setProgressTracks([track]);
+    createComponent();
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const deleteButton = compiled().querySelector<HTMLButtonElement>(
+      '[aria-label="Delete progress track: Delete cancel"]',
+    );
+    deleteButton?.focus();
+
+    deleteButton?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(workspace.progressTracks()).toEqual([track]);
+    expect(document.activeElement).toBe(deleteButton);
+    expect(fixture.componentInstance['progressMessage']).toContain('Delete canceled');
   });
 });
