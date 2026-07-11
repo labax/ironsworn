@@ -8,7 +8,18 @@ import {
 import type { ChallengeRank } from '../progress';
 
 export type VowType = 'background' | 'inciting_incident' | 'normal';
-export type VowStatus = 'active' | 'fulfilled' | 'forsaken' | 'archived';
+export const VOW_STATUSES = ['active', 'fulfilled', 'forsaken', 'archived'] as const;
+export type VowStatus = (typeof VOW_STATUSES)[number];
+
+export const VOW_STATUS_LABELS: Record<VowStatus, string> = {
+  active: 'Active',
+  fulfilled: 'Fulfilled',
+  forsaken: 'Forsaken',
+  archived: 'Archived',
+};
+
+export const isVowStatus = (value: unknown): value is VowStatus =>
+  typeof value === 'string' && VOW_STATUSES.includes(value as VowStatus);
 
 export interface VowMilestone {
   readonly id: EntityId;
@@ -29,6 +40,7 @@ export interface Vow extends DomainEntity {
   readonly type: VowType;
   readonly rank: ChallengeRank;
   readonly status: VowStatus;
+  readonly description?: string;
   readonly characterId?: EntityId;
   readonly campaignId?: EntityId;
   readonly progressTrackId?: EntityId;
@@ -44,6 +56,9 @@ export interface CreateDefaultVowOptions extends EntityFactoryOptions {
   readonly characterId?: EntityId;
   readonly campaignId?: EntityId;
   readonly progressTrackId?: EntityId;
+  readonly description?: string;
+  readonly status?: VowStatus;
+  readonly notes?: string;
 }
 
 export const createDefaultVow = (options: CreateDefaultVowOptions): Vow => ({
@@ -51,10 +66,11 @@ export const createDefaultVow = (options: CreateDefaultVowOptions): Vow => ({
   title: options.title,
   type: options.type ?? 'normal',
   rank: options.rank,
-  status: 'active',
+  status: options.status ?? 'active',
+  description: options.description,
   characterId: options.characterId,
   campaignId: options.campaignId,
   progressTrackId: options.progressTrackId,
-  notes: '',
+  notes: options.notes ?? '',
   milestones: [],
 });

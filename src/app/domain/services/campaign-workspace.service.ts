@@ -8,6 +8,7 @@ import {
   type ProgressTrack,
   type ProgressTrackType,
 } from '@app/domain/progress';
+import { createDefaultVow, validateVowDetails, type Vow, type VowStatus } from '@app/domain/vows';
 import {
   correctProgressTicks,
   progressScoreFromState,
@@ -23,10 +24,25 @@ const cloneProgressTrack = (track: ProgressTrack): ProgressTrack => ({
   events: [...(track.events ?? [])],
 });
 
+const cloneVow = (vow: Vow): Vow => ({
+  ...vow,
+  milestones: [...(vow.milestones ?? [])],
+  outcome: vow.outcome ? { ...vow.outcome } : undefined,
+});
+
 const createEntityId = (prefix: string): string =>
   typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? `${prefix}-${crypto.randomUUID()}`
     : `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
+export interface SaveVowInput {
+  readonly id?: string;
+  readonly title: string;
+  readonly description?: string;
+  readonly rank: ChallengeRank;
+  readonly status: VowStatus;
+  readonly notes?: string;
+}
 
 export interface SaveProgressTrackInput {
   readonly id?: string;
@@ -35,6 +51,14 @@ export interface SaveProgressTrackInput {
   readonly rank: ChallengeRank;
   readonly notes?: string;
 }
+
+const compareVows = (left: Vow, right: Vow): number => {
+  const leftCreated = typeof left.createdAt === 'string' ? left.createdAt : '';
+  const rightCreated = typeof right.createdAt === 'string' ? right.createdAt : '';
+  const createdComparison = leftCreated.localeCompare(rightCreated);
+
+  return createdComparison !== 0 ? createdComparison : left.id.localeCompare(right.id);
+};
 
 const compareProgressTracks = (left: ProgressTrack, right: ProgressTrack): number => {
   const leftCreated = typeof left.createdAt === 'string' ? left.createdAt : '';
@@ -53,6 +77,20 @@ export class CampaignWorkspaceService {
   readonly workspaceName = signal('Local campaign workspace');
   readonly mode = signal('Ready for MVP features');
 
+  private readonly vowsState = signal<readonly Vow[]>([]);
+  private readonly selectedVowIdState = signal<string | null>(null);
+
+  readonly vows = computed<readonly Vow[]>(() =>
+    [...this.vowsState()].sort(compareVows).map((vow) => cloneVow(vow)),
+  );
+  readonly selectedVowId = this.selectedVowIdState.asReadonly();
+  readonly selectedVow = computed<Vow | null>(() => {
+    const selectedId = this.selectedVowIdState();
+    const selected = this.vowsState().find((vow) => vow.id === selectedId);
+
+    return selected ? cloneVow(selected) : null;
+  });
+
   private readonly progressTracksState = signal<readonly ProgressTrack[]>([]);
   private readonly selectedProgressTrackIdState = signal<string | null>(null);
 
@@ -68,6 +106,66 @@ export class CampaignWorkspaceService {
 
     return selected ? cloneProgressTrack(selected) : null;
   });
+
+  setVows(vows: readonly Vow[]): void {
+    this.vowsState.set(vows.map((vow) => cloneVow(vow)));
+    const selectedId = this.selectedVowIdState();
+
+    if (selectedId && !vows.some((vow) => vow.id === selectedId)) {
+      this.selectedVowIdState.set(null);
+    }
+  }
+
+  saveVow(
+    input: SaveVowInput,
+  ): { ok: true; vow: Vow } | { ok: false; errors: readonly ValidationError[] } {
+    const details = validateVowDetails(input);
+    if (!details.ok) return { ok: false, errors: details.errors };
+
+    const now = new Date().toISOString();
+    const value = details.value;
+    const existing = input.id ? this.vowsState().find((vow) => vow.id === input.id) : undefined;
+    const vow = existing
+      ? cloneVow({
+          ...existing,
+          title: value.title,
+          description: value.description,
+          rank: value.rank,
+          status: value.status,
+          notes: value.notes,
+          updatedAt: now,
+        })
+      : createDefaultVow({
+          id: createEntityId('vow'),
+          createdAt: now,
+          title: value.title,
+          description: value.description,
+          rank: value.rank,
+          status: value.status,
+          notes: value.notes,
+        });
+
+    this.vowsState.update((vows) =>
+      existing
+        ? vows.map((candidate) => (candidate.id === existing.id ? vow : candidate))
+        : [...vows, vow],
+    );
+    this.selectedVowIdState.set(vow.id);
+
+    return { ok: true, vow: cloneVow(vow) };
+  }
+
+  selectVow(vowId: string): Vow | null {
+    const selected = this.vowsState().find((vow) => vow.id === vowId) ?? null;
+    this.selectedVowIdState.set(selected?.id ?? null);
+
+    return selected ? cloneVow(selected) : null;
+  }
+
+  clearVows(): void {
+    this.vowsState.set([]);
+    this.selectedVowIdState.set(null);
+  }
 
   setProgressTracks(tracks: readonly ProgressTrack[]): void {
     this.progressTracksState.set(tracks.map((track) => cloneProgressTrack(track)));
