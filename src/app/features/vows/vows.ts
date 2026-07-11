@@ -37,6 +37,13 @@ const STATUS_ORDER: Record<VowStatus, number> = {
   archived: 3,
 };
 
+const CONFIRMED_STATUSES: readonly VowStatus[] = ['fulfilled', 'forsaken', 'archived'];
+
+const statusChangeConfirmation = (status: VowStatus): string =>
+  status === 'archived'
+    ? 'Archive this vow? You can restore it later.'
+    : `Mark this vow ${VOW_STATUS_LABELS[status].toLowerCase()}?`;
+
 const compareVowListItems = (left: VowListItem, right: VowListItem): number => {
   const statusComparison = STATUS_ORDER[left.vow.status] - STATUS_ORDER[right.vow.status];
   if (statusComparison !== 0) return statusComparison;
@@ -193,6 +200,8 @@ export class Vows {
     }
 
     const value = this.vowForm.getRawValue();
+    if (!this.confirmStatusChange(value.status)) return;
+
     const result = this.workspace.saveVow({ id: this.editingVowId ?? undefined, ...value });
     if (!result.ok) {
       this.applyErrors(result.errors);
@@ -240,6 +249,21 @@ export class Vows {
       this.formMessage = 'Unsaved changes were kept.';
       return false;
     }
+    return true;
+  }
+
+  private confirmStatusChange(nextStatus: VowStatus): boolean {
+    if (!this.editingVowId || !CONFIRMED_STATUSES.includes(nextStatus)) return true;
+
+    const currentStatus = this.workspace.vows().find((vow) => vow.id === this.editingVowId)?.status;
+    if (currentStatus === nextStatus) return true;
+
+    const confirmed = window.confirm(statusChangeConfirmation(nextStatus));
+    if (!confirmed) {
+      this.formMessage = 'Status change canceled; no changes saved.';
+      return false;
+    }
+
     return true;
   }
 
