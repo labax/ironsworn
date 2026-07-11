@@ -33,6 +33,11 @@ export interface ProgressScoreResult {
   readonly progressScore: number;
 }
 
+export interface ProgressChangeInput {
+  readonly ticks: number;
+  readonly rank: unknown;
+}
+
 export const PROGRESS_TICKS_PER_BOX = 4;
 export const MIN_PROGRESS_TICKS = 0;
 export const MAX_PROGRESS_TICKS = 40;
@@ -163,6 +168,25 @@ export const progressScoreFromTicks = (
   if (!boxes.ok) return boxes;
   return rulesSuccess(boundedProgressScore(ticks as number));
 };
+
+export const addProgressByRank = (input: ProgressChangeInput): RulesResult<ProgressScoreResult> => {
+  const increment = progressRankIncrementTicks(input.rank);
+  if (!increment.ok) return increment;
+  return progressScoreFromState({ ticks: input.ticks + increment.value });
+};
+
+export const removeProgressByRank = (
+  input: ProgressChangeInput,
+): RulesResult<ProgressScoreResult> => {
+  const increment = progressRankIncrementTicks(input.rank);
+  if (!increment.ok) return increment;
+  return progressScoreFromState({ ticks: input.ticks - increment.value });
+};
+
+export const correctProgressTicks = (
+  ticks: unknown,
+  options?: ProgressValidationOptions,
+): RulesResult<ProgressScoreResult> => progressScoreFromState({ ticks }, options);
 
 export const progressScoreFromState = (
   state: unknown,

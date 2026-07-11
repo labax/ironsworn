@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addProgressByRank,
   boxesToTicks,
+  correctProgressTicks,
   classifyProgressRoll,
   progressRankIncrementTicks,
   progressScoreFromState,
   progressScoreFromTicks,
+  removeProgressByRank,
   resolveProgressRoll,
   ticksToBoxes,
   PROGRESS_RANK_TICK_INCREMENTS,
@@ -33,6 +36,44 @@ describe('progress roll helpers', () => {
 
   it('returns a typed error for unsupported ranks', () => {
     expectFailureCode(progressRankIncrementTicks('unsupported'), 'unsupported_rank');
+  });
+
+  it.each([
+    ['troublesome', 0, 12],
+    ['dangerous', 0, 8],
+    ['formidable', 0, 4],
+    ['extreme', 0, 2],
+    ['epic', 0, 1],
+  ] as const)('marks %s progress by its rank increment', (rank, ticks, expectedTicks) => {
+    const result = addProgressByRank({ rank, ticks });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.ticks).toBe(expectedTicks);
+    expect(result.value.progressScore).toBe(Math.floor(expectedTicks / 4));
+  });
+
+  it.each([
+    ['troublesome', 12, 0],
+    ['dangerous', 8, 0],
+    ['formidable', 4, 0],
+    ['extreme', 2, 0],
+    ['epic', 1, 0],
+  ] as const)('removes %s progress by its rank increment', (rank, ticks, expectedTicks) => {
+    const result = removeProgressByRank({ rank, ticks });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.ticks).toBe(expectedTicks);
+  });
+
+  it.each([
+    ['mark over maximum', () => addProgressByRank({ rank: 'troublesome', ticks: 36 })],
+    ['remove below minimum', () => removeProgressByRank({ rank: 'dangerous', ticks: 4 })],
+    ['normal correction below minimum', () => correctProgressTicks(-1)],
+    ['normal correction over maximum', () => correctProgressTicks(41)],
+  ] as const)('rejects invalid normal progress for %s', (_label, makeResult) => {
+    expectFailureCode(makeResult(), 'out_of_range');
   });
 
   it.each([

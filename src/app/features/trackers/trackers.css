@@ -204,3 +204,56 @@ textarea:focus-visible {
   flex-wrap: wrap;
   gap: 1rem;
 }
+
+.progress-boxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+
+.progress-box {
+  align-items: center;
+  border: 1px solid rgba(191, 219, 254, 0.65);
+  border-radius: 0.35rem;
+  display: inline-flex;
+  font-weight: 900;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+}
+
+.progress-box-filled {
+  background: #bfdbfe;
+  color: #0f172a;
+}
+
+.progress-controls {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.progress-controls button,
+.progress-controls input {
+  min-height: 2.75rem;
+}
+
+.progress-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.correction-field {
+  min-width: 9rem;
+}
+
+@media (max-width: 42rem) {
+  .progress-controls,
+  .progress-controls button,
+  .correction-field {
+    width: 100%;
+  }
+}
