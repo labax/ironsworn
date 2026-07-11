@@ -106,7 +106,15 @@
     </div>
   </form>
 
-  @if (vows().length === 0) {
+  @if (loadError()) {
+    <section class="error-state" aria-labelledby="vow-load-error-title" role="alert">
+      <div>
+        <h3 id="vow-load-error-title">Vows are unavailable.</h3>
+        <p>{{ loadError() }}</p>
+      </div>
+      <button type="button" (click)="openCreate()">Create vow</button>
+    </section>
+  } @else if (vows().length === 0) {
     <section class="empty-state" aria-labelledby="empty-vows-title">
       <div>
         <h3 id="empty-vows-title">No vows yet.</h3>
@@ -115,9 +123,16 @@
       <button type="button" (click)="openCreate()">Create vow</button>
     </section>
   } @else {
+    <p class="helper-text">
+      Active vows are listed first; other statuses follow by latest timestamp, then stable ID.
+    </p>
     <ul class="vow-list" aria-label="Vows">
       @for (item of vows(); track item.vow.id) {
-        <li class="vow-card" [class.vow-card-selected]="selectedVowId() === item.vow.id">
+        <li
+          class="vow-card"
+          [class.vow-card-active]="item.vow.status === 'active'"
+          [class.vow-card-selected]="selectedVowId() === item.vow.id"
+        >
           <article [attr.aria-labelledby]="'vow-title-' + item.vow.id">
             <div class="vow-card-heading">
               <div class="vow-title-block">
@@ -141,7 +156,24 @@
                 <dt>Status</dt>
                 <dd>{{ item.statusLabel }}</dd>
               </div>
+              <div>
+                <dt>Updated</dt>
+                <dd>
+                  @if (item.updatedMachineValue) {
+                    <time [attr.datetime]="item.updatedMachineValue">{{ item.updatedLabel }}</time>
+                  } @else {
+                    {{ item.updatedLabel }}
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt>Progress</dt>
+                <dd>{{ item.progressSummary }}</dd>
+              </div>
             </dl>
+            @if (item.progressWarning) {
+              <p class="progress-warning" role="status">{{ item.progressWarning }}</p>
+            }
             @if (item.description) {
               <p class="vow-text">{{ item.description }}</p>
             }
