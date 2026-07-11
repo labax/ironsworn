@@ -1,8 +1,20 @@
-import { Component, InjectionToken, inject, output, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  InjectionToken,
+  ViewChild,
+  inject,
+  output,
+  signal,
+} from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { ActiveCharacterService, type StatKey } from '@app/domain/character';
-import { RollHistoryService, type PreparedActionRollInput } from '@app/domain/rolls';
+import {
+  MomentumBurnApplicationService,
+  RollHistoryService,
+  type PreparedActionRollInput,
+} from '@app/domain/rolls';
 import {
   previewActionRollMomentumBurn,
   resolveActionRoll,
@@ -46,6 +58,10 @@ export class ActionRollInput {
   private readonly activeCharacter = inject(ActiveCharacterService);
   private readonly actionRollResolver = inject(ACTION_ROLL_RESOLVER);
   private readonly rollHistory = inject(RollHistoryService);
+  private readonly momentumBurnApplication = inject(MomentumBurnApplicationService);
+
+  @ViewChild('momentumConfirmation') private momentumConfirmation?: ElementRef<HTMLElement>;
+  private previewTrigger: HTMLElement | null = null;
 
   readonly prepared = output<PreparedActionRollInput>();
 
@@ -56,6 +72,9 @@ export class ActionRollInput {
   protected readonly lastResolvedRoll = signal<ActionRollResult | null>(null);
   protected readonly momentumBurnPreview = signal<MomentumBurnPreviewResult | null>(null);
   protected readonly isMomentumPreviewOpen = signal(false);
+  protected readonly isApplyingMomentumBurn = signal(false);
+  protected readonly momentumBurnError = signal<string | null>(null);
+  protected readonly lastHistoryEntryId = signal<string | null>(null);
   protected readonly rollError = signal<string | null>(null);
   protected readonly isResolving = signal(false);
   protected readonly selectedSource = signal<RollInputSource>('character-stat');
@@ -161,7 +180,8 @@ export class ActionRollInput {
       if (resolved.ok) {
         this.lastResolvedRoll.set(resolved.value);
         this.recomputeMomentumBurnPreview(resolved.value);
-        this.rollHistory.saveActionRoll({ prepared, result: resolved.value });
+        const history = this.rollHistory.saveActionRoll({ prepared, result: resolved.value });
+        this.lastHistoryEntryId.set(history.id);
       } else {
         this.lastResolvedRoll.set(null);
         this.momentumBurnPreview.set(null);
@@ -180,15 +200,51 @@ export class ActionRollInput {
   }
 
   protected showMomentumPreview(): void {
+    this.previewTrigger =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const roll = this.lastResolvedRoll();
     if (roll) {
       this.recomputeMomentumBurnPreview(roll);
     }
+    this.momentumBurnError.set(null);
     this.isMomentumPreviewOpen.set(true);
+    queueMicrotask(() => this.momentumConfirmation?.nativeElement.focus());
   }
 
   protected dismissMomentumPreview(): void {
     this.isMomentumPreviewOpen.set(false);
+    this.momentumBurnError.set(null);
+    queueMicrotask(() => this.previewTrigger?.focus());
+  }
+
+  protected async confirmMomentumBurn(): Promise<void> {
+    if (this.isApplyingMomentumBurn()) return;
+    const roll = this.lastResolvedRoll();
+    const preview = this.momentumBurnPreview();
+    const prepared = this.lastPreparedInput();
+    if (!roll || !preview || !prepared) return;
+
+    this.isApplyingMomentumBurn.set(true);
+    this.momentumBurnError.set(null);
+    const result = await this.momentumBurnApplication.apply({
+      roll,
+      preview,
+      prepared,
+      historyEntryId: this.lastHistoryEntryId() ?? undefined,
+    });
+    this.isApplyingMomentumBurn.set(false);
+
+    if (result.success) {
+      this.lastResolvedRoll.set(result.roll);
+      this.lastHistoryEntryId.set(result.history.id);
+      this.momentumBurnPreview.set(null);
+      this.isMomentumPreviewOpen.set(false);
+      queueMicrotask(() => this.previewTrigger?.focus());
+      return;
+    }
+
+    this.momentumBurnError.set(result.reason);
+    this.recomputeMomentumBurnPreview(roll);
   }
 
   protected resultLabel(result: ActionRollResult['outcome']): string {

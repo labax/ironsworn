@@ -22,9 +22,13 @@ export interface OracleRollDice {
 }
 
 export interface MomentumBurn {
-  readonly burned: boolean;
-  readonly previousMomentum?: number;
-  readonly replacementScore?: number;
+  readonly applied: boolean;
+  readonly canceledDice: readonly { readonly position: 0 | 1; readonly value: number }[];
+  readonly momentumUsed: number;
+  readonly resetValue: number;
+  readonly initialOutcome: Extract<RollOutcome, 'strong_hit' | 'weak_hit' | 'miss'>;
+  readonly finalOutcome: Extract<RollOutcome, 'strong_hit' | 'weak_hit' | 'miss'>;
+  readonly originalMatch: boolean;
 }
 
 export interface RollHistoryEntry extends DomainEntity {

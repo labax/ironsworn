@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
 import { createDomainEntity, type ISODateString } from '../shared';
-import type { PreparedActionRollInput, RollHistoryEntry } from './index';
+import type { MomentumBurn, PreparedActionRollInput, RollHistoryEntry } from './index';
 import type { ActionRollResult } from '@app/rules';
 
 export interface SaveActionRollHistoryInput {
@@ -9,6 +9,14 @@ export interface SaveActionRollHistoryInput {
   readonly result: ActionRollResult;
   readonly createdAt?: ISODateString;
   readonly note?: string;
+}
+
+export interface FinalizeActionRollMomentumBurnInput {
+  readonly id?: string;
+  readonly prepared: PreparedActionRollInput;
+  readonly result: ActionRollResult;
+  readonly finalOutcome: ActionRollResult['outcome'];
+  readonly momentumBurn: MomentumBurn;
 }
 
 const cloneEntry = (entry: RollHistoryEntry): RollHistoryEntry => ({
@@ -26,7 +34,9 @@ const cloneEntry = (entry: RollHistoryEntry): RollHistoryEntry => ({
       }
     : undefined,
   oracleRoll: entry.oracleRoll ? { ...entry.oracleRoll } : undefined,
-  momentumBurn: entry.momentumBurn ? { ...entry.momentumBurn } : undefined,
+  momentumBurn: entry.momentumBurn
+    ? { ...entry.momentumBurn, canceledDice: [...entry.momentumBurn.canceledDice] }
+    : undefined,
 });
 
 @Injectable({ providedIn: 'root' })
@@ -62,6 +72,38 @@ export class RollHistoryService {
 
     this.entriesState.update((entries) => [...entries, entry]);
     return cloneEntry(entry);
+  }
+
+  finalizeActionRollMomentumBurn(input: FinalizeActionRollMomentumBurnInput): RollHistoryEntry {
+    const current = input.id
+      ? this.entriesState().find((entry) => entry.id === input.id)
+      : undefined;
+    if (current?.momentumBurn?.applied) {
+      return cloneEntry(current);
+    }
+
+    if (current) {
+      const updated: RollHistoryEntry = {
+        ...current,
+        outcome: input.finalOutcome,
+        momentumBurn: input.momentumBurn,
+      };
+      this.entriesState.update((entries) =>
+        entries.map((entry) => (entry.id === current.id ? updated : entry)),
+      );
+      return cloneEntry(updated);
+    }
+
+    const created = this.saveActionRoll({ prepared: input.prepared, result: input.result });
+    const updated: RollHistoryEntry = {
+      ...created,
+      outcome: input.finalOutcome,
+      momentumBurn: input.momentumBurn,
+    };
+    this.entriesState.update((entries) =>
+      entries.map((entry) => (entry.id === created.id ? updated : entry)),
+    );
+    return cloneEntry(updated);
   }
 
   clear(): void {
