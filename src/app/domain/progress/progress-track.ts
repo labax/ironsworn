@@ -36,6 +36,8 @@ export interface ProgressTrack extends DomainEntity {
   readonly campaignId?: EntityId;
   readonly events: readonly ProgressEvent[];
   readonly notes?: string;
+  readonly progressMode?: 'standard' | 'manual_override';
+  readonly overrideReason?: string;
 }
 
 export interface CreateDefaultProgressTrackOptions extends EntityFactoryOptions {
@@ -45,6 +47,8 @@ export interface CreateDefaultProgressTrackOptions extends EntityFactoryOptions 
   readonly characterId?: EntityId;
   readonly campaignId?: EntityId;
   readonly notes?: string;
+  readonly progressMode?: 'standard' | 'manual_override';
+  readonly overrideReason?: string;
 }
 
 export const PROGRESS_TRACK_TYPE_LABELS: Record<ProgressTrackType, string> = {
@@ -91,6 +95,8 @@ export const createDefaultProgressTrack = (
   campaignId: options.campaignId,
   events: [],
   notes: options.notes,
+  progressMode: options.progressMode ?? 'standard',
+  overrideReason: options.overrideReason,
 });
 
 export const isProgressTrack = (value: unknown): value is ProgressTrack => {
@@ -101,6 +107,6 @@ export const isProgressTrack = (value: unknown): value is ProgressTrack => {
     typeof candidate.title === 'string' &&
     isProgressTrackType(candidate.type) &&
     isChallengeRank(candidate.rank) &&
-    isValidProgressTicks(candidate.ticks ?? NaN)
+    (candidate.progressMode === 'manual_override' || isValidProgressTicks(candidate.ticks ?? NaN))
   );
 };

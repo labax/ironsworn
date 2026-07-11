@@ -122,6 +122,9 @@ describe('LocalStorageAdapter', () => {
       expect(loadResult.data.schemaVersion).toBe(CURRENT_SAVE_SCHEMA_VERSION);
       expect(loadResult.data.payload.name).toBe('Test Campaign');
       expect(loadResult.data.payload.characters[0]?.name).toBe('Test Character');
+      expect(loadResult.data.payload.progressTracks[0]).toMatchObject({
+        progressMode: 'standard',
+      });
     }
   });
 

@@ -368,4 +368,55 @@ describe('Trackers', () => {
       'Manual progress correction applied. 44 ticks, score 10.',
     );
   });
+  it('visibly identifies override mode and requires confirmation to return to standard mode', () => {
+    workspace.setProgressTracks([
+      progressTrack({ id: 'track-override', ticks: 44, progressMode: 'manual_override' }),
+    ]);
+    createComponent();
+
+    expect(compiled().textContent).toContain('Manual override active');
+    expect(
+      compiled().querySelector<HTMLButtonElement>(
+        '[aria-label="Mark progress on Find the hidden ford"]',
+      )?.disabled,
+    ).toBe(true);
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[3].click();
+    fixture.detectChanges();
+    expect(workspace.progressTracks()[0]?.progressMode).toBe('manual_override');
+    expect(compiled().textContent).toContain('Return to standard mode canceled');
+
+    confirmSpy.mockReturnValue(true);
+    compiled().querySelector<HTMLInputElement>(
+      '[aria-label="Correct progress ticks for Find the hidden ford"]',
+    )!.value = '40';
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    fixture.detectChanges();
+    expect(workspace.progressTracks()[0]).toMatchObject({ ticks: 40, progressMode: 'standard' });
+  });
+
+  it('keeps invalid correction drafts out of committed state and preserves unrelated tracks', () => {
+    const track = progressTrack({ id: 'track-invalid', ticks: 12 });
+    const unrelated = progressTrack({ id: 'track-other', title: 'Other', ticks: 8 });
+    workspace.setProgressTracks([track, unrelated]);
+    createComponent();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const input = compiled().querySelector<HTMLInputElement>(
+      '[aria-label="Correct progress ticks for Find the hidden ford"]',
+    );
+    input!.value = 'not a number';
+    compiled().querySelectorAll<HTMLButtonElement>('.progress-controls button')[2].click();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(input!.value).toBe('not a number');
+    expect(
+      workspace.progressTracks().find((candidate) => candidate.id === 'track-invalid'),
+    ).toEqual(track);
+    expect(workspace.progressTracks().find((candidate) => candidate.id === 'track-other')).toEqual(
+      unrelated,
+    );
+    expect(compiled().textContent).toContain('ticks must be a finite number.');
+  });
 });
