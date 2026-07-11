@@ -7,6 +7,7 @@ import {
   type ProgressTrack,
   type ProgressTrackStatus,
 } from '@app/domain/progress';
+import { isVowStatus, type Vow, type VowMilestone, type VowOutcome } from '@app/domain/vows';
 
 export const WORKSPACE_SAVE_SCHEMA_VERSION = CURRENT_SAVE_SCHEMA_VERSION;
 export const LEGACY_EMPTY_WORKSPACE_SCHEMA_VERSION = 1;
@@ -15,6 +16,8 @@ export const WORKSPACE_TRACKS_SCHEMA_VERSION = 3;
 export interface PersistedCampaignWorkspace {
   readonly progressTracks: readonly ProgressTrack[];
   readonly selectedProgressTrackId?: string;
+  readonly vows: readonly Vow[];
+  readonly selectedVowId?: string;
 }
 
 const STATUSES: readonly ProgressTrackStatus[] = [
@@ -94,6 +97,88 @@ const migrateProgressTrack = (value: unknown): ProgressTrack | null => {
   };
 };
 
+const migrateVowMilestone = (value: unknown): VowMilestone | null => {
+  if (!isRecord(value) || !isNonEmptyString(value['id']) || !isNonEmptyString(value['createdAt'])) {
+    return null;
+  }
+  if (!isOptionalString(value['updatedAt']) || !isOptionalString(value['note'])) return null;
+  return {
+    id: value['id'],
+    createdAt: value['createdAt'],
+    updatedAt: optionalText(value['updatedAt']),
+    note: optionalText(value['note']),
+  };
+};
+
+const migrateVowOutcome = (value: unknown): VowOutcome | undefined => {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) return undefined;
+  if (
+    !isOptionalString(value['resolvedAt']) ||
+    !isOptionalString(value['summary']) ||
+    !isOptionalString(value['rollId'])
+  ) {
+    return undefined;
+  }
+  return {
+    resolvedAt: optionalText(value['resolvedAt']),
+    summary: optionalText(value['summary']),
+    rollId: optionalText(value['rollId']),
+  };
+};
+
+const migrateVow = (value: unknown): Vow | null => {
+  if (!isRecord(value)) return null;
+  if (
+    !isNonEmptyString(value['id']) ||
+    !isNonEmptyString(value['createdAt']) ||
+    !isNonEmptyString(value['title']) ||
+    !isChallengeRank(value['rank']) ||
+    !isVowStatus(value['status']) ||
+    !isOptionalString(value['updatedAt']) ||
+    !isOptionalString(value['description']) ||
+    !isOptionalString(value['characterId']) ||
+    !isOptionalString(value['campaignId']) ||
+    !isOptionalString(value['progressTrackId']) ||
+    !isOptionalString(value['notes'])
+  ) {
+    return null;
+  }
+
+  return {
+    schemaVersion: Number.isInteger(value['schemaVersion'])
+      ? (value['schemaVersion'] as number)
+      : 1,
+    recordStatus:
+      value['recordStatus'] === 'deleted' || value['recordStatus'] === 'archived'
+        ? value['recordStatus']
+        : 'active',
+    id: value['id'],
+    createdAt: value['createdAt'],
+    updatedAt: optionalText(value['updatedAt']) ?? value['createdAt'],
+    title: value['title'],
+    type:
+      value['type'] === 'background' ||
+      value['type'] === 'inciting_incident' ||
+      value['type'] === 'normal'
+        ? value['type']
+        : 'normal',
+    rank: value['rank'],
+    status: value['status'],
+    description: optionalText(value['description']),
+    characterId: optionalText(value['characterId']),
+    campaignId: optionalText(value['campaignId']),
+    progressTrackId: optionalText(value['progressTrackId']),
+    notes: optionalText(value['notes']) ?? '',
+    milestones: Array.isArray(value['milestones'])
+      ? value['milestones']
+          .map(migrateVowMilestone)
+          .filter((milestone): milestone is VowMilestone => milestone !== null)
+      : [],
+    outcome: migrateVowOutcome(value['outcome']),
+  };
+};
+
 export const migratePersistedCampaignWorkspace = (
   envelope: VersionedSaveEnvelope<unknown>,
 ): PersistedCampaignWorkspace | null => {
@@ -106,16 +191,36 @@ export const migratePersistedCampaignWorkspace = (
   }
 
   const payload = envelope.payload;
+  if (
+    (payload['progressTracks'] !== undefined && !Array.isArray(payload['progressTracks'])) ||
+    (payload['vows'] !== undefined && !Array.isArray(payload['vows']))
+  ) {
+    return null;
+  }
+
   const migratedTracks = Array.isArray(payload['progressTracks'])
     ? payload['progressTracks']
         .map(migrateProgressTrack)
         .filter((track): track is ProgressTrack => track !== null)
+    : [];
+  const migratedVows = Array.isArray(payload['vows'])
+    ? payload['vows'].map(migrateVow).filter((vow): vow is Vow => vow !== null)
     : [];
   const selectedProgressTrackId =
     typeof payload['selectedProgressTrackId'] === 'string' &&
     migratedTracks.some((track) => track.id === payload['selectedProgressTrackId'])
       ? payload['selectedProgressTrackId']
       : undefined;
+  const selectedVowId =
+    typeof payload['selectedVowId'] === 'string' &&
+    migratedVows.some((vow) => vow.id === payload['selectedVowId'])
+      ? payload['selectedVowId']
+      : undefined;
 
-  return { progressTracks: migratedTracks, selectedProgressTrackId };
+  return {
+    progressTracks: migratedTracks,
+    selectedProgressTrackId,
+    vows: migratedVows,
+    selectedVowId,
+  };
 };

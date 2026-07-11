@@ -216,6 +216,8 @@ export class CampaignWorkspaceService {
         result.workspace.progressTracks.map((track) => cloneProgressTrack(track)),
       );
       this.selectedProgressTrackIdState.set(result.workspace.selectedProgressTrackId ?? null);
+      this.vowsState.set(result.workspace.vows.map((vow) => cloneVow(vow)));
+      this.selectedVowIdState.set(result.workspace.selectedVowId ?? null);
     }
     return result;
   }
@@ -225,6 +227,8 @@ export class CampaignWorkspaceService {
       toPersistedCampaignWorkspace({
         progressTracks: this.progressTracksState(),
         selectedProgressTrackId: this.selectedProgressTrackIdState(),
+        vows: this.vowsState(),
+        selectedVowId: this.selectedVowIdState(),
       }),
     );
   }
@@ -236,6 +240,7 @@ export class CampaignWorkspaceService {
     if (selectedId && !vows.some((vow) => vow.id === selectedId)) {
       this.selectedVowIdState.set(null);
     }
+    this.persistWorkspace();
   }
 
   saveVow(
@@ -273,6 +278,7 @@ export class CampaignWorkspaceService {
         : [...vows, vow],
     );
     this.selectedVowIdState.set(vow.id);
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(vow) };
   }
@@ -308,6 +314,7 @@ export class CampaignWorkspaceService {
       vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
     );
     this.selectedVowIdState.set(vow.id);
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(vow) };
   }
@@ -336,6 +343,7 @@ export class CampaignWorkspaceService {
       vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
     );
     this.selectedVowIdState.set(vow.id);
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(vow) };
   }
@@ -407,6 +415,7 @@ export class CampaignWorkspaceService {
     if (this.selectedVowIdState() === vowId) {
       this.selectedVowIdState.set(null);
     }
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(existing) };
   }
@@ -449,6 +458,7 @@ export class CampaignWorkspaceService {
       vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
     );
     this.selectedVowIdState.set(vow.id);
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(vow), outcome: { ...outcome } };
   }
@@ -483,6 +493,7 @@ export class CampaignWorkspaceService {
       vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
     );
     this.selectedVowIdState.set(vow.id);
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(vow), milestone: { ...milestone } };
   }
@@ -521,6 +532,7 @@ export class CampaignWorkspaceService {
       vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
     );
     this.selectedVowIdState.set(vow.id);
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(vow), milestone: { ...updated } };
   }
@@ -552,6 +564,7 @@ export class CampaignWorkspaceService {
       vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
     );
     this.selectedVowIdState.set(vow.id);
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(vow) };
   }
@@ -616,6 +629,7 @@ export class CampaignWorkspaceService {
     );
     this.selectedVowIdState.set(vow.id);
     this.selectedProgressTrackIdState.set(existingTrack.id);
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(vow), track: cloneProgressTrack(existingTrack) };
   }
@@ -662,6 +676,7 @@ export class CampaignWorkspaceService {
     );
     this.selectedVowIdState.set(vow.id);
     this.selectedProgressTrackIdState.set(track.id);
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(vow), track: cloneProgressTrack(track) };
   }
@@ -686,6 +701,7 @@ export class CampaignWorkspaceService {
       vows.map((candidate) => (candidate.id === vow.id ? vow : candidate)),
     );
     this.selectedVowIdState.set(vow.id);
+    this.persistWorkspace();
 
     return { ok: true, vow: cloneVow(vow) };
   }

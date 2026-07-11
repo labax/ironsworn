@@ -9,6 +9,7 @@ import {
 import { environment } from '@environments/environment';
 
 import type { ProgressTrack } from '../progress';
+import type { Vow } from '../vows';
 import {
   migratePersistedCampaignWorkspace,
   type PersistedCampaignWorkspace,
@@ -25,12 +26,20 @@ export type CampaignWorkspaceLoadResult =
 export const toPersistedCampaignWorkspace = (input: {
   readonly progressTracks: readonly ProgressTrack[];
   readonly selectedProgressTrackId?: string | null;
+  readonly vows?: readonly Vow[];
+  readonly selectedVowId?: string | null;
 }): PersistedCampaignWorkspace => ({
   progressTracks: input.progressTracks.map((track) => ({
     ...track,
     events: [...(track.events ?? [])],
   })),
   selectedProgressTrackId: input.selectedProgressTrackId ?? undefined,
+  vows: (input.vows ?? []).map((vow) => ({
+    ...vow,
+    milestones: [...(vow.milestones ?? [])].map((milestone) => ({ ...milestone })),
+    outcome: vow.outcome ? { ...vow.outcome } : undefined,
+  })),
+  selectedVowId: input.selectedVowId ?? undefined,
 });
 
 @Injectable({ providedIn: 'root' })

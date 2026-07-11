@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { BROWSER_STORAGE, createSaveEnvelope, type BrowserStorageLike } from '@app/core/storage';
 import { CURRENT_SAVE_SCHEMA_VERSION } from '@app/core/storage/storage.types';
 import { createDefaultProgressTrack, type ProgressTrack } from '@app/domain/progress';
+import { createDefaultVow, type Vow } from '@app/domain/vows';
 
 import { CampaignWorkspaceService } from './campaign-workspace.service';
 import {
@@ -151,7 +152,12 @@ describe('campaign workspace migrations', () => {
       createSaveEnvelope({}, { appVersion: 'test', savedAt: createdAt, schemaVersion: 1 }),
     );
 
-    expect(migrated).toEqual({ progressTracks: [], selectedProgressTrackId: undefined });
+    expect(migrated).toEqual({
+      progressTracks: [],
+      selectedProgressTrackId: undefined,
+      vows: [],
+      selectedVowId: undefined,
+    });
   });
 
   it('preserves valid sibling tracks while dropping one malformed optional track record', () => {
@@ -224,5 +230,176 @@ describe('CampaignWorkspaceService startup recovery', () => {
     );
     await workspace.loadSavedWorkspace();
     expect(workspace.progressTracks().map((item) => item.id)).toEqual(['loaded-track']);
+  });
+});
+
+const fullVowFixture = (overrides: Partial<Vow> = {}): Vow => ({
+  ...createDefaultVow({
+    id: 'vow-alpha',
+    createdAt,
+    updatedAt,
+    title: 'Keep my own words intact',
+    description: 'Line one.\nLine two with  spaces preserved. ',
+    rank: 'formidable',
+    status: 'fulfilled',
+    notes: 'Player note with\nblank lines\n\nand trailing space. ',
+    progressTrackId: 'track-alpha',
+    characterId: 'character-alpha',
+    campaignId: 'campaign-alpha',
+  }),
+  milestones: [
+    {
+      id: 'milestone-alpha',
+      createdAt: '2026-07-03T00:00:00.000Z',
+      updatedAt: '2026-07-04T00:00:00.000Z',
+      note: 'Player-authored milestone. ',
+    },
+  ],
+  outcome: {
+    resolvedAt: '2026-07-05T00:00:00.000Z',
+    summary: 'Player-authored outcome. ',
+    rollId: 'roll-alpha',
+  },
+  ...overrides,
+});
+
+describe('CampaignWorkspacePersistenceService vow persistence', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  it('round-trips multiple complete vows without duplicating linked progress data', async () => {
+    const storage = new MemoryStorage();
+    const service = configure(storage);
+    const vows = [
+      fullVowFixture(),
+      fullVowFixture({ id: 'vow-beta', createdAt: '2026-07-06T00:00:00.000Z' }),
+    ];
+
+    await expect(
+      service.saveWorkspace(
+        toPersistedCampaignWorkspace({
+          progressTracks: [track({ id: 'track-alpha', ticks: 20 })],
+          selectedProgressTrackId: 'track-alpha',
+          vows,
+          selectedVowId: 'vow-beta',
+        }),
+      ),
+    ).resolves.toEqual({ success: true });
+
+    const saved = JSON.parse(storage.getItem(CAMPAIGN_WORKSPACE_STORAGE_KEY) ?? '{}') as {
+      payload: { vows: Vow[]; progressTracks: unknown[] };
+    };
+    expect(saved.payload.vows).toEqual(vows);
+    expect(saved.payload.vows[0]).not.toHaveProperty('ticks');
+    expect(saved.payload.progressTracks).toHaveLength(1);
+
+    const loaded = await service.loadWorkspace();
+    expect(loaded).toMatchObject({ success: true, found: true });
+    if (loaded.success && loaded.found) {
+      expect(loaded.workspace.vows).toEqual(vows);
+      expect(loaded.workspace.selectedVowId).toBe('vow-beta');
+      expect(loaded.workspace.progressTracks[0]?.ticks).toBe(20);
+    }
+  });
+
+  it('migrates older workspace saves with neutral vow defaults', () => {
+    const migrated = migratePersistedCampaignWorkspace(
+      createSaveEnvelope(
+        { progressTracks: [track({ id: 'legacy-track' })] },
+        { appVersion: 'test', savedAt: createdAt, schemaVersion: 1 },
+      ),
+    );
+
+    expect(migrated?.vows).toEqual([]);
+  });
+
+  it('is idempotent for current-schema vow records', () => {
+    const current = toPersistedCampaignWorkspace({
+      progressTracks: [track({ id: 'track-alpha' })],
+      vows: [fullVowFixture()],
+      selectedVowId: 'vow-alpha',
+    });
+
+    expect(
+      migratePersistedCampaignWorkspace(
+        createSaveEnvelope(current, {
+          appVersion: 'test',
+          savedAt: createdAt,
+          schemaVersion: CURRENT_SAVE_SCHEMA_VERSION,
+        }),
+      ),
+    ).toEqual(current);
+  });
+
+  it('uses neutral defaults for missing optional vow data while preserving required text exactly', () => {
+    const migrated = migratePersistedCampaignWorkspace(
+      createSaveEnvelope(
+        {
+          progressTracks: [],
+          vows: [
+            {
+              id: 'vow-min',
+              createdAt,
+              title: '  Player spacing stays  ',
+              rank: 'dangerous',
+              status: 'active',
+            },
+          ],
+        },
+        { appVersion: 'test', savedAt: createdAt, schemaVersion: CURRENT_SAVE_SCHEMA_VERSION },
+      ),
+    );
+
+    expect(migrated?.vows[0]).toMatchObject({
+      title: '  Player spacing stays  ',
+      notes: '',
+      milestones: [],
+      type: 'normal',
+    });
+  });
+
+  it('preserves valid sibling vows when one optional record is malformed', () => {
+    const migrated = migratePersistedCampaignWorkspace(
+      createSaveEnvelope(
+        { progressTracks: [], vows: [fullVowFixture(), { id: 'broken', rank: 'dangerous' }] },
+        { appVersion: 'test', savedAt: createdAt },
+      ),
+    );
+
+    expect(migrated?.vows.map((vow) => vow.id)).toEqual(['vow-alpha']);
+  });
+
+  it('keeps orphan linked track IDs and drops malformed link values safely', () => {
+    const migrated = migratePersistedCampaignWorkspace(
+      createSaveEnvelope(
+        {
+          progressTracks: [],
+          vows: [
+            fullVowFixture({ progressTrackId: 'missing-track' }),
+            { ...fullVowFixture({ id: 'vow-bad-link' }), progressTrackId: 42 },
+          ],
+        },
+        { appVersion: 'test', savedAt: createdAt },
+      ),
+    );
+
+    expect(migrated?.vows.find((vow) => vow.id === 'vow-alpha')?.progressTrackId).toBe(
+      'missing-track',
+    );
+    expect(migrated?.vows.some((vow) => vow.id === 'vow-bad-link')).toBe(false);
+  });
+
+  it('exposes save and load storage failures as recoverable status', async () => {
+    const saveService = configure(new FailingSetStorage());
+    const saved = await saveService.saveWorkspace(
+      toPersistedCampaignWorkspace({ progressTracks: [], vows: [fullVowFixture()] }),
+    );
+    expect(saved.success).toBe(false);
+    expect(saveService.saveStatus()).toBe('failed');
+
+    TestBed.resetTestingModule();
+    const loadService = configure(new FailingGetStorage());
+    const loaded = await loadService.loadWorkspace();
+    expect(loaded.success).toBe(false);
+    expect(loadService.lastLoadError()?.code).toBe('unknown');
   });
 });
