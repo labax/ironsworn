@@ -9,7 +9,8 @@
 .empty-state,
 .error-state,
 .vow-card,
-.vow-form {
+.vow-form,
+.vow-discovery {
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 1rem;
   background: rgba(15, 23, 42, 0.72);
@@ -19,7 +20,8 @@
 .empty-state,
 .error-state,
 .vow-card article,
-.vow-form {
+.vow-form,
+.vow-discovery {
   padding: 1.25rem;
 }
 .section-label,
@@ -288,4 +290,20 @@ button.danger {
   .vow-record-actions {
     display: grid;
   }
+}
+.vow-discovery {
+  display: grid;
+  gap: 1rem;
+}
+.vow-discovery h3 {
+  margin: 0;
+}
+.discovery-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }

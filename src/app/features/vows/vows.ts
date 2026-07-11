@@ -29,7 +29,7 @@ interface SelectOption<T extends string> {
   readonly label: string;
 }
 
-interface VowListItem {
+export interface VowListItem {
   readonly vow: Vow;
   readonly title: string;
   readonly rankLabel: string;
@@ -46,6 +46,10 @@ interface VowListItem {
   readonly outcomeResolvedLabel: string;
   readonly outcomeResolvedMachineValue?: string;
 }
+
+const RANK_ORDER: Record<ChallengeRank, number> = Object.fromEntries(
+  CHALLENGE_RANKS.map((rank, index) => [rank, index]),
+) as Record<ChallengeRank, number>;
 
 const STATUS_ORDER: Record<VowStatus, number> = {
   active: 0,
@@ -65,6 +69,71 @@ const statusChangeConfirmation = (status: VowStatus): string =>
   status === 'archived'
     ? 'Archive this vow? You can restore it later.'
     : `Mark this vow ${VOW_STATUS_LABELS[status].toLowerCase()}?`;
+
+export type VowStatusFilter = VowStatus | 'all';
+export type VowRankFilter = ChallengeRank | 'all';
+export type VowSortKey = 'updated' | 'created' | 'rank' | 'title' | 'progress';
+
+export interface VowDiscoveryState {
+  readonly status: VowStatusFilter;
+  readonly rank: VowRankFilter;
+  readonly search: string;
+  readonly sort: VowSortKey;
+}
+
+const DEFAULT_DISCOVERY_STATE: VowDiscoveryState = {
+  status: 'active',
+  rank: 'all',
+  search: '',
+  sort: 'updated',
+};
+
+const normalizedSearch = (value: string): string => value.trim().toLocaleLowerCase();
+const progressScore = (item: VowListItem): number =>
+  item.linkedTrack ? Math.floor(item.linkedTrack.ticks / PROGRESS_TICKS_PER_BOX) : -1;
+const compareText = (left: string, right: string): number =>
+  left.localeCompare(right, undefined, { sensitivity: 'base' });
+const compareBySort = (sort: VowSortKey, left: VowListItem, right: VowListItem): number => {
+  switch (sort) {
+    case 'created':
+      return (right.vow.createdAt ?? '').localeCompare(left.vow.createdAt ?? '');
+    case 'rank':
+      return RANK_ORDER[left.vow.rank] - RANK_ORDER[right.vow.rank];
+    case 'title':
+      return compareText(left.title, right.title);
+    case 'progress':
+      return progressScore(right) - progressScore(left);
+    case 'updated':
+      return (right.vow.updatedAt ?? right.vow.createdAt ?? '').localeCompare(
+        left.vow.updatedAt ?? left.vow.createdAt ?? '',
+      );
+  }
+};
+
+export const deriveVisibleVows = (
+  items: readonly VowListItem[],
+  state: VowDiscoveryState,
+): readonly VowListItem[] => {
+  const search = normalizedSearch(state.search);
+  return items
+    .filter((item) => state.status === 'all' || item.vow.status === state.status)
+    .filter((item) => state.rank === 'all' || item.vow.rank === state.rank)
+    .filter((item) => {
+      if (!search) return true;
+      return `${item.vow.title} ${item.vow.description ?? ''}`.toLocaleLowerCase().includes(search);
+    })
+    .slice()
+    .sort((left, right) => {
+      const primary = compareBySort(state.sort, left, right);
+      if (primary !== 0) return primary;
+      const updated = (right.vow.updatedAt ?? right.vow.createdAt ?? '').localeCompare(
+        left.vow.updatedAt ?? left.vow.createdAt ?? '',
+      );
+      if (updated !== 0) return updated;
+      const title = compareText(left.title, right.title);
+      return title !== 0 ? title : left.vow.id.localeCompare(right.vow.id);
+    });
+};
 
 const compareVowListItems = (left: VowListItem, right: VowListItem): number => {
   const statusComparison = STATUS_ORDER[left.vow.status] - STATUS_ORDER[right.vow.status];
@@ -133,7 +202,10 @@ export class Vows {
     }),
   );
   protected readonly selectedVowId = this.workspace.selectedVowId;
-  protected readonly showArchived = signal(false);
+  protected readonly statusFilter = signal<VowStatusFilter>(DEFAULT_DISCOVERY_STATE.status);
+  protected readonly rankFilter = signal<VowRankFilter>(DEFAULT_DISCOVERY_STATE.rank);
+  protected readonly searchText = signal(DEFAULT_DISCOVERY_STATE.search);
+  protected readonly sortKey = signal<VowSortKey>(DEFAULT_DISCOVERY_STATE.sort);
   protected readonly loadError = computed(() => {
     try {
       this.workspace.vows();
@@ -156,7 +228,6 @@ export class Vows {
 
       return this.workspace
         .vows()
-        .filter((vow) => this.showArchived() || vow.status !== 'archived')
         .map((vow) => {
           const progress = progressSummaryFor(
             vow,
@@ -184,6 +255,23 @@ export class Vows {
       return [];
     }
   });
+
+  protected readonly visibleVows = computed(() =>
+    deriveVisibleVows(this.vows(), {
+      status: this.statusFilter(),
+      rank: this.rankFilter(),
+      search: this.searchText(),
+      sort: this.sortKey(),
+    }),
+  );
+
+  protected readonly hasDiscoveryControls = computed(
+    () =>
+      Boolean(this.searchText()) ||
+      this.statusFilter() !== DEFAULT_DISCOVERY_STATE.status ||
+      this.rankFilter() !== DEFAULT_DISCOVERY_STATE.rank ||
+      this.sortKey() !== DEFAULT_DISCOVERY_STATE.sort,
+  );
 
   protected readonly vowForm = this.formBuilder.group({
     title: ['', [Validators.required, Validators.pattern(/\S/)]],
@@ -243,11 +331,41 @@ export class Vows {
     this.focusTitle();
   }
 
-  protected toggleArchivedView(): void {
-    this.showArchived.update((value) => !value);
-    this.formMessage = this.showArchived()
-      ? 'Archived vows are shown.'
-      : 'Archived vows are hidden from the active list.';
+  protected updateStatusFilter(value: string): void {
+    this.statusFilter.set(
+      value === 'all' || VOW_STATUSES.includes(value as VowStatus)
+        ? (value as VowStatusFilter)
+        : DEFAULT_DISCOVERY_STATE.status,
+    );
+  }
+
+  protected updateRankFilter(value: string): void {
+    this.rankFilter.set(
+      value === 'all' || CHALLENGE_RANKS.includes(value as ChallengeRank)
+        ? (value as VowRankFilter)
+        : DEFAULT_DISCOVERY_STATE.rank,
+    );
+  }
+
+  protected updateSortKey(value: string): void {
+    const supported: readonly VowSortKey[] = ['updated', 'created', 'rank', 'title', 'progress'];
+    this.sortKey.set(
+      supported.includes(value as VowSortKey)
+        ? (value as VowSortKey)
+        : DEFAULT_DISCOVERY_STATE.sort,
+    );
+  }
+
+  protected updateSearchText(value: string): void {
+    this.searchText.set(value);
+  }
+
+  protected resetDiscovery(): void {
+    this.statusFilter.set(DEFAULT_DISCOVERY_STATE.status);
+    this.rankFilter.set(DEFAULT_DISCOVERY_STATE.rank);
+    this.searchText.set(DEFAULT_DISCOVERY_STATE.search);
+    this.sortKey.set(DEFAULT_DISCOVERY_STATE.sort);
+    this.formMessage = 'Vow view reset to active vows.';
   }
 
   protected archiveVow(vowId: string): void {
