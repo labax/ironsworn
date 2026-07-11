@@ -1,0 +1,87 @@
+import { Injectable, inject, signal } from '@angular/core';
+import {
+  LocalStorageAdapter,
+  createSaveEnvelope,
+  type LoadResult,
+  type SaveResult,
+  type StorageError,
+} from '@app/core/storage';
+import { environment } from '@environments/environment';
+
+import type { ProgressTrack } from '../progress';
+import {
+  migratePersistedCampaignWorkspace,
+  type PersistedCampaignWorkspace,
+} from './campaign-workspace-persistence.migrations';
+
+export const CAMPAIGN_WORKSPACE_STORAGE_KEY = 'ironsworn.campaignWorkspace';
+export type CampaignWorkspaceSaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
+
+export type CampaignWorkspaceLoadResult =
+  | { readonly success: true; readonly found: true; readonly workspace: PersistedCampaignWorkspace }
+  | { readonly success: true; readonly found: false }
+  | { readonly success: false; readonly error: StorageError };
+
+export const toPersistedCampaignWorkspace = (input: {
+  readonly progressTracks: readonly ProgressTrack[];
+  readonly selectedProgressTrackId?: string | null;
+}): PersistedCampaignWorkspace => ({
+  progressTracks: input.progressTracks.map((track) => ({
+    ...track,
+    events: [...(track.events ?? [])],
+  })),
+  selectedProgressTrackId: input.selectedProgressTrackId ?? undefined,
+});
+
+@Injectable({ providedIn: 'root' })
+export class CampaignWorkspacePersistenceService {
+  private readonly storage = inject(LocalStorageAdapter);
+  private readonly saveStatusState = signal<CampaignWorkspaceSaveStatus>('idle');
+  private readonly loadFailedState = signal(false);
+  private readonly lastSaveResultState = signal<SaveResult | null>(null);
+  private readonly lastLoadErrorState = signal<StorageError | null>(null);
+
+  readonly saveStatus = this.saveStatusState.asReadonly();
+  readonly loadFailed = this.loadFailedState.asReadonly();
+  readonly lastSaveResult = this.lastSaveResultState.asReadonly();
+  readonly lastLoadError = this.lastLoadErrorState.asReadonly();
+
+  async loadWorkspace(): Promise<CampaignWorkspaceLoadResult> {
+    const result: LoadResult<unknown> = await this.storage.load(CAMPAIGN_WORKSPACE_STORAGE_KEY);
+    if (!result.success) {
+      this.loadFailedState.set(true);
+      this.lastLoadErrorState.set(result.error);
+      return result;
+    }
+    if (!result.found) return result;
+
+    const workspace = migratePersistedCampaignWorkspace(result.data);
+    if (!workspace) {
+      const error: StorageError = {
+        code: 'malformed-data',
+        message: 'Saved campaign workspace data is incomplete or outside supported ranges.',
+      };
+      this.loadFailedState.set(true);
+      this.lastLoadErrorState.set(error);
+      return { success: false, error };
+    }
+
+    this.loadFailedState.set(false);
+    this.lastLoadErrorState.set(null);
+    return { success: true, found: true, workspace };
+  }
+
+  async saveWorkspace(workspace: PersistedCampaignWorkspace): Promise<SaveResult> {
+    this.saveStatusState.set('saving');
+    const result = await this.storage.save(
+      CAMPAIGN_WORKSPACE_STORAGE_KEY,
+      createSaveEnvelope(workspace, {
+        appVersion: environment.appVersion,
+        metadata: { namespace: CAMPAIGN_WORKSPACE_STORAGE_KEY, contentType: 'campaign-workspace' },
+      }),
+    );
+    this.lastSaveResultState.set(result);
+    this.saveStatusState.set(result.success ? 'saved' : 'failed');
+    return result;
+  }
+}
