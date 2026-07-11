@@ -1,8 +1,156 @@
-<section class="placeholder-page" aria-labelledby="page-title">
-  <p class="section-label">Placeholder</p>
-  <h2 id="page-title">{{ content.title }}</h2>
-  <p class="description">{{ content.description }}</p>
-  <div class="empty-state" role="status">
-    {{ content.emptyState }}
-  </div>
+<section class="vows-page" aria-labelledby="page-title">
+  <header class="vows-header">
+    <p class="section-label">Vows</p>
+    <h2 id="page-title">Vows</h2>
+    <p>Create and edit user-authored vow details. Progress stays on linked progress tracks.</p>
+  </header>
+
+  <form
+    class="vow-form"
+    [formGroup]="vowForm"
+    (ngSubmit)="saveVow()"
+    aria-labelledby="vow-editor-title"
+  >
+    <div class="vow-card-heading">
+      <div>
+        <p class="section-label">{{ editingVowId ? 'Edit vow' : 'Create vow' }}</p>
+        <h3 id="vow-editor-title">Vow details</h3>
+        <p class="helper-text">Write your own promise, context, and notes.</p>
+      </div>
+      <button type="button" (click)="openCreate()">Create vow</button>
+    </div>
+
+    <div class="form-grid">
+      <label>
+        Title
+        <input
+          #titleInput
+          id="vow-title"
+          type="text"
+          formControlName="title"
+          [attr.aria-invalid]="showError('title')"
+          aria-describedby="vow-title-error"
+        />
+        @if (showError('title')) {
+          <span id="vow-title-error" class="field-error">{{
+            fieldErrors.title || 'Enter a vow title.'
+          }}</span>
+        }
+      </label>
+
+      <label>
+        Rank
+        <select
+          id="vow-rank"
+          formControlName="rank"
+          [attr.aria-invalid]="showError('rank')"
+          aria-describedby="vow-rank-help vow-rank-error"
+        >
+          @for (option of rankOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        <span id="vow-rank-help" class="helper-text"
+          >Rank describes scope; progress is tracked elsewhere.</span
+        >
+        @if (showError('rank')) {
+          <span id="vow-rank-error" class="field-error">{{
+            fieldErrors.rank || 'Choose a supported rank.'
+          }}</span>
+        }
+      </label>
+
+      <label>
+        Status
+        <select
+          id="vow-status"
+          formControlName="status"
+          [attr.aria-invalid]="showError('status')"
+          aria-describedby="vow-status-help vow-status-error"
+        >
+          @for (option of statusOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        <span id="vow-status-help" class="helper-text">Choose the current state of this vow.</span>
+        @if (showError('status')) {
+          <span id="vow-status-error" class="field-error">{{
+            fieldErrors.status || 'Choose a supported status.'
+          }}</span>
+        }
+      </label>
+    </div>
+
+    <label>
+      Description
+      <textarea
+        id="vow-description"
+        formControlName="description"
+        rows="4"
+        aria-describedby="vow-description-help"
+      ></textarea>
+      <span id="vow-description-help" class="helper-text">Optional user-authored context.</span>
+    </label>
+
+    <label>
+      Notes
+      <textarea id="vow-notes" formControlName="notes" rows="5"></textarea>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit">Save vow</button>
+      <button type="button" class="secondary" (click)="cancelEdit()">Cancel</button>
+      @if (formMessage) {
+        <p class="form-message" role="status" aria-live="polite">{{ formMessage }}</p>
+      }
+    </div>
+  </form>
+
+  @if (vows().length === 0) {
+    <section class="empty-state" aria-labelledby="empty-vows-title">
+      <div>
+        <h3 id="empty-vows-title">No vows yet.</h3>
+        <p>Create a vow when you want to record a promise in your own words.</p>
+      </div>
+      <button type="button" (click)="openCreate()">Create vow</button>
+    </section>
+  } @else {
+    <ul class="vow-list" aria-label="Vows">
+      @for (item of vows(); track item.vow.id) {
+        <li class="vow-card" [class.vow-card-selected]="selectedVowId() === item.vow.id">
+          <article [attr.aria-labelledby]="'vow-title-' + item.vow.id">
+            <div class="vow-card-heading">
+              <div class="vow-title-block">
+                <p class="vow-status">Status: {{ item.statusLabel }}</p>
+                <h3 [id]="'vow-title-' + item.vow.id">{{ item.title }}</h3>
+              </div>
+              <button
+                type="button"
+                (click)="openVow(item.vow.id)"
+                [attr.aria-label]="'Edit vow: ' + item.title"
+              >
+                Edit
+              </button>
+            </div>
+            <dl class="vow-facts" aria-label="Vow details">
+              <div>
+                <dt>Rank</dt>
+                <dd>{{ item.rankLabel }}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{{ item.statusLabel }}</dd>
+              </div>
+            </dl>
+            @if (item.description) {
+              <p class="vow-text">{{ item.description }}</p>
+            }
+            @if (item.notes) {
+              <p class="vow-text">{{ item.notes }}</p>
+            }
+          </article>
+        </li>
+      }
+    </ul>
+  }
 </section>

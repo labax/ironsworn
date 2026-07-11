@@ -1,0 +1,160 @@
+:host {
+  display: block;
+}
+.vows-page {
+  display: grid;
+  gap: 1rem;
+}
+.vows-header,
+.empty-state,
+.vow-card,
+.vow-form {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow: 0 1rem 2rem rgba(2, 6, 23, 0.18);
+}
+.vows-header,
+.empty-state,
+.vow-card article,
+.vow-form {
+  padding: 1.25rem;
+}
+.section-label,
+.vow-status {
+  margin: 0 0 0.5rem;
+  color: #93c5fd;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.vows-header h2,
+.empty-state h3,
+.vow-title-block h3 {
+  margin: 0;
+}
+.vows-header p:last-child,
+.empty-state p,
+.helper-text,
+.form-message {
+  color: #cbd5e1;
+}
+.vow-form,
+.vow-list {
+  display: grid;
+  gap: 1rem;
+}
+.vow-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.empty-state,
+.vow-card-heading,
+.form-actions {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.form-actions {
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+}
+.form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+.vow-card-selected {
+  border-color: rgba(147, 197, 253, 0.75);
+}
+.vow-title-block,
+.vow-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.vow-facts {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  margin: 1rem 0 0;
+}
+.vow-facts div {
+  border-radius: 0.75rem;
+  background: rgba(2, 6, 23, 0.24);
+  padding: 0.75rem;
+}
+.vow-facts dt {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.vow-facts dd {
+  font-weight: 800;
+  margin: 0.25rem 0 0;
+}
+label {
+  color: #e2e8f0;
+  display: grid;
+  font-weight: 800;
+  gap: 0.35rem;
+}
+input,
+select,
+textarea {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 0.75rem;
+  background: rgba(2, 6, 23, 0.35);
+  color: #f8fafc;
+  font: inherit;
+  padding: 0.75rem;
+  width: 100%;
+}
+button {
+  border: 0;
+  border-radius: 999px;
+  background: #bfdbfe;
+  color: #0f172a;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 0.75rem 1rem;
+}
+button.secondary {
+  background: #e2e8f0;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(147, 197, 253, 0.7);
+  outline-offset: 3px;
+}
+[aria-invalid='true'] {
+  border-color: #fca5a5;
+}
+.field-error {
+  color: #fecaca;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.helper-text,
+.form-message {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0;
+}
+@media (max-width: 42rem) {
+  .empty-state,
+  .vow-card-heading,
+  .form-actions {
+    grid-template-columns: 1fr;
+  }
+  button {
+    width: 100%;
+  }
+}
