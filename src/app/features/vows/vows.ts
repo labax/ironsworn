@@ -1,10 +1,12 @@
 import { Component, computed, ElementRef, inject, viewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import {
   CHALLENGE_RANK_LABELS,
   CHALLENGE_RANKS,
   MAX_PROGRESS_TICKS,
+  PROGRESS_TRACK_TYPE_LABELS,
   type ChallengeRank,
   type ProgressTrack,
 } from '@app/domain/progress';
@@ -16,6 +18,7 @@ import {
   type VowMilestone,
   type VowStatus,
 } from '@app/domain/vows';
+import { PROGRESS_TICKS_PER_BOX } from '@app/rules/progress-rolls';
 import type { ValidationError } from '@app/rules/validation';
 
 interface SelectOption<T extends string> {
@@ -33,6 +36,7 @@ interface VowListItem {
   readonly updatedLabel: string;
   readonly updatedMachineValue?: string;
   readonly progressSummary: string;
+  readonly linkedTrack?: ProgressTrack;
   readonly progressWarning?: string;
   readonly milestones: readonly VowMilestone[];
   readonly outcomeSummary: string;
@@ -84,7 +88,7 @@ const compareMilestones = (left: VowMilestone, right: VowMilestone): number => {
 const progressSummaryFor = (
   vow: Vow,
   track: ProgressTrack | undefined,
-): Pick<VowListItem, 'progressSummary' | 'progressWarning'> => {
+): Pick<VowListItem, 'progressSummary' | 'progressWarning' | 'linkedTrack'> => {
   if (!vow.progressTrackId) return { progressSummary: 'No linked progress track.' };
   if (!track) {
     return {
@@ -94,7 +98,8 @@ const progressSummaryFor = (
   }
 
   return {
-    progressSummary: `${track.ticks} of ${MAX_PROGRESS_TICKS} ticks (${CHALLENGE_RANK_LABELS[track.rank] ?? 'Unknown rank'}, ${track.status})`,
+    linkedTrack: track,
+    progressSummary: `${track.title} · ${PROGRESS_TRACK_TYPE_LABELS[track.type] ?? 'Unknown type'} · ${CHALLENGE_RANK_LABELS[track.rank] ?? 'Unknown rank'} · ${track.ticks} of ${MAX_PROGRESS_TICKS} ticks (${CHALLENGE_RANK_LABELS[track.rank] ?? 'Unknown rank'}, ${track.status}) · Score ${Math.floor(track.ticks / PROGRESS_TICKS_PER_BOX)}`,
   };
 };
 
@@ -107,6 +112,7 @@ const progressSummaryFor = (
 export class Vows {
   private readonly workspace = inject(CampaignWorkspaceService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
+  private readonly router = inject(Router);
   private readonly titleInput = viewChild<ElementRef<HTMLInputElement>>('titleInput');
 
   protected readonly rankOptions: readonly SelectOption<ChallengeRank>[] = CHALLENGE_RANKS.map(
@@ -128,6 +134,11 @@ export class Vows {
       return 'Vows could not be loaded. Try again or create a new vow.';
     }
   });
+  protected readonly availableTracks = computed(() =>
+    this.workspace
+      .progressTracks()
+      .filter((track) => !this.workspace.vows().some((vow) => vow.progressTrackId === track.id)),
+  );
   protected readonly vows = computed<readonly VowListItem[]>(() => {
     try {
       const progressById = new Map(
@@ -181,6 +192,7 @@ export class Vows {
   protected outcomeDrafts: Record<string, string> = {};
   protected editingOutcomeIds: Record<string, boolean | undefined> = {};
   protected outcomeErrors: Record<string, string | undefined> = {};
+  protected linkSelections: Record<string, string | undefined> = {};
   private milestoneFocusReturnId: string | null = null;
   private cleanFormSnapshot = JSON.stringify(this.vowForm.getRawValue());
 
@@ -216,6 +228,48 @@ export class Vows {
     this.markClean();
     this.formMessage = 'Editing selected vow.';
     this.focusTitle();
+  }
+
+  protected updateLinkSelection(vowId: string, trackId: string): void {
+    this.linkSelections = { ...this.linkSelections, [vowId]: trackId };
+  }
+
+  protected linkExistingTrack(vowId: string): void {
+    const trackId = this.linkSelections[vowId];
+    if (!trackId) {
+      this.formMessage = 'Choose a track to link.';
+      return;
+    }
+    const result = this.workspace.linkVowToProgressTrack({ vowId, progressTrackId: trackId });
+    this.formMessage = result.ok
+      ? 'Vow linked to progress track.'
+      : (result.errors[0]?.message ?? 'Link failed.');
+  }
+
+  protected createLinkedTrack(vowId: string): void {
+    const result = this.workspace.createProgressTrackForVow({ vowId });
+    this.formMessage = result.ok
+      ? 'Vow progress track created and linked.'
+      : (result.errors[0]?.message ?? 'Track could not be created.');
+  }
+
+  protected unlinkTrack(vowId: string): void {
+    const confirmed = window.confirm(
+      'Unlink this progress track? The vow and track will both remain.',
+    );
+    if (!confirmed) {
+      this.formMessage = 'Unlink canceled; link was preserved.';
+      return;
+    }
+    const result = this.workspace.unlinkVowProgressTrack(vowId);
+    this.formMessage = result.ok
+      ? 'Progress track unlinked. No records were deleted.'
+      : (result.errors[0]?.message ?? 'Unlink failed.');
+  }
+
+  protected openLinkedTrack(trackId: string): void {
+    this.workspace.selectProgressTrack(trackId);
+    void this.router.navigate(['/trackers']);
   }
 
   protected milestoneNote(vowId: string): string {

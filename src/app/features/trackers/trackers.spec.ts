@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
+import { provideRouter } from '@angular/router';
 import { rulesFailure, rulesSuccess } from '@app/rules/validation';
 
 import { createDefaultProgressTrack, type ProgressTrack } from '@app/domain/progress';
@@ -31,7 +32,10 @@ describe('Trackers', () => {
 
   beforeEach(async () => {
     vi.restoreAllMocks();
-    await TestBed.configureTestingModule({ imports: [Trackers] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [Trackers],
+      providers: [provideRouter([])],
+    }).compileComponents();
     workspace = TestBed.inject(CampaignWorkspaceService);
     workspace.clearProgressTracks();
   });
