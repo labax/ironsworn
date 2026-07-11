@@ -190,6 +190,14 @@
               </button>
               <button
                 type="button"
+                (click)="rollProgress(item.track)"
+                [disabled]="item.rollDisabled"
+                [attr.aria-label]="'Roll progress for ' + item.title"
+              >
+                Roll progress
+              </button>
+              <button
+                type="button"
                 (click)="unmarkProgress(item.track)"
                 [disabled]="item.unmarkDisabled"
                 [attr.aria-label]="'Remove progress from ' + item.title"
@@ -218,8 +226,41 @@
               }
             </div>
             <p [id]="'progress-help-' + item.track.id" class="helper-text">
-              {{ item.markHelp }} {{ item.unmarkHelp }}
+              {{ item.markHelp }} Roll progress compares the current score without changing the
+              track.
+              {{ item.unmarkHelp }}
             </p>
+
+            @if (latestProgressRoll && latestProgressRoll.trackId === item.track.id) {
+              <section
+                class="progress-roll-result"
+                aria-label="Latest progress roll result"
+                tabindex="-1"
+              >
+                <h4>Progress roll result</h4>
+                <dl class="track-facts">
+                  <div>
+                    <dt>Score</dt>
+                    <dd>{{ latestProgressRoll.progressScore }}</dd>
+                  </div>
+                  <div>
+                    <dt>Challenge dice</dt>
+                    <dd>
+                      {{ latestProgressRoll.challengeDice[0] }} and
+                      {{ latestProgressRoll.challengeDice[1] }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Result</dt>
+                    <dd>{{ outcomeLabel(latestProgressRoll.outcome) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Match</dt>
+                    <dd>{{ latestProgressRoll.isMatch ? 'Match' : 'No match' }}</dd>
+                  </div>
+                </dl>
+              </section>
+            }
 
             @if (item.notes) {
               <p class="track-notes">{{ item.notes }}</p>

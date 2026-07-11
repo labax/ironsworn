@@ -8,8 +8,15 @@ import {
   type ProgressTrack,
   type ProgressTrackType,
 } from '@app/domain/progress';
-import { correctProgressTicks, type ProgressValidationOptions } from '@app/rules/progress-rolls';
-import type { ValidationError } from '@app/rules/validation';
+import {
+  correctProgressTicks,
+  progressScoreFromState,
+  resolveProgressRoll,
+  type ProgressRollResult,
+  type ProgressValidationOptions,
+} from '@app/rules/progress-rolls';
+import type { RulesResult, ValidationError } from '@app/rules/validation';
+import { rulesFailure } from '@app/rules/validation';
 
 const cloneProgressTrack = (track: ProgressTrack): ProgressTrack => ({
   ...track,
@@ -150,6 +157,23 @@ export class CampaignWorkspaceService {
     this.selectedProgressTrackIdState.set(track.id);
 
     return { ok: true, track: cloneProgressTrack(track) };
+  }
+
+  resolveProgressRollForTrack(trackId: string): RulesResult<Readonly<ProgressRollResult>> {
+    const existing = this.progressTracksState().find((track) => track.id === trackId);
+    if (!existing) {
+      return rulesFailure([
+        { code: 'not_found', field: 'trackId', message: 'Progress track was not found.' },
+      ]);
+    }
+
+    const progress = progressScoreFromState({ ticks: existing.ticks });
+    if (!progress.ok) return rulesFailure(progress.errors);
+
+    return resolveProgressRoll({
+      trackId: existing.id,
+      progressScore: progress.value.progressScore,
+    });
   }
 
   clearProgressTracks(): void {
