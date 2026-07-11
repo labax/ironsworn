@@ -1,11 +1,31 @@
 import { computed, Injectable, signal } from '@angular/core';
 
-import type { ProgressTrack } from '@app/domain/progress';
+import {
+  createDefaultProgressTrack,
+  validateProgressTrackClassification,
+  type ChallengeRank,
+  type ProgressTrack,
+  type ProgressTrackType,
+} from '@app/domain/progress';
+import type { ValidationError } from '@app/rules/validation';
 
 const cloneProgressTrack = (track: ProgressTrack): ProgressTrack => ({
   ...track,
   events: [...(track.events ?? [])],
 });
+
+const createEntityId = (prefix: string): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? `${prefix}-${crypto.randomUUID()}`
+    : `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
+export interface SaveProgressTrackInput {
+  readonly id?: string;
+  readonly title: string;
+  readonly type: ProgressTrackType;
+  readonly rank: ChallengeRank;
+  readonly notes?: string;
+}
 
 const compareProgressTracks = (left: ProgressTrack, right: ProgressTrack): number => {
   const leftCreated = typeof left.createdAt === 'string' ? left.createdAt : '';
@@ -47,6 +67,53 @@ export class CampaignWorkspaceService {
     if (selectedId && !tracks.some((track) => track.id === selectedId)) {
       this.selectedProgressTrackIdState.set(null);
     }
+  }
+
+  saveProgressTrack(
+    input: SaveProgressTrackInput,
+  ): { ok: true; track: ProgressTrack } | { ok: false; errors: readonly ValidationError[] } {
+    const classification = validateProgressTrackClassification(input);
+    const title = input.title.trim();
+    const errors = classification.ok ? [] : [...classification.errors];
+
+    if (!title) {
+      errors.push({ code: 'required', field: 'title', message: 'Enter a track name.' });
+    }
+
+    if (errors.length > 0 || !classification.ok) return { ok: false, errors };
+
+    const now = new Date().toISOString();
+    const notes = input.notes?.trim() || undefined;
+    const existing = input.id
+      ? this.progressTracksState().find((track) => track.id === input.id)
+      : undefined;
+
+    const track = existing
+      ? cloneProgressTrack({
+          ...existing,
+          title,
+          type: classification.value.type,
+          rank: classification.value.rank,
+          notes,
+          updatedAt: now,
+        })
+      : createDefaultProgressTrack({
+          id: createEntityId('progress-track'),
+          createdAt: now,
+          title,
+          type: classification.value.type,
+          rank: classification.value.rank,
+          notes,
+        });
+
+    this.progressTracksState.update((tracks) =>
+      existing
+        ? tracks.map((candidate) => (candidate.id === existing.id ? track : candidate))
+        : [...tracks, track],
+    );
+    this.selectedProgressTrackIdState.set(track.id);
+
+    return { ok: true, track: cloneProgressTrack(track) };
   }
 
   selectProgressTrack(trackId: string): ProgressTrack | null {

@@ -138,3 +138,69 @@ button:focus-visible {
     width: 100%;
   }
 }
+
+.track-form {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow: 0 1rem 2rem rgba(2, 6, 23, 0.18);
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+label {
+  color: #e2e8f0;
+  display: grid;
+  font-weight: 800;
+  gap: 0.35rem;
+}
+
+input,
+select,
+textarea {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 0.75rem;
+  background: rgba(2, 6, 23, 0.35);
+  color: #f8fafc;
+  font: inherit;
+  padding: 0.75rem;
+  width: 100%;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(147, 197, 253, 0.7);
+  outline-offset: 2px;
+}
+
+[aria-invalid='true'] {
+  border-color: #fca5a5;
+}
+
+.helper-text,
+.field-error,
+.form-message {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.field-error {
+  color: #fecaca;
+}
+
+.form-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}

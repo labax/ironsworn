@@ -6,8 +6,16 @@ import {
   type ISODateString,
 } from '../shared';
 
-export type ChallengeRank = 'troublesome' | 'dangerous' | 'formidable' | 'extreme' | 'epic';
-export type ProgressTrackType = 'vow' | 'journey' | 'combat' | 'bond' | 'custom';
+export const CHALLENGE_RANKS = [
+  'troublesome',
+  'dangerous',
+  'formidable',
+  'extreme',
+  'epic',
+] as const;
+export type ChallengeRank = (typeof CHALLENGE_RANKS)[number];
+export const PROGRESS_TRACK_TYPES = ['vow', 'journey', 'combat', 'bond', 'custom'] as const;
+export type ProgressTrackType = (typeof PROGRESS_TRACK_TYPES)[number];
 export type ProgressTrackStatus = 'active' | 'completed' | 'failed' | 'forsaken' | 'archived';
 
 export interface ProgressEvent {
@@ -39,6 +47,28 @@ export interface CreateDefaultProgressTrackOptions extends EntityFactoryOptions 
   readonly notes?: string;
 }
 
+export const PROGRESS_TRACK_TYPE_LABELS: Record<ProgressTrackType, string> = {
+  vow: 'Vow',
+  journey: 'Journey',
+  combat: 'Combat',
+  bond: 'Bond',
+  custom: 'Custom',
+};
+
+export const CHALLENGE_RANK_LABELS: Record<ChallengeRank, string> = {
+  troublesome: 'Troublesome',
+  dangerous: 'Dangerous',
+  formidable: 'Formidable',
+  extreme: 'Extreme',
+  epic: 'Epic',
+};
+
+export const isProgressTrackType = (value: unknown): value is ProgressTrackType =>
+  typeof value === 'string' && PROGRESS_TRACK_TYPES.includes(value as ProgressTrackType);
+
+export const isChallengeRank = (value: unknown): value is ChallengeRank =>
+  typeof value === 'string' && CHALLENGE_RANKS.includes(value as ChallengeRank);
+
 export const MIN_PROGRESS_TICKS = 0;
 export const MAX_PROGRESS_TICKS = 40;
 
@@ -69,6 +99,8 @@ export const isProgressTrack = (value: unknown): value is ProgressTrack => {
   return (
     typeof candidate.id === 'string' &&
     typeof candidate.title === 'string' &&
+    isProgressTrackType(candidate.type) &&
+    isChallengeRank(candidate.rank) &&
     isValidProgressTicks(candidate.ticks ?? NaN)
   );
 };
