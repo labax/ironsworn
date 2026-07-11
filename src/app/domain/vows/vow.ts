@@ -23,10 +23,9 @@ export const isVowStatus = (value: unknown): value is VowStatus =>
 
 export interface VowMilestone {
   readonly id: EntityId;
-  readonly title: string;
   readonly createdAt: ISODateString;
-  readonly notes?: string;
-  readonly progressEventId?: EntityId;
+  readonly updatedAt?: ISODateString;
+  readonly note?: string;
 }
 
 export interface VowOutcome {

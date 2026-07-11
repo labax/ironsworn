@@ -8,7 +8,13 @@ import {
   type ProgressTrack,
   type ProgressTrackType,
 } from '@app/domain/progress';
-import { createDefaultVow, validateVowDetails, type Vow, type VowStatus } from '@app/domain/vows';
+import {
+  createDefaultVow,
+  validateVowDetails,
+  type Vow,
+  type VowMilestone,
+  type VowStatus,
+} from '@app/domain/vows';
 import {
   correctProgressTicks,
   progressScoreFromState,
@@ -26,7 +32,7 @@ const cloneProgressTrack = (track: ProgressTrack): ProgressTrack => ({
 
 const cloneVow = (vow: Vow): Vow => ({
   ...vow,
-  milestones: [...(vow.milestones ?? [])],
+  milestones: [...(vow.milestones ?? [])].map((milestone) => ({ ...milestone })),
   outcome: vow.outcome ? { ...vow.outcome } : undefined,
 });
 
@@ -50,6 +56,22 @@ export interface SaveProgressTrackInput {
   readonly type: ProgressTrackType;
   readonly rank: ChallengeRank;
   readonly notes?: string;
+}
+
+export interface AddVowMilestoneInput {
+  readonly vowId: string;
+  readonly note?: string;
+}
+
+export interface UpdateVowMilestoneInput {
+  readonly vowId: string;
+  readonly milestoneId: string;
+  readonly note?: string;
+}
+
+export interface RemoveVowMilestoneInput {
+  readonly vowId: string;
+  readonly milestoneId: string;
 }
 
 export interface UpdateVowRankInput {
@@ -217,6 +239,109 @@ export class CampaignWorkspaceService {
     const vow = cloneVow({
       ...existing,
       status: details.value.status,
+      updatedAt: new Date().toISOString(),
+    });
+
+    this.vowsState.update((vows) =>
+      vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
+    );
+    this.selectedVowIdState.set(vow.id);
+
+    return { ok: true, vow: cloneVow(vow) };
+  }
+
+  addVowMilestone(
+    input: AddVowMilestoneInput,
+  ):
+    | { ok: true; vow: Vow; milestone: VowMilestone }
+    | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.vowsState().find((vow) => vow.id === input.vowId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+
+    const now = new Date().toISOString();
+    const milestone: VowMilestone = {
+      id: createEntityId('vow-milestone'),
+      createdAt: now,
+      updatedAt: now,
+      note: input.note ?? '',
+    };
+    const vow = cloneVow({
+      ...existing,
+      milestones: [...(existing.milestones ?? []), milestone],
+      updatedAt: now,
+    });
+
+    this.vowsState.update((vows) =>
+      vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
+    );
+    this.selectedVowIdState.set(vow.id);
+
+    return { ok: true, vow: cloneVow(vow), milestone: { ...milestone } };
+  }
+
+  updateVowMilestone(
+    input: UpdateVowMilestoneInput,
+  ):
+    | { ok: true; vow: Vow; milestone: VowMilestone }
+    | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.vowsState().find((vow) => vow.id === input.vowId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+    const milestone = (existing.milestones ?? []).find((item) => item.id === input.milestoneId);
+    if (!milestone) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'milestoneId', message: 'Milestone was not found.' }],
+      };
+    }
+
+    const now = new Date().toISOString();
+    const updated: VowMilestone = { ...milestone, note: input.note ?? '', updatedAt: now };
+    const vow = cloneVow({
+      ...existing,
+      milestones: (existing.milestones ?? []).map((item) =>
+        item.id === input.milestoneId ? updated : item,
+      ),
+      updatedAt: now,
+    });
+
+    this.vowsState.update((vows) =>
+      vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
+    );
+    this.selectedVowIdState.set(vow.id);
+
+    return { ok: true, vow: cloneVow(vow), milestone: { ...updated } };
+  }
+
+  removeVowMilestone(
+    input: RemoveVowMilestoneInput,
+  ): { ok: true; vow: Vow } | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.vowsState().find((vow) => vow.id === input.vowId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+    if (!(existing.milestones ?? []).some((item) => item.id === input.milestoneId)) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'milestoneId', message: 'Milestone was not found.' }],
+      };
+    }
+
+    const vow = cloneVow({
+      ...existing,
+      milestones: (existing.milestones ?? []).filter((item) => item.id !== input.milestoneId),
       updatedAt: new Date().toISOString(),
     });
 

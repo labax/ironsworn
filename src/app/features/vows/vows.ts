@@ -9,7 +9,13 @@ import {
   type ProgressTrack,
 } from '@app/domain/progress';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
-import { VOW_STATUS_LABELS, VOW_STATUSES, type Vow, type VowStatus } from '@app/domain/vows';
+import {
+  VOW_STATUS_LABELS,
+  VOW_STATUSES,
+  type Vow,
+  type VowMilestone,
+  type VowStatus,
+} from '@app/domain/vows';
 import type { ValidationError } from '@app/rules/validation';
 
 interface SelectOption<T extends string> {
@@ -28,6 +34,7 @@ interface VowListItem {
   readonly updatedMachineValue?: string;
   readonly progressSummary: string;
   readonly progressWarning?: string;
+  readonly milestones: readonly VowMilestone[];
 }
 
 const STATUS_ORDER: Record<VowStatus, number> = {
@@ -64,6 +71,11 @@ const formatTimestamp = (value: string | undefined): string => {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date);
+};
+
+const compareMilestones = (left: VowMilestone, right: VowMilestone): number => {
+  const dateComparison = (left.createdAt ?? '').localeCompare(right.createdAt ?? '');
+  return dateComparison !== 0 ? dateComparison : left.id.localeCompare(right.id);
 };
 
 const progressSummaryFor = (
@@ -136,6 +148,7 @@ export class Vows {
             notes: vow.notes ?? '',
             updatedLabel: formatTimestamp(vow.updatedAt ?? vow.createdAt),
             updatedMachineValue: vow.updatedAt ?? vow.createdAt,
+            milestones: [...(vow.milestones ?? [])].sort(compareMilestones),
             ...progress,
           };
         })
@@ -156,6 +169,10 @@ export class Vows {
   protected editingVowId: string | null = null;
   protected formMessage = '';
   protected fieldErrors: Partial<Record<'title' | 'rank' | 'status', string>> = {};
+  protected milestoneDrafts: Record<string, string> = {};
+  protected editingMilestoneIds: Record<string, string | undefined> = {};
+  protected milestoneErrors: Record<string, string | undefined> = {};
+  private milestoneFocusReturnId: string | null = null;
   private cleanFormSnapshot = JSON.stringify(this.vowForm.getRawValue());
 
   protected openCreate(): void {
@@ -190,6 +207,71 @@ export class Vows {
     this.markClean();
     this.formMessage = 'Editing selected vow.';
     this.focusTitle();
+  }
+
+  protected milestoneNote(vowId: string): string {
+    return this.milestoneDrafts[vowId] ?? '';
+  }
+
+  protected updateMilestoneDraft(vowId: string, value: string): void {
+    this.milestoneDrafts = { ...this.milestoneDrafts, [vowId]: value };
+    this.milestoneErrors = { ...this.milestoneErrors, [vowId]: undefined };
+  }
+
+  protected startMilestoneEdit(vowId: string, milestone: VowMilestone): void {
+    this.editingMilestoneIds = { ...this.editingMilestoneIds, [vowId]: milestone.id };
+    this.milestoneDrafts = { ...this.milestoneDrafts, [vowId]: milestone.note ?? '' };
+    this.formMessage = 'Editing milestone note. Progress is unchanged.';
+    this.focusMilestoneEditor(vowId);
+  }
+
+  protected cancelMilestoneEdit(vowId: string): void {
+    this.editingMilestoneIds = { ...this.editingMilestoneIds, [vowId]: undefined };
+    this.milestoneDrafts = { ...this.milestoneDrafts, [vowId]: '' };
+    this.milestoneErrors = { ...this.milestoneErrors, [vowId]: undefined };
+    this.formMessage = 'Milestone edit canceled; vow was unchanged.';
+    this.focusMilestoneAdd(vowId);
+  }
+
+  protected saveMilestone(vowId: string): void {
+    const note = this.milestoneNote(vowId);
+    const editingId = this.editingMilestoneIds[vowId];
+    const result = editingId
+      ? this.workspace.updateVowMilestone({ vowId, milestoneId: editingId, note })
+      : this.workspace.addVowMilestone({ vowId, note });
+    if (!result.ok) {
+      this.milestoneErrors = {
+        ...this.milestoneErrors,
+        [vowId]: result.errors[0]?.message ?? 'Milestone could not be saved.',
+      };
+      this.focusMilestoneEditor(vowId);
+      return;
+    }
+    this.editingMilestoneIds = { ...this.editingMilestoneIds, [vowId]: undefined };
+    this.milestoneDrafts = { ...this.milestoneDrafts, [vowId]: '' };
+    this.milestoneErrors = { ...this.milestoneErrors, [vowId]: undefined };
+    this.formMessage = editingId
+      ? 'Milestone updated. Mechanical progress is unchanged.'
+      : 'Milestone recorded. Marking progress remains a separate action.';
+    this.focusMilestoneAdd(vowId);
+  }
+
+  protected removeMilestone(vowId: string, milestoneId: string): void {
+    this.milestoneFocusReturnId = `milestone-edit-${vowId}-${milestoneId}`;
+    const confirmed = window.confirm('Delete this milestone note? This cannot be undone.');
+    if (!confirmed) {
+      this.formMessage = 'Milestone deletion canceled; vow was unchanged.';
+      this.focusMilestoneReturn();
+      return;
+    }
+    const result = this.workspace.removeVowMilestone({ vowId, milestoneId });
+    if (!result.ok) {
+      this.formMessage = result.errors[0]?.message ?? 'Milestone could not be deleted.';
+      this.focusMilestoneReturn();
+      return;
+    }
+    this.formMessage = 'Milestone deleted. Mechanical progress is unchanged.';
+    this.focusMilestoneAdd(vowId);
   }
 
   protected saveVow(): void {
@@ -291,6 +373,24 @@ export class Vows {
     );
     if (!firstField) return;
     document.getElementById(`vow-${firstField}`)?.focus();
+  }
+
+  protected formatMilestoneTimestamp(value: string): string {
+    return formatTimestamp(value);
+  }
+
+  private focusMilestoneEditor(vowId: string): void {
+    queueMicrotask(() => document.getElementById(`milestone-note-${vowId}`)?.focus());
+  }
+
+  private focusMilestoneAdd(vowId: string): void {
+    queueMicrotask(() => document.getElementById(`milestone-note-${vowId}`)?.focus());
+  }
+
+  private focusMilestoneReturn(): void {
+    const targetId = this.milestoneFocusReturnId;
+    if (!targetId) return;
+    queueMicrotask(() => document.getElementById(targetId)?.focus());
   }
 
   private focusTitle(): void {
