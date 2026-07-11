@@ -295,6 +295,7 @@ export class Vows {
   protected latestVowProgressRoll: Readonly<VowProgressRollResult> | null = null;
   protected progressRollErrors: Record<string, string | undefined> = {};
   private milestoneFocusReturnId: string | null = null;
+  private outcomeFocusReturnId: string | null = null;
   private cleanFormSnapshot = JSON.stringify(this.vowForm.getRawValue());
 
   protected openCreate(): void {
@@ -594,6 +595,7 @@ export class Vows {
   }
 
   protected startOutcomeEdit(vowId: string, summary: string): void {
+    this.outcomeFocusReturnId = `outcome-edit-${vowId}`;
     this.editingOutcomeIds = { ...this.editingOutcomeIds, [vowId]: true };
     this.outcomeDrafts = { ...this.outcomeDrafts, [vowId]: summary };
     this.outcomeErrors = { ...this.outcomeErrors, [vowId]: undefined };
@@ -615,7 +617,7 @@ export class Vows {
     this.outcomeDrafts = { ...this.outcomeDrafts, [vowId]: '' };
     this.outcomeErrors = { ...this.outcomeErrors, [vowId]: undefined };
     this.formMessage = 'Outcome note edit canceled; vow was unchanged.';
-    this.focusOutcomeEditor(vowId);
+    this.focusOutcomeReturn();
   }
 
   protected saveOutcome(vowId: string): void {
@@ -633,7 +635,7 @@ export class Vows {
     this.outcomeDrafts = { ...this.outcomeDrafts, [vowId]: '' };
     this.outcomeErrors = { ...this.outcomeErrors, [vowId]: undefined };
     this.formMessage = 'Outcome notes saved. Status and progress are unchanged.';
-    this.focusOutcomeEditor(vowId);
+    this.focusOutcomeReturn();
   }
 
   protected saveVow(): void {
@@ -757,6 +759,19 @@ export class Vows {
 
   private focusOutcomeEditor(vowId: string): void {
     queueMicrotask(() => document.getElementById(`outcome-note-${vowId}`)?.focus());
+  }
+
+  private focusOutcomeReturn(): void {
+    const targetId = this.outcomeFocusReturnId;
+    if (!targetId) return;
+    setTimeout(() => {
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.focus();
+        return;
+      }
+      this.focusTitle();
+    });
   }
 
   private focusMilestoneEditor(vowId: string): void {

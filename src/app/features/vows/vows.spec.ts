@@ -647,6 +647,70 @@ describe('Vows', () => {
     expect(fixture.componentInstance['vowForm'].getRawValue().title).toBe('');
   });
 
+  it('keeps vow controls uniquely named and wraps long content for responsive cards', () => {
+    const longToken = 'UnbrokenVowTitle'.repeat(24);
+    workspace.setVows([
+      vowFixture({
+        id: 'vow-long-responsive',
+        title: longToken,
+        description: `${longToken} description`,
+        notes: `${longToken} notes`,
+        milestones: [
+          { id: 'milestone-long', createdAt: '2026-07-04T00:00:00.000Z', note: longToken },
+        ],
+        outcome: { summary: `${longToken} outcome`, resolvedAt: '2026-07-05T00:00:00.000Z' },
+      }),
+    ]);
+    createComponent();
+
+    const ids = Array.from(compiled().querySelectorAll<HTMLElement>('[id]')).map(
+      (element) => element.id,
+    );
+    expect(ids.filter((id) => id === 'vow-delete-vow-long-responsive')).toHaveLength(1);
+    expect(ids.filter((id) => id === 'outcome-edit-vow-long-responsive')).toHaveLength(1);
+    expect(compiled().querySelector('#outcome-note-vow-long-responsive')).toBeNull();
+    expect(compiled().textContent).toContain(longToken);
+    expect(compiled().querySelector('.progress-link-actions')).toBeTruthy();
+    expect(compiled().querySelector('.vow-facts')?.textContent).toContain('Progress');
+  });
+
+  it('moves focus into outcome editing and returns it after cancel or save', async () => {
+    workspace.setVows([vowFixture({ id: 'vow-focus-outcome', title: 'Focus outcome' })]);
+    createComponent();
+
+    const editButton = compiled().querySelector<HTMLButtonElement>(
+      '#outcome-edit-vow-focus-outcome',
+    );
+    editButton?.focus();
+    editButton?.click();
+    fixture.detectChanges();
+    await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
+    const textarea = compiled().querySelector<HTMLTextAreaElement>(
+      '#outcome-note-vow-focus-outcome',
+    );
+    expect(document.activeElement).toBe(textarea);
+
+    fixture.componentInstance['cancelOutcomeEdit']('vow-focus-outcome');
+    fixture.detectChanges();
+    await new Promise<void>((resolve) => setTimeout(resolve));
+    const returnedButton = compiled().querySelector<HTMLButtonElement>(
+      '#outcome-edit-vow-focus-outcome',
+    );
+    expect(document.activeElement).toBe(returnedButton);
+
+    returnedButton?.click();
+    fixture.detectChanges();
+    await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
+    fixture.componentInstance['updateOutcomeDraft']('vow-focus-outcome', 'Saved by keyboard user.');
+    fixture.componentInstance['saveOutcome']('vow-focus-outcome');
+    fixture.detectChanges();
+    await new Promise<void>((resolve) => setTimeout(resolve));
+    expect(document.activeElement).toBe(
+      compiled().querySelector<HTMLButtonElement>('#outcome-edit-vow-focus-outcome'),
+    );
+    expect(compiled().textContent).toContain('Saved by keyboard user.');
+  });
+
   it('renders keyboard-friendly labels, help, responsive controls, and predictable focus targets', () => {
     workspace.setVows([vowFixture({ id: 'vow-access' })]);
     createComponent();

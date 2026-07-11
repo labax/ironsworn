@@ -440,37 +440,6 @@
 
                 @if (item.outcomeSummary && !editingOutcomeIds[item.vow.id]) {
                   <article class="outcome-record">
-                    <div class="vow-record-actions">
-                      @if (item.vow.status === 'archived') {
-                        <button
-                          type="button"
-                          class="secondary"
-                          [id]="'vow-restore-' + item.vow.id"
-                          (click)="restoreVow(item.vow.id)"
-                          [attr.aria-label]="'Restore vow: ' + item.title"
-                        >
-                          Restore vow
-                        </button>
-                      } @else {
-                        <button
-                          type="button"
-                          class="secondary"
-                          (click)="archiveVow(item.vow.id)"
-                          [attr.aria-label]="'Archive vow: ' + item.title"
-                        >
-                          Archive vow
-                        </button>
-                      }
-                      <button
-                        type="button"
-                        class="danger"
-                        [id]="'vow-delete-' + item.vow.id"
-                        (click)="deleteVow(item.vow.id)"
-                        [attr.aria-label]="'Delete vow: ' + item.title"
-                      >
-                        Delete vow
-                      </button>
-                    </div>
                     <dl class="vow-facts" aria-label="Outcome details">
                       <div>
                         <dt>Outcome saved</dt>
@@ -527,17 +496,17 @@
                       </button>
                     </div>
                   </div>
-                } @else {
-                  <button
-                    type="button"
-                    class="secondary"
-                    [id]="'outcome-note-' + item.vow.id"
-                    (click)="startOutcomeEdit(item.vow.id, item.outcomeSummary)"
-                    [attr.aria-label]="'Edit outcome notes for ' + item.title"
-                  >
-                    {{ item.outcomeSummary ? 'Edit outcome notes' : 'Add outcome notes' }}
-                  </button>
                 }
+                <button
+                  type="button"
+                  class="secondary"
+                  [hidden]="editingOutcomeIds[item.vow.id]"
+                  [id]="'outcome-edit-' + item.vow.id"
+                  (click)="startOutcomeEdit(item.vow.id, item.outcomeSummary)"
+                  [attr.aria-label]="'Edit outcome notes for ' + item.title"
+                >
+                  {{ item.outcomeSummary ? 'Edit outcome notes' : 'Add outcome notes' }}
+                </button>
               </section>
               <section
                 class="milestone-panel"

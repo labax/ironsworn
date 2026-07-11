@@ -307,3 +307,88 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.65;
 }
+* {
+  box-sizing: border-box;
+}
+.vows-page,
+.vows-page * {
+  min-width: 0;
+}
+.vows-header,
+.empty-state,
+.error-state,
+.vow-card,
+.vow-form,
+.vow-discovery,
+.progress-roll-result,
+.outcome-record,
+.milestone-record {
+  overflow-wrap: anywhere;
+}
+.vow-card-heading > button,
+.empty-state > button,
+.error-state > button,
+.form-actions > button,
+.progress-link-actions > button,
+.archive-view-actions > button,
+.vow-record-actions > button,
+.outcome-actions > button,
+.milestone-actions > button {
+  align-self: start;
+}
+.progress-link-actions {
+  align-items: end;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(12rem, 1fr) repeat(2, auto);
+  margin-top: 1rem;
+}
+.progress-link-actions:has(> button:first-child) {
+  align-items: center;
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
+}
+.link-field {
+  min-width: min(18rem, 100%);
+}
+.vow-text {
+  line-height: 1.6;
+  max-width: 72ch;
+}
+@media (max-width: 42rem), (min-resolution: 2dppx) and (max-width: 60rem) {
+  .vows-header,
+  .empty-state,
+  .error-state,
+  .vow-card article,
+  .vow-form,
+  .vow-discovery {
+    padding: 1rem;
+  }
+  .progress-link-actions,
+  .progress-link-actions:has(> button:first-child) {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+  input,
+  select,
+  textarea,
+  button {
+    min-height: 2.75rem;
+  }
+  .vow-facts {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 24rem) {
+  .vows-header,
+  .empty-state,
+  .error-state,
+  .vow-card article,
+  .vow-form,
+  .vow-discovery {
+    padding: 0.85rem;
+  }
+  button {
+    white-space: normal;
+  }
+}
