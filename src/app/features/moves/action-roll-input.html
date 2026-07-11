@@ -131,7 +131,12 @@
         .
       </p>
 
-      @if (momentumBurnPreview(); as preview) {
+      @if (roll.trace.includes('momentum burn applied from confirmed preview')) {
+        <p class="momentum-applied" role="status">
+          Momentum burn applied. Final result: {{ resultLabel(roll.outcome) }}. Current Momentum:
+          {{ characterSummary()?.momentum }}.
+        </p>
+      } @else if (momentumBurnPreview(); as preview) {
         @if (preview.eligible) {
           <div class="momentum-preview-actions">
             <button
@@ -147,17 +152,23 @@
 
           @if (isMomentumPreviewOpen()) {
             <section
+              #momentumConfirmation
               id="momentum-burn-preview"
               class="momentum-preview"
+              tabindex="-1"
+              role="dialog"
+              aria-modal="false"
               aria-labelledby="momentum-burn-preview-title"
+              aria-describedby="momentum-burn-preview-summary"
             >
               <div class="preview-heading">
                 <div>
                   <p class="section-label">Momentum burn preview</p>
-                  <h5 id="momentum-burn-preview-title">
+                  <h5 id="momentum-burn-preview-title">Confirm Momentum burn</h5>
+                  <p>
                     Before: {{ resultLabel(preview.initialOutcome!) }} · After:
                     {{ resultLabel(preview.prospectiveOutcome!) }}
-                  </h5>
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -169,7 +180,7 @@
                 </button>
               </div>
 
-              <p>
+              <p id="momentum-burn-preview-summary">
                 Momentum {{ preview.momentum }} cancels
                 @for (die of preview.canceledDice; track die.position) {
                   challenge die {{ die.position + 1 }} ({{ die.value }}){{ $last ? '' : ', ' }}
@@ -178,8 +189,31 @@
               </p>
               <p>Original match: {{ preview.isMatch ? 'Challenge dice match' : 'No match' }}.</p>
               @if (preview.reset !== undefined) {
-                <p>Reset stays {{ preview.reset }}; no state changes are applied.</p>
+                <p>
+                  Reset stays {{ preview.reset }}; no state changes are applied. On confirm, current
+                  Momentum will reset from {{ preview.momentum }} to {{ preview.reset }}.
+                </p>
               }
+              @if (momentumBurnError(); as error) {
+                <p class="field-error" role="alert">{{ error }}</p>
+              }
+              <div class="momentum-confirm-actions">
+                <button
+                  type="button"
+                  (click)="confirmMomentumBurn()"
+                  [disabled]="isApplyingMomentumBurn()"
+                >
+                  Confirm burn
+                </button>
+                <button
+                  type="button"
+                  class="secondary-button"
+                  (click)="dismissMomentumPreview()"
+                  [disabled]="isApplyingMomentumBurn()"
+                >
+                  Cancel
+                </button>
+              </div>
             </section>
           }
         }
