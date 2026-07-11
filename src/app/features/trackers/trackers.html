@@ -101,11 +101,31 @@
   </form>
 
   @if (tracks().length === 0) {
+    <div class="view-switcher" aria-label="Progress track views">
+      <button
+        type="button"
+        (click)="showActiveTracks()"
+        [attr.aria-pressed]="trackViewMode() === 'active'"
+      >
+        Active tracks
+      </button>
+      <button
+        type="button"
+        (click)="showArchivedTracks()"
+        [attr.aria-pressed]="trackViewMode() === 'archived'"
+      >
+        Archived tracks
+      </button>
+    </div>
     <section class="empty-state" aria-labelledby="empty-track-title">
       <div>
         <h3 id="empty-track-title">No progress tracks yet.</h3>
         <p>
-          Create a track when your campaign needs a vow, journey, combat, bond, or custom clock.
+          {{
+            trackViewMode() === 'archived'
+              ? 'Archived tracks will appear here after you move them out of the active list.'
+              : 'Create a track when your campaign needs a vow, journey, combat, bond, or custom clock.'
+          }}
         </p>
       </div>
       <button type="button" aria-label="Create a progress track" (click)="openCreate()">
@@ -113,6 +133,22 @@
       </button>
     </section>
   } @else {
+    <div class="view-switcher" aria-label="Progress track views">
+      <button
+        type="button"
+        (click)="showActiveTracks()"
+        [attr.aria-pressed]="trackViewMode() === 'active'"
+      >
+        Active tracks
+      </button>
+      <button
+        type="button"
+        (click)="showArchivedTracks()"
+        [attr.aria-pressed]="trackViewMode() === 'archived'"
+      >
+        Archived tracks
+      </button>
+    </div>
     <p class="form-message" role="status" aria-live="polite">{{ progressMessage }}</p>
     <ul class="track-list" aria-label="Progress tracks">
       @for (item of tracks(); track item.track.id) {
@@ -239,6 +275,33 @@
                   Return to standard
                 </button>
               }
+              @if (item.track.status === 'archived') {
+                <button
+                  type="button"
+                  [id]="'restore-track-' + item.track.id"
+                  (click)="restoreTrack(item.track, 'restore-track-' + item.track.id)"
+                  [attr.aria-label]="'Restore progress track: ' + item.title"
+                >
+                  Restore
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  [id]="'archive-track-' + item.track.id"
+                  (click)="archiveTrack(item.track, 'archive-track-' + item.track.id)"
+                  [attr.aria-label]="'Archive progress track: ' + item.title"
+                >
+                  Archive
+                </button>
+              }
+              <button
+                type="button"
+                [id]="'delete-track-' + item.track.id"
+                (click)="deleteTrack(item.track, 'delete-track-' + item.track.id)"
+                [attr.aria-label]="'Delete progress track: ' + item.title"
+              >
+                Delete
+              </button>
             </div>
             <p [id]="'progress-help-' + item.track.id" class="helper-text">
               {{ item.markHelp }} Roll progress compares the current score without changing the
