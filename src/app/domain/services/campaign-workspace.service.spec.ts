@@ -157,6 +157,47 @@ describe('CampaignWorkspaceService vow rank and status actions', () => {
     expect(service.progressTracks()[0].ticks).toBe(12);
   });
 
+  it('saves user-authored vow outcome notes with an explicit timestamp and preserves other vow data', () => {
+    const selected = vowFixture({ id: 'vow-outcome', status: 'fulfilled' });
+    const unrelated = vowFixture({ id: 'vow-unrelated', title: 'Leave untouched' });
+    const track = createDefaultProgressTrack({
+      id: 'track-linked',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      title: 'Linked track',
+      type: 'vow',
+      rank: 'dangerous',
+    });
+    service.setVows([selected, unrelated]);
+    service.setProgressTracks([{ ...track, ticks: 24 }]);
+
+    const result = service.updateVowOutcome({
+      vowId: selected.id,
+      summary: 'A long player-authored resolution. '.repeat(120),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.outcome.summary).toBe('A long player-authored resolution. '.repeat(120));
+    expect(result.outcome.resolvedAt).toMatch(/T/);
+    expect(result.outcome.rollId).toBe(selected.outcome?.rollId);
+    const saved = service.vows().find((vow) => vow.id === selected.id);
+    expect(saved).toMatchObject({
+      id: selected.id,
+      title: selected.title,
+      rank: selected.rank,
+      status: selected.status,
+      notes: selected.notes,
+      progressTrackId: selected.progressTrackId,
+      characterId: selected.characterId,
+      campaignId: selected.campaignId,
+    });
+    expect(saved?.outcome?.summary).toBe('A long player-authored resolution. '.repeat(120));
+    expect(saved?.outcome?.resolvedAt).toBe(result.outcome.resolvedAt);
+    expect(saved?.milestones).toEqual(selected.milestones);
+    expect(service.vows().find((vow) => vow.id === unrelated.id)).toEqual(unrelated);
+    expect(service.progressTracks()[0].ticks).toBe(24);
+  });
+
   it('rejects invalid enum values safely without mutating vows', () => {
     const selected = vowFixture();
     service.setVows([selected]);

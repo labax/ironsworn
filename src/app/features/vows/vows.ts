@@ -35,6 +35,9 @@ interface VowListItem {
   readonly progressSummary: string;
   readonly progressWarning?: string;
   readonly milestones: readonly VowMilestone[];
+  readonly outcomeSummary: string;
+  readonly outcomeResolvedLabel: string;
+  readonly outcomeResolvedMachineValue?: string;
 }
 
 const STATUS_ORDER: Record<VowStatus, number> = {
@@ -149,6 +152,9 @@ export class Vows {
             updatedLabel: formatTimestamp(vow.updatedAt ?? vow.createdAt),
             updatedMachineValue: vow.updatedAt ?? vow.createdAt,
             milestones: [...(vow.milestones ?? [])].sort(compareMilestones),
+            outcomeSummary: vow.outcome?.summary ?? '',
+            outcomeResolvedLabel: formatTimestamp(vow.outcome?.resolvedAt),
+            outcomeResolvedMachineValue: vow.outcome?.resolvedAt,
             ...progress,
           };
         })
@@ -172,6 +178,9 @@ export class Vows {
   protected milestoneDrafts: Record<string, string> = {};
   protected editingMilestoneIds: Record<string, string | undefined> = {};
   protected milestoneErrors: Record<string, string | undefined> = {};
+  protected outcomeDrafts: Record<string, string> = {};
+  protected editingOutcomeIds: Record<string, boolean | undefined> = {};
+  protected outcomeErrors: Record<string, string | undefined> = {};
   private milestoneFocusReturnId: string | null = null;
   private cleanFormSnapshot = JSON.stringify(this.vowForm.getRawValue());
 
@@ -274,6 +283,49 @@ export class Vows {
     this.focusMilestoneAdd(vowId);
   }
 
+  protected startOutcomeEdit(vowId: string, summary: string): void {
+    this.editingOutcomeIds = { ...this.editingOutcomeIds, [vowId]: true };
+    this.outcomeDrafts = { ...this.outcomeDrafts, [vowId]: summary };
+    this.outcomeErrors = { ...this.outcomeErrors, [vowId]: undefined };
+    this.formMessage = 'Editing outcome notes. Status and progress are unchanged.';
+    this.focusOutcomeEditor(vowId);
+  }
+
+  protected outcomeNote(vowId: string): string {
+    return this.outcomeDrafts[vowId] ?? '';
+  }
+
+  protected updateOutcomeDraft(vowId: string, value: string): void {
+    this.outcomeDrafts = { ...this.outcomeDrafts, [vowId]: value };
+    this.outcomeErrors = { ...this.outcomeErrors, [vowId]: undefined };
+  }
+
+  protected cancelOutcomeEdit(vowId: string): void {
+    this.editingOutcomeIds = { ...this.editingOutcomeIds, [vowId]: undefined };
+    this.outcomeDrafts = { ...this.outcomeDrafts, [vowId]: '' };
+    this.outcomeErrors = { ...this.outcomeErrors, [vowId]: undefined };
+    this.formMessage = 'Outcome note edit canceled; vow was unchanged.';
+    this.focusOutcomeEditor(vowId);
+  }
+
+  protected saveOutcome(vowId: string): void {
+    const result = this.workspace.updateVowOutcome({ vowId, summary: this.outcomeNote(vowId) });
+    if (!result.ok) {
+      this.outcomeErrors = {
+        ...this.outcomeErrors,
+        [vowId]: result.errors[0]?.message ?? 'Outcome notes could not be saved.',
+      };
+      this.focusOutcomeEditor(vowId);
+      return;
+    }
+
+    this.editingOutcomeIds = { ...this.editingOutcomeIds, [vowId]: undefined };
+    this.outcomeDrafts = { ...this.outcomeDrafts, [vowId]: '' };
+    this.outcomeErrors = { ...this.outcomeErrors, [vowId]: undefined };
+    this.formMessage = 'Outcome notes saved. Status and progress are unchanged.';
+    this.focusOutcomeEditor(vowId);
+  }
+
   protected saveVow(): void {
     this.fieldErrors = {};
     this.formMessage = '';
@@ -282,6 +334,7 @@ export class Vows {
     }
 
     const value = this.vowForm.getRawValue();
+    const statusPrompt = this.shouldOfferOutcomePrompt(value.status);
     if (!this.confirmStatusChange(value.status)) return;
 
     const result = this.workspace.saveVow({ id: this.editingVowId ?? undefined, ...value });
@@ -293,6 +346,10 @@ export class Vows {
     this.editingVowId = result.vow.id;
     this.markClean();
     this.formMessage = 'Vow saved.';
+    if (statusPrompt && window.confirm('Add outcome notes now?')) {
+      this.startOutcomeEdit(result.vow.id, result.vow.outcome?.summary ?? '');
+      return;
+    }
     this.focusTitle();
   }
 
@@ -332,6 +389,15 @@ export class Vows {
       return false;
     }
     return true;
+  }
+
+  private shouldOfferOutcomePrompt(nextStatus: VowStatus): boolean {
+    if (!this.editingVowId || (nextStatus !== 'fulfilled' && nextStatus !== 'forsaken')) {
+      return false;
+    }
+
+    const current = this.workspace.vows().find((vow) => vow.id === this.editingVowId);
+    return Boolean(current && current.status !== nextStatus && !current.outcome?.summary);
   }
 
   private confirmStatusChange(nextStatus: VowStatus): boolean {
@@ -377,6 +443,10 @@ export class Vows {
 
   protected formatMilestoneTimestamp(value: string): string {
     return formatTimestamp(value);
+  }
+
+  private focusOutcomeEditor(vowId: string): void {
+    queueMicrotask(() => document.getElementById(`outcome-note-${vowId}`)?.focus());
   }
 
   private focusMilestoneEditor(vowId: string): void {

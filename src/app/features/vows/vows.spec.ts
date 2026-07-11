@@ -323,6 +323,83 @@ describe('Vows', () => {
     expect(workspace.progressTracks()[0].ticks).toBe(16);
   });
 
+  it('adds edits cancels and renders long outcome notes without changing status progress or references', () => {
+    const original = vowFixture({
+      id: 'vow-outcome',
+      status: 'fulfilled',
+      progressTrackId: 'track-outcome',
+      outcome: {
+        summary: 'First player resolution.',
+        resolvedAt: '2026-07-03T00:00:00.000Z',
+        rollId: 'roll-keep',
+      },
+    });
+    const track = progressFixture({ id: 'track-outcome', ticks: 28 });
+    workspace.setVows([original]);
+    workspace.setProgressTracks([track]);
+    createComponent();
+
+    expect(compiled().textContent).toContain('Outcome notes');
+    expect(compiled().textContent).toContain('First player resolution.');
+    const editButton = compiled().querySelector<HTMLButtonElement>(
+      '[aria-label="Edit outcome notes for Carry word to Hillwatch"]',
+    );
+    expect(editButton).toBeTruthy();
+
+    fixture.componentInstance['startOutcomeEdit']('vow-outcome', original.outcome?.summary ?? '');
+    fixture.componentInstance['updateOutcomeDraft']('vow-outcome', 'Unsaved resolution');
+    fixture.componentInstance['cancelOutcomeEdit']('vow-outcome');
+    expect(workspace.vows()[0]).toEqual(original);
+
+    const longOutcome = 'Player-authored closing note with details. '.repeat(120);
+    fixture.componentInstance['startOutcomeEdit']('vow-outcome', original.outcome?.summary ?? '');
+    fixture.componentInstance['updateOutcomeDraft']('vow-outcome', longOutcome);
+    fixture.componentInstance['saveOutcome']('vow-outcome');
+    fixture.detectChanges();
+
+    const saved = workspace.vows()[0];
+    expect(saved).toMatchObject({
+      id: original.id,
+      title: original.title,
+      rank: original.rank,
+      status: 'fulfilled',
+      notes: original.notes,
+      progressTrackId: original.progressTrackId,
+      milestones: original.milestones,
+      outcome: { summary: longOutcome, rollId: 'roll-keep' },
+    });
+    expect(saved.outcome?.resolvedAt).toMatch(/T/);
+    expect(saved.outcome?.resolvedAt).not.toBe(original.outcome?.resolvedAt);
+    expect(workspace.progressTracks()[0]).toEqual(track);
+    expect(compiled().textContent).toContain(longOutcome);
+  });
+
+  it('offers optional outcome editing after a confirmed terminal status change without requiring notes', () => {
+    const original = vowFixture({
+      id: 'vow-terminal',
+      status: 'active',
+      progressTrackId: 'track-terminal',
+    });
+    const track = progressFixture({ id: 'track-terminal', ticks: 12 });
+    workspace.setVows([original]);
+    workspace.setProgressTracks([track]);
+    createComponent();
+    fixture.componentInstance['openVow']('vow-terminal');
+    fixture.componentInstance['vowForm'].patchValue({ status: 'forsaken' });
+    const confirmSpy = vi
+      .spyOn(window, 'confirm')
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false);
+
+    fixture.componentInstance['saveVow']();
+
+    expect(confirmSpy).toHaveBeenNthCalledWith(1, 'Mark this vow forsaken?');
+    expect(confirmSpy).toHaveBeenNthCalledWith(2, 'Add outcome notes now?');
+    expect(workspace.vows()[0].status).toBe('forsaken');
+    expect(workspace.vows()[0].outcome).toBeUndefined();
+    expect(workspace.progressTracks()[0]).toEqual(track);
+  });
+
   it('offers every supported rank and status from the domain model', () => {
     createComponent();
 

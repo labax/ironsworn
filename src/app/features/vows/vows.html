@@ -183,6 +183,85 @@
             @if (item.notes) {
               <p class="vow-text">{{ item.notes }}</p>
             }
+            <section class="outcome-panel" [attr.aria-labelledby]="'outcome-title-' + item.vow.id">
+              <div class="outcome-heading">
+                <div>
+                  <h4 [id]="'outcome-title-' + item.vow.id">Outcome notes</h4>
+                  <p class="helper-text">
+                    Optional notes in your own words. Saving notes records the outcome time only;
+                    status and progress stay separate.
+                  </p>
+                </div>
+              </div>
+
+              @if (item.outcomeSummary && !editingOutcomeIds[item.vow.id]) {
+                <article class="outcome-record">
+                  <dl class="vow-facts" aria-label="Outcome details">
+                    <div>
+                      <dt>Outcome saved</dt>
+                      <dd>
+                        @if (item.outcomeResolvedMachineValue) {
+                          <time [attr.datetime]="item.outcomeResolvedMachineValue">{{
+                            item.outcomeResolvedLabel
+                          }}</time>
+                        } @else {
+                          {{ item.outcomeResolvedLabel }}
+                        }
+                      </dd>
+                    </div>
+                  </dl>
+                  <p class="vow-text">{{ item.outcomeSummary }}</p>
+                </article>
+              } @else if (!editingOutcomeIds[item.vow.id]) {
+                <p class="helper-text">No outcome notes saved yet.</p>
+              }
+
+              @if (editingOutcomeIds[item.vow.id]) {
+                <div class="outcome-editor">
+                  <label [attr.for]="'outcome-note-' + item.vow.id">Outcome/resolution notes</label>
+                  <textarea
+                    [id]="'outcome-note-' + item.vow.id"
+                    rows="6"
+                    [value]="outcomeNote(item.vow.id)"
+                    (input)="updateOutcomeDraft(item.vow.id, $any($event.target).value)"
+                    [attr.aria-describedby]="
+                      'outcome-help-' + item.vow.id + ' outcome-error-' + item.vow.id
+                    "
+                    [attr.aria-invalid]="outcomeErrors[item.vow.id] ? 'true' : null"
+                  ></textarea>
+                  <p [id]="'outcome-help-' + item.vow.id" class="helper-text">
+                    Use your own notes. This does not change vow status, rank, or progress.
+                  </p>
+                  @if (outcomeErrors[item.vow.id]) {
+                    <p [id]="'outcome-error-' + item.vow.id" class="field-error">
+                      {{ outcomeErrors[item.vow.id] }}
+                    </p>
+                  }
+                  <div class="outcome-actions">
+                    <button type="button" (click)="saveOutcome(item.vow.id)">
+                      Save outcome notes
+                    </button>
+                    <button
+                      type="button"
+                      class="secondary"
+                      (click)="cancelOutcomeEdit(item.vow.id)"
+                    >
+                      Cancel outcome edit
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <button
+                  type="button"
+                  class="secondary"
+                  [id]="'outcome-note-' + item.vow.id"
+                  (click)="startOutcomeEdit(item.vow.id, item.outcomeSummary)"
+                  [attr.aria-label]="'Edit outcome notes for ' + item.title"
+                >
+                  {{ item.outcomeSummary ? 'Edit outcome notes' : 'Add outcome notes' }}
+                </button>
+              }
+            </section>
             <section
               class="milestone-panel"
               [attr.aria-labelledby]="'milestones-title-' + item.vow.id"

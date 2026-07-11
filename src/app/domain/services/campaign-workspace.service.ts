@@ -13,6 +13,7 @@ import {
   validateVowDetails,
   type Vow,
   type VowMilestone,
+  type VowOutcome,
   type VowStatus,
 } from '@app/domain/vows';
 import {
@@ -82,6 +83,11 @@ export interface UpdateVowRankInput {
 export interface UpdateVowStatusInput {
   readonly vowId: string;
   readonly status: unknown;
+}
+
+export interface UpdateVowOutcomeInput {
+  readonly vowId: string;
+  readonly summary: string;
 }
 
 const compareVows = (left: Vow, right: Vow): number => {
@@ -248,6 +254,48 @@ export class CampaignWorkspaceService {
     this.selectedVowIdState.set(vow.id);
 
     return { ok: true, vow: cloneVow(vow) };
+  }
+
+  updateVowOutcome(
+    input: UpdateVowOutcomeInput,
+  ):
+    | { ok: true; vow: Vow; outcome: VowOutcome }
+    | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.vowsState().find((vow) => vow.id === input.vowId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'vowId', message: 'Vow was not found.' }],
+      };
+    }
+
+    if (typeof input.summary !== 'string') {
+      return {
+        ok: false,
+        errors: [
+          { code: 'invalid_type', field: 'outcome.summary', message: 'Enter outcome notes.' },
+        ],
+      };
+    }
+
+    const now = new Date().toISOString();
+    const outcome: VowOutcome = {
+      ...(existing.outcome ?? {}),
+      summary: input.summary,
+      resolvedAt: now,
+    };
+    const vow = cloneVow({
+      ...existing,
+      outcome,
+      updatedAt: now,
+    });
+
+    this.vowsState.update((vows) =>
+      vows.map((candidate) => (candidate.id === existing.id ? vow : candidate)),
+    );
+    this.selectedVowIdState.set(vow.id);
+
+    return { ok: true, vow: cloneVow(vow), outcome: { ...outcome } };
   }
 
   addVowMilestone(
