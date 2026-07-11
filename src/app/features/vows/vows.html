@@ -186,6 +186,14 @@
                 </button>
                 <button
                   type="button"
+                  (click)="rollVowProgress(item)"
+                  [attr.aria-describedby]="'progress-roll-help-' + item.vow.id"
+                  [attr.aria-label]="'Roll linked progress for ' + item.title"
+                >
+                  Roll progress
+                </button>
+                <button
+                  type="button"
                   class="danger"
                   (click)="unlinkTrack(item.vow.id)"
                   [attr.aria-label]="'Unlink progress track from ' + item.title"
@@ -218,6 +226,85 @@
               <button type="button" class="danger" (click)="unlinkTrack(item.vow.id)">
                 Remove broken link
               </button>
+            }
+
+            @if (item.linkedTrack) {
+              <section
+                class="progress-roll-panel"
+                [attr.aria-labelledby]="'progress-roll-title-' + item.vow.id"
+              >
+                <div class="progress-roll-heading">
+                  <h4 [id]="'progress-roll-title-' + item.vow.id">Linked progress roll</h4>
+                  <p [id]="'progress-roll-help-' + item.vow.id" class="helper-text">
+                    Uses the linked track's current progress. Status, outcome, milestones, and track
+                    progress stay unchanged.
+                  </p>
+                </div>
+                @if (progressRollErrors[item.vow.id]) {
+                  <p class="field-error" role="alert">{{ progressRollErrors[item.vow.id] }}</p>
+                }
+                @if (latestVowProgressRoll && latestVowProgressRoll.vowId === item.vow.id) {
+                  <article
+                    class="progress-roll-result"
+                    aria-label="Latest vow progress roll result"
+                    role="status"
+                  >
+                    <h5>Mechanical result</h5>
+                    <dl class="vow-facts" aria-label="Progress roll mechanical data">
+                      <div>
+                        <dt>Progress</dt>
+                        <dd>{{ latestVowProgressRoll.progressScore }}</dd>
+                      </div>
+                      <div>
+                        <dt>Challenge dice</dt>
+                        <dd>
+                          {{ latestVowProgressRoll.challengeDice[0] }} and
+                          {{ latestVowProgressRoll.challengeDice[1] }}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Result</dt>
+                        <dd>{{ outcomeLabel(latestVowProgressRoll.outcome) }}</dd>
+                      </div>
+                      <div>
+                        <dt>Challenge match</dt>
+                        <dd>{{ latestVowProgressRoll.isMatch ? 'Match' : 'No match' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Vow</dt>
+                        <dd>
+                          {{ latestVowProgressRoll.vowTitle }} ({{ latestVowProgressRoll.vowId }})
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Track</dt>
+                        <dd>
+                          {{
+                            latestVowProgressRoll.trackTitle ||
+                              latestVowProgressRoll.progressTrackId
+                          }}
+                          ({{ latestVowProgressRoll.progressTrackId }})
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Rolled</dt>
+                        <dd>
+                          <time [attr.datetime]="latestVowProgressRoll.rolledAt">{{
+                            formatRollTime(latestVowProgressRoll.rolledAt)
+                          }}</time>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Source</dt>
+                        <dd>{{ latestVowProgressRoll.source }}</dd>
+                      </div>
+                    </dl>
+                    <p class="helper-text">
+                      Mechanical result only. Choose any narrative or status changes separately.
+                    </p>
+                  </article>
+                }
+              </section>
             }
             @if (item.description) {
               <p class="vow-text">{{ item.description }}</p>
