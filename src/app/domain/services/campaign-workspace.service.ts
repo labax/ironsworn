@@ -1,4 +1,4 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, Injectable, inject, signal } from '@angular/core';
 
 import {
   createDefaultProgressTrack,
@@ -27,6 +27,11 @@ import {
 } from '@app/rules/progress-rolls';
 import type { RulesResult, ValidationError } from '@app/rules/validation';
 import { rulesFailure, rulesSuccess } from '@app/rules/validation';
+import {
+  CampaignWorkspacePersistenceService,
+  toPersistedCampaignWorkspace,
+  type CampaignWorkspaceLoadResult,
+} from './campaign-workspace-persistence.service';
 
 const cloneProgressTrack = (track: ProgressTrack): ProgressTrack => ({
   ...track,
@@ -164,6 +169,13 @@ const compareProgressTracks = (left: ProgressTrack, right: ProgressTrack): numbe
 
 @Injectable({ providedIn: 'root' })
 export class CampaignWorkspaceService {
+  private readonly persistence = inject(CampaignWorkspacePersistenceService);
+
+  readonly saveStatus = this.persistence.saveStatus;
+  readonly loadFailed = this.persistence.loadFailed;
+  readonly lastSaveResult = this.persistence.lastSaveResult;
+  readonly lastLoadError = this.persistence.lastLoadError;
+
   readonly workspaceName = signal('Local campaign workspace');
   readonly mode = signal('Ready for MVP features');
 
@@ -196,6 +208,26 @@ export class CampaignWorkspaceService {
 
     return selected ? cloneProgressTrack(selected) : null;
   });
+
+  async loadSavedWorkspace(): Promise<CampaignWorkspaceLoadResult> {
+    const result = await this.persistence.loadWorkspace();
+    if (result.success && result.found) {
+      this.progressTracksState.set(
+        result.workspace.progressTracks.map((track) => cloneProgressTrack(track)),
+      );
+      this.selectedProgressTrackIdState.set(result.workspace.selectedProgressTrackId ?? null);
+    }
+    return result;
+  }
+
+  private persistWorkspace(): void {
+    void this.persistence.saveWorkspace(
+      toPersistedCampaignWorkspace({
+        progressTracks: this.progressTracksState(),
+        selectedProgressTrackId: this.selectedProgressTrackIdState(),
+      }),
+    );
+  }
 
   setVows(vows: readonly Vow[]): void {
     this.vowsState.set(vows.map((vow) => cloneVow(vow)));
@@ -670,6 +702,7 @@ export class CampaignWorkspaceService {
     if (selectedId && !tracks.some((track) => track.id === selectedId)) {
       this.selectedProgressTrackIdState.set(null);
     }
+    this.persistWorkspace();
   }
 
   saveProgressTrack(
@@ -708,6 +741,7 @@ export class CampaignWorkspaceService {
         : [...tracks, track],
     );
     this.selectedProgressTrackIdState.set(track.id);
+    this.persistWorkspace();
 
     return { ok: true, track: cloneProgressTrack(track) };
   }
@@ -715,6 +749,7 @@ export class CampaignWorkspaceService {
   selectProgressTrack(trackId: string): ProgressTrack | null {
     const selected = this.progressTracksState().find((track) => track.id === trackId) ?? null;
     this.selectedProgressTrackIdState.set(selected?.id ?? null);
+    this.persistWorkspace();
 
     return selected ? cloneProgressTrack(selected) : null;
   }
@@ -749,6 +784,7 @@ export class CampaignWorkspaceService {
       tracks.map((candidate) => (candidate.id === trackId ? track : candidate)),
     );
     this.selectedProgressTrackIdState.set(track.id);
+    this.persistWorkspace();
 
     return { ok: true, track: cloneProgressTrack(track) };
   }
@@ -816,6 +852,7 @@ export class CampaignWorkspaceService {
     if (this.selectedProgressTrackIdState() === trackId) {
       this.selectedProgressTrackIdState.set(null);
     }
+    this.persistWorkspace();
 
     return { ok: true, track: cloneProgressTrack(existing) };
   }
@@ -841,6 +878,7 @@ export class CampaignWorkspaceService {
       tracks.map((candidate) => (candidate.id === trackId ? track : candidate)),
     );
     this.selectedProgressTrackIdState.set(track.id);
+    this.persistWorkspace();
 
     return { ok: true, track: cloneProgressTrack(track) };
   }
@@ -918,5 +956,6 @@ export class CampaignWorkspaceService {
   clearProgressTracks(): void {
     this.progressTracksState.set([]);
     this.selectedProgressTrackIdState.set(null);
+    this.persistWorkspace();
   }
 }
