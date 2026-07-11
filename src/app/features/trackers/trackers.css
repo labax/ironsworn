@@ -269,3 +269,138 @@ textarea:focus-visible {
 .progress-roll-result h4 {
   margin: 0;
 }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.trackers-page,
+.track-form,
+.track-card,
+.track-card article,
+.track-card-heading,
+.form-grid,
+.track-facts,
+.progress-controls {
+  min-width: 0;
+}
+
+.view-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.view-switcher button[aria-pressed='true'] {
+  outline: 2px solid #f8fafc;
+  outline-offset: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+  min-height: 2.75rem;
+}
+
+button {
+  overflow-wrap: anywhere;
+  touch-action: manipulation;
+}
+
+input,
+select,
+textarea,
+.track-facts dd,
+.form-message,
+.helper-text,
+.field-error,
+.override-status,
+.progress-roll-result {
+  overflow-wrap: anywhere;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.progress-controls {
+  align-items: stretch;
+}
+
+.progress-controls button {
+  flex: 0 1 auto;
+}
+
+.correction-field {
+  flex: 1 1 9rem;
+}
+
+.sr-only {
+  border: 0;
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (max-width: 56rem) {
+  .trackers-header,
+  .empty-state,
+  .track-card article,
+  .track-form {
+    padding: 1rem;
+  }
+
+  .track-card-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .track-card-heading button,
+  .view-switcher button,
+  .form-actions button {
+    width: auto;
+  }
+}
+
+@media (max-width: 30rem) {
+  .trackers-page {
+    gap: 0.85rem;
+  }
+
+  .trackers-header,
+  .empty-state,
+  .track-card article,
+  .track-form {
+    border-radius: 0.85rem;
+    padding: 0.85rem;
+  }
+
+  .form-grid,
+  .track-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .view-switcher,
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .view-switcher button,
+  .form-actions button,
+  .track-card-heading button {
+    width: 100%;
+  }
+
+  .progress-box {
+    flex: 1 0 2rem;
+    max-width: 2.75rem;
+  }
+}
