@@ -130,6 +130,60 @@
         }
         .
       </p>
+
+      @if (momentumBurnPreview(); as preview) {
+        @if (preview.eligible) {
+          <div class="momentum-preview-actions">
+            <button
+              type="button"
+              class="secondary-button"
+              (click)="showMomentumPreview()"
+              aria-controls="momentum-burn-preview"
+              [attr.aria-expanded]="isMomentumPreviewOpen()"
+            >
+              Preview momentum burn
+            </button>
+          </div>
+
+          @if (isMomentumPreviewOpen()) {
+            <section
+              id="momentum-burn-preview"
+              class="momentum-preview"
+              aria-labelledby="momentum-burn-preview-title"
+            >
+              <div class="preview-heading">
+                <div>
+                  <p class="section-label">Momentum burn preview</p>
+                  <h5 id="momentum-burn-preview-title">
+                    Before: {{ resultLabel(preview.initialOutcome!) }} · After:
+                    {{ resultLabel(preview.prospectiveOutcome!) }}
+                  </h5>
+                </div>
+                <button
+                  type="button"
+                  class="secondary-button"
+                  (click)="dismissMomentumPreview()"
+                  aria-label="Dismiss momentum burn preview"
+                >
+                  Dismiss
+                </button>
+              </div>
+
+              <p>
+                Momentum {{ preview.momentum }} cancels
+                @for (die of preview.canceledDice; track die.position) {
+                  challenge die {{ die.position + 1 }} ({{ die.value }}){{ $last ? '' : ', ' }}
+                }
+                . Equal dice are not canceled.
+              </p>
+              <p>Original match: {{ preview.isMatch ? 'Challenge dice match' : 'No match' }}.</p>
+              @if (preview.reset !== undefined) {
+                <p>Reset stays {{ preview.reset }}; no state changes are applied.</p>
+              }
+            </section>
+          }
+        }
+      }
     </section>
   } @else if (lastPreparedInput(); as input) {
     <p class="handoff-note" role="status">

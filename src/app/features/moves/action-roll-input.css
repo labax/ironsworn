@@ -177,3 +177,41 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+.momentum-preview-actions {
+  margin-top: 1rem;
+}
+
+.momentum-preview {
+  border: 1px solid #bcb3a2;
+  border-radius: 0.75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fff;
+}
+
+.preview-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.preview-heading h5 {
+  font-size: 1.1rem;
+  margin: 0.15rem 0 0;
+}
+
+.momentum-preview p {
+  margin: 0.75rem 0 0;
+}
+
+@media (max-width: 640px) {
+  .preview-heading {
+    display: block;
+  }
+
+  .preview-heading button {
+    margin-top: 0.75rem;
+  }
+}

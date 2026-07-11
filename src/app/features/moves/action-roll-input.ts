@@ -4,9 +4,11 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { ActiveCharacterService, type StatKey } from '@app/domain/character';
 import { RollHistoryService, type PreparedActionRollInput } from '@app/domain/rolls';
 import {
+  previewActionRollMomentumBurn,
   resolveActionRoll,
   type ActionRollInput as RulesActionRollInput,
   type ActionRollResult,
+  type MomentumBurnPreviewResult,
 } from '@app/rules';
 import type { RulesResult } from '@app/rules';
 
@@ -52,6 +54,8 @@ export class ActionRollInput {
   protected readonly hasCharacter = this.activeCharacter.hasActiveCharacter;
   protected readonly lastPreparedInput = signal<PreparedActionRollInput | null>(null);
   protected readonly lastResolvedRoll = signal<ActionRollResult | null>(null);
+  protected readonly momentumBurnPreview = signal<MomentumBurnPreviewResult | null>(null);
+  protected readonly isMomentumPreviewOpen = signal(false);
   protected readonly rollError = signal<string | null>(null);
   protected readonly isResolving = signal(false);
   protected readonly selectedSource = signal<RollInputSource>('character-stat');
@@ -156,18 +160,35 @@ export class ActionRollInput {
 
       if (resolved.ok) {
         this.lastResolvedRoll.set(resolved.value);
+        this.recomputeMomentumBurnPreview(resolved.value);
         this.rollHistory.saveActionRoll({ prepared, result: resolved.value });
       } else {
         this.lastResolvedRoll.set(null);
+        this.momentumBurnPreview.set(null);
+        this.isMomentumPreviewOpen.set(false);
         this.rollError.set('The roll could not be resolved. Check the input and try again.');
       }
     } catch {
       this.lastResolvedRoll.set(null);
+      this.momentumBurnPreview.set(null);
+      this.isMomentumPreviewOpen.set(false);
       this.rollError.set('The roll could not be resolved. Check the input and try again.');
     } finally {
       this.isResolving.set(false);
     }
     this.prepared.emit(prepared);
+  }
+
+  protected showMomentumPreview(): void {
+    const roll = this.lastResolvedRoll();
+    if (roll) {
+      this.recomputeMomentumBurnPreview(roll);
+    }
+    this.isMomentumPreviewOpen.set(true);
+  }
+
+  protected dismissMomentumPreview(): void {
+    this.isMomentumPreviewOpen.set(false);
   }
 
   protected resultLabel(result: ActionRollResult['outcome']): string {
@@ -184,6 +205,21 @@ export class ActionRollInput {
   protected showError(controlName: keyof typeof this.rollForm.controls): boolean {
     const control = this.rollForm.controls[controlName];
     return control.invalid && (control.dirty || control.touched);
+  }
+
+  private recomputeMomentumBurnPreview(roll: ActionRollResult): void {
+    const character = this.activeCharacter.activeCharacter();
+    if (!character) {
+      this.momentumBurnPreview.set(null);
+      this.isMomentumPreviewOpen.set(false);
+      return;
+    }
+
+    const preview = previewActionRollMomentumBurn(roll, character.momentum);
+    this.momentumBurnPreview.set(preview.ok ? preview.value : null);
+    if (!preview.ok || !preview.value.eligible) {
+      this.isMomentumPreviewOpen.set(false);
+    }
   }
 
   private syncSelectedStatValue(): void {

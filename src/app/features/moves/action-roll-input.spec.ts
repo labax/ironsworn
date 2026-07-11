@@ -192,6 +192,84 @@ describe('ActionRollInput', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain(label);
   });
 
+  it('shows eligible momentum burn preview without mutating character state or history', () => {
+    activeCharacter.setActiveCharacter(
+      createDefaultCharacter({
+        id: 'character-1',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        name: 'Kara',
+      }),
+    );
+    activeCharacter.updateActiveCharacter({ momentum: { current: 6, reset: 2 } });
+    resolverResult = {
+      ok: true,
+      value: resolvedRoll({
+        actionDie: 3,
+        challengeDice: [5, 8],
+        statBonus: 1,
+        adds: 0,
+        rawScore: 4,
+        cappedScore: 4,
+        outcome: 'miss',
+        challengeResults: [false, false],
+      }),
+    };
+    createComponent();
+
+    component['prepareRoll']();
+    fixture.detectChanges();
+    const beforeCharacter = activeCharacter.activeCharacter();
+    const beforeHistory = rollHistory.entries();
+
+    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      'button[aria-controls="momentum-burn-preview"]',
+    );
+    expect(button).toBeTruthy();
+    button?.click();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Before: Miss · After: Weak hit');
+    expect(text).toContain('challenge die 1 (5)');
+    expect(text).toContain('Reset stays 2; no state changes are applied.');
+    expect(activeCharacter.activeCharacter()).toEqual(beforeCharacter);
+    expect(rollHistory.entries()).toEqual(beforeHistory);
+
+    const dismiss = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      'button[aria-label="Dismiss momentum burn preview"]',
+    );
+    dismiss?.click();
+    fixture.detectChanges();
+    expect(activeCharacter.activeCharacter()).toEqual(beforeCharacter);
+    expect(rollHistory.entries()).toEqual(beforeHistory);
+  });
+
+  it('hides momentum burn preview action when ineligible', () => {
+    activeCharacter.setActiveCharacter(
+      createDefaultCharacter({
+        id: 'character-1',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        name: 'Kara',
+      }),
+    );
+    activeCharacter.updateActiveCharacter({ momentum: { current: 6, reset: 2 } });
+    resolverResult = {
+      ok: true,
+      value: resolvedRoll({ challengeDice: [6, 8], cappedScore: 4, outcome: 'miss' }),
+    };
+    createComponent();
+
+    component['prepareRoll']();
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        'button[aria-controls="momentum-burn-preview"]',
+      ),
+    ).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Miss');
+  });
+
   it('handles resolver validation errors without crashing', () => {
     resolverResult = {
       ok: false,
