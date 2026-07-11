@@ -8,6 +8,98 @@
     </p>
   </header>
 
+  <form
+    class="track-form"
+    [formGroup]="trackForm"
+    (ngSubmit)="saveTrack()"
+    aria-labelledby="track-editor-title"
+  >
+    <div class="track-card-heading">
+      <div>
+        <p class="section-label">{{ editingTrackId ? 'Edit track' : 'Create track' }}</p>
+        <h3 id="track-editor-title">Progress track details</h3>
+        <p class="helper-text">
+          Rank changes keep current progress unless you choose otherwise later.
+        </p>
+      </div>
+      <button type="button" (click)="openCreate()" aria-label="Create a progress track">
+        Create track
+      </button>
+    </div>
+
+    <div class="form-grid">
+      <label>
+        Name
+        <input
+          id="track-title"
+          type="text"
+          formControlName="title"
+          [attr.aria-invalid]="showError('title')"
+          aria-describedby="track-title-error"
+        />
+        @if (showError('title')) {
+          <span id="track-title-error" class="field-error">{{
+            fieldErrors.title || 'Enter a track name.'
+          }}</span>
+        }
+      </label>
+
+      <label>
+        Type
+        <select
+          id="track-type"
+          formControlName="type"
+          [attr.aria-invalid]="showError('type')"
+          aria-describedby="track-type-help track-type-error"
+        >
+          @for (option of typeOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        <span id="track-type-help" class="helper-text">Custom names stay user-authored.</span>
+        @if (showError('type')) {
+          <span id="track-type-error" class="field-error">{{
+            fieldErrors.type || 'Choose a supported track type.'
+          }}</span>
+        }
+      </label>
+
+      <label>
+        Rank
+        <select
+          id="track-rank"
+          formControlName="rank"
+          [attr.aria-invalid]="showError('rank')"
+          aria-describedby="track-rank-help track-rank-error"
+        >
+          @for (option of rankOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        <span id="track-rank-help" class="helper-text"
+          >Progress is never recalculated silently.</span
+        >
+        @if (showError('rank')) {
+          <span id="track-rank-error" class="field-error">{{
+            fieldErrors.rank || 'Choose a supported rank.'
+          }}</span>
+        }
+      </label>
+    </div>
+
+    <label>
+      Notes
+      <textarea id="track-notes" formControlName="notes" rows="3"></textarea>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit">Save track</button>
+      @if (formMessage) {
+        <p class="form-message" role="status">{{ formMessage }}</p>
+      }
+    </div>
+  </form>
+
   @if (tracks().length === 0) {
     <section class="empty-state" aria-labelledby="empty-track-title">
       <div>
@@ -16,7 +108,9 @@
           Create a track when your campaign needs a vow, journey, combat, bond, or custom clock.
         </p>
       </div>
-      <button type="button" aria-label="Create a progress track">Create track</button>
+      <button type="button" aria-label="Create a progress track" (click)="openCreate()">
+        Create track
+      </button>
     </section>
   } @else {
     <ul class="track-list" aria-label="Progress tracks">

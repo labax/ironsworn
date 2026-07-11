@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 
 import { createDefaultProgressTrack, type ProgressTrack } from '@app/domain/progress';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
@@ -139,5 +140,110 @@ describe('Trackers', () => {
     expect(text).toContain('0 progress ticks');
     expect(text).not.toContain('undefined');
     expect(compiled().querySelector('.track-notes')).toBeTruthy();
+  });
+  it('creates every supported type and rank from accessible selectors', () => {
+    createComponent();
+    const component = fixture.componentInstance as unknown as {
+      trackForm: {
+        setValue(value: { title: string; type: string; rank: string; notes: string }): void;
+      };
+      saveTrack(): void;
+    };
+    const types = ['vow', 'journey', 'combat', 'bond', 'custom'];
+    const ranks = ['troublesome', 'dangerous', 'formidable', 'extreme', 'epic'];
+
+    types.forEach((type, index) => {
+      fixture.componentInstance['openCreate']();
+      component.trackForm.setValue({
+        title: `User authored ${type}`,
+        type,
+        rank: ranks[index],
+        notes: type === 'custom' ? 'User-authored custom note' : '',
+      });
+      component.saveTrack();
+    });
+    fixture.detectChanges();
+
+    expect(workspace.progressTracks().map((track) => track.type)).toEqual(types);
+    expect(workspace.progressTracks().map((track) => track.rank)).toEqual(ranks);
+    expect(compiled().querySelector('#track-type')?.tagName).toBe('SELECT');
+    expect(compiled().querySelector('#track-rank')?.tagName).toBe('SELECT');
+    expect(compiled().querySelector('#track-type')?.getAttribute('aria-describedby')).toContain(
+      'track-type-help',
+    );
+    expect(compiled().querySelector('#track-rank')?.getAttribute('aria-describedby')).toContain(
+      'track-rank-help',
+    );
+  });
+
+  it('edits type and rank with explicit rank-change confirmation and preserves progress and metadata', () => {
+    const track = progressTrack({
+      id: 'track-edit',
+      title: 'Original custom name',
+      type: 'vow',
+      rank: 'dangerous',
+      ticks: 16,
+      notes: 'Keep note',
+      events: [{ id: 'event-1', createdAt: '2026-07-01T00:00:00.000Z', ticksDelta: 4 }],
+    });
+    const unrelated = progressTrack({ id: 'track-other', title: 'Other', ticks: 8 });
+    workspace.setProgressTracks([track, unrelated]);
+    createComponent();
+    fixture.componentInstance['openTrack']('track-edit');
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    fixture.componentInstance['trackForm'].setValue({
+      title: 'Changed custom name',
+      type: 'custom',
+      rank: 'epic',
+      notes: 'Keep note updated',
+    });
+    fixture.componentInstance['saveTrack']();
+
+    expect(workspace.selectedProgressTrack()).toMatchObject({
+      type: 'vow',
+      rank: 'dangerous',
+      ticks: 16,
+    });
+    expect(fixture.componentInstance['formMessage']).toContain('canceled');
+
+    confirmSpy.mockReturnValue(true);
+    fixture.componentInstance['saveTrack']();
+    const saved = workspace.selectedProgressTrack();
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Changing rank keeps current progress ticks. No recalculation will be made.',
+    );
+    expect(saved).toMatchObject({
+      id: 'track-edit',
+      title: 'Changed custom name',
+      type: 'custom',
+      rank: 'epic',
+      ticks: 16,
+      notes: 'Keep note updated',
+      status: 'active',
+    });
+    expect(saved?.events).toEqual(track.events);
+    expect(workspace.progressTracks().find((candidate) => candidate.id === 'track-other')).toEqual(
+      unrelated,
+    );
+  });
+
+  it('rejects invalid type and rank with field-associated feedback', () => {
+    createComponent();
+    fixture.componentInstance['trackForm'].setValue({
+      title: 'Invalid classification',
+      type: 'ritual' as never,
+      rank: 'minor' as never,
+      notes: '',
+    });
+    fixture.componentInstance['saveTrack']();
+    fixture.detectChanges();
+
+    expect(workspace.progressTracks()).toEqual([]);
+    expect(compiled().textContent).toContain('Choose a supported track type.');
+    expect(compiled().textContent).toContain('Choose a supported rank.');
+    expect(compiled().querySelector('#track-type')?.getAttribute('aria-invalid')).toBe('true');
+    expect(compiled().querySelector('#track-rank')?.getAttribute('aria-invalid')).toBe('true');
   });
 });
