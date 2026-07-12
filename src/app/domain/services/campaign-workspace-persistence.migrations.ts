@@ -7,6 +7,7 @@ import {
   type ProgressTrack,
   type ProgressTrackStatus,
 } from '@app/domain/progress';
+import { CUSTOM_ORACLE_PROVENANCE, type CustomOracleTable } from '@app/domain/oracles';
 import { isVowStatus, type Vow, type VowMilestone, type VowOutcome } from '@app/domain/vows';
 
 export const WORKSPACE_SAVE_SCHEMA_VERSION = CURRENT_SAVE_SCHEMA_VERSION;
@@ -18,6 +19,8 @@ export interface PersistedCampaignWorkspace {
   readonly selectedProgressTrackId?: string;
   readonly vows: readonly Vow[];
   readonly selectedVowId?: string;
+  readonly customOracleTables?: readonly CustomOracleTable[];
+  readonly selectedCustomOracleTableId?: string;
 }
 
 const STATUSES: readonly ProgressTrackStatus[] = [
@@ -179,6 +182,65 @@ const migrateVow = (value: unknown): Vow | null => {
   };
 };
 
+const migrateCustomOracleTable = (value: unknown): CustomOracleTable | null => {
+  if (!isRecord(value)) return null;
+  const rollRange = value['rollRange'];
+  const provenance = value['provenance'];
+  if (
+    !isNonEmptyString(value['id']) ||
+    !isNonEmptyString(value['createdAt']) ||
+    !isNonEmptyString(value['updatedAt']) ||
+    !isNonEmptyString(value['name']) ||
+    !isNonEmptyString(value['category']) ||
+    !isOptionalString(value['description']) ||
+    !isRecord(rollRange) ||
+    !Number.isInteger(rollRange['min']) ||
+    !Number.isInteger(rollRange['max']) ||
+    !Array.isArray(value['entries']) ||
+    !isRecord(provenance) ||
+    (provenance['category'] !== 'custom' && provenance['category'] !== 'user_authored')
+  ) {
+    return null;
+  }
+
+  const entries = value['entries']
+    .filter(isRecord)
+    .map((entry): CustomOracleTable['entries'][number] | null => {
+      const range = entry['range'];
+      if (
+        !isNonEmptyString(entry['id']) ||
+        !isRecord(range) ||
+        !Number.isInteger(range['min']) ||
+        !Number.isInteger(range['max']) ||
+        !isNonEmptyString(entry['text'])
+      ) {
+        return null;
+      }
+      return {
+        id: entry['id'],
+        range: { min: range['min'] as number, max: range['max'] as number },
+        text: entry['text'],
+        provenance: { ...CUSTOM_ORACLE_PROVENANCE, sourceId: value['id'] as string },
+      };
+    })
+    .filter((entry): entry is CustomOracleTable['entries'][number] => entry !== null);
+
+  return {
+    id: value['id'],
+    name: value['name'],
+    category: value['category'],
+    description: optionalText(value['description']) ?? 'User-authored custom oracle table.',
+    kind: 'table',
+    rollRange: { min: rollRange['min'] as number, max: rollRange['max'] as number },
+    provenance: { ...CUSTOM_ORACLE_PROVENANCE, sourceId: value['id'] as string },
+    sourceType: 'custom',
+    createdAt: value['createdAt'],
+    updatedAt: value['updatedAt'],
+    entries,
+    metadata: { contentClass: 'runtime-custom', bundled: false },
+  };
+};
+
 export const migratePersistedCampaignWorkspace = (
   envelope: VersionedSaveEnvelope<unknown>,
 ): PersistedCampaignWorkspace | null => {
@@ -193,7 +255,8 @@ export const migratePersistedCampaignWorkspace = (
   const payload = envelope.payload;
   if (
     (payload['progressTracks'] !== undefined && !Array.isArray(payload['progressTracks'])) ||
-    (payload['vows'] !== undefined && !Array.isArray(payload['vows']))
+    (payload['vows'] !== undefined && !Array.isArray(payload['vows'])) ||
+    (payload['customOracleTables'] !== undefined && !Array.isArray(payload['customOracleTables']))
   ) {
     return null;
   }
@@ -206,6 +269,11 @@ export const migratePersistedCampaignWorkspace = (
   const migratedVows = Array.isArray(payload['vows'])
     ? payload['vows'].map(migrateVow).filter((vow): vow is Vow => vow !== null)
     : [];
+  const migratedCustomOracleTables = Array.isArray(payload['customOracleTables'])
+    ? payload['customOracleTables']
+        .map(migrateCustomOracleTable)
+        .filter((table): table is CustomOracleTable => table !== null)
+    : [];
   const selectedProgressTrackId =
     typeof payload['selectedProgressTrackId'] === 'string' &&
     migratedTracks.some((track) => track.id === payload['selectedProgressTrackId'])
@@ -217,10 +285,19 @@ export const migratePersistedCampaignWorkspace = (
       ? payload['selectedVowId']
       : undefined;
 
+  const selectedCustomOracleTableId =
+    typeof payload['selectedCustomOracleTableId'] === 'string' &&
+    migratedCustomOracleTables.some((table) => table.id === payload['selectedCustomOracleTableId'])
+      ? payload['selectedCustomOracleTableId']
+      : undefined;
+
   return {
     progressTracks: migratedTracks,
     selectedProgressTrackId,
     vows: migratedVows,
     selectedVowId,
+    ...(migratedCustomOracleTables.length > 0 || payload['customOracleTables'] !== undefined
+      ? { customOracleTables: migratedCustomOracleTables, selectedCustomOracleTableId }
+      : {}),
   };
 };

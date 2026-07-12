@@ -139,7 +139,9 @@ const validateEntry = (entry: OracleTableEntry, index: number): readonly Validat
   return errors;
 };
 
-const validateTableShape = (table: ResolvableOracleTable): readonly ValidationError[] => {
+export const validateOracleTableShape = (
+  table: ResolvableOracleTable,
+): readonly ValidationError[] => {
   const errors: ValidationError[] = [];
   if (!hasSafeText(table.id))
     errors.push(oracleError('malformed_table', 'Oracle table must have a stable id.', 'table.id'));
@@ -158,8 +160,25 @@ const validateTableShape = (table: ResolvableOracleTable): readonly ValidationEr
   return errors;
 };
 
-const validateCoverage = (table: ResolvableOracleTable): readonly ValidationError[] => {
+export const validateOracleTableCoverage = (
+  table: ResolvableOracleTable,
+): readonly ValidationError[] => {
   const errors: ValidationError[] = [];
+  table.entries.forEach((entry, index) => {
+    const previous = table.entries[index - 1];
+    if (
+      previous &&
+      (entry.range.min < previous.range.min || entry.range.max < previous.range.max)
+    ) {
+      errors.push(
+        oracleError(
+          'invalid_order',
+          'Oracle entry ranges must stay in ascending order.',
+          `table.entries.${index}.range`,
+        ),
+      );
+    }
+  });
   const ranges = table.entries
     .map((entry) => entry.range)
     .sort((a, b) => a.min - b.min || a.max - b.max);
@@ -227,10 +246,10 @@ export const rollInOracleRange = (range: OracleDieRange, provider?: RandomNumber
 export const resolveOracleTableRoll = (
   input: ResolveOracleTableInput,
 ): RulesResult<ResolvedOracleTableResult> => {
-  const tableErrors = validateTableShape(input.table);
+  const tableErrors = validateOracleTableShape(input.table);
   if (tableErrors.length > 0) return rulesFailure(tableErrors);
 
-  const errors = [...validateCoverage(input.table)];
+  const errors = [...validateOracleTableCoverage(input.table)];
 
   const roll = input.fixedRoll ?? rollInOracleRange(input.table.rollRange, input.randomProvider);
   if (

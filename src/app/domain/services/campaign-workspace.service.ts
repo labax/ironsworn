@@ -1,6 +1,13 @@
 import { computed, Injectable, inject, signal } from '@angular/core';
 
 import {
+  cloneCustomOracleTable,
+  toCustomOracleTable,
+  type CustomOracleEntryInput,
+  type CustomOracleTable,
+  type SaveCustomOracleTableInput,
+} from '@app/domain/oracles';
+import {
   createDefaultProgressTrack,
   validateProgressTrackDetails,
   validateProgressTrackTicks,
@@ -25,6 +32,7 @@ import {
   type ProgressRollResult,
   type ProgressValidationOptions,
 } from '@app/rules/progress-rolls';
+import { validateOracleTableCoverage, validateOracleTableShape } from '@app/rules/oracles';
 import type { RulesResult, ValidationError } from '@app/rules/validation';
 import { rulesFailure, rulesSuccess } from '@app/rules/validation';
 import {
@@ -179,6 +187,13 @@ export class CampaignWorkspaceService {
   readonly workspaceName = signal('Local campaign workspace');
   readonly mode = signal('Ready for MVP features');
 
+  private readonly customOracleTablesState = signal<readonly CustomOracleTable[]>([]);
+  private readonly selectedCustomOracleTableIdState = signal<string | null>(null);
+  readonly customOracleTables = computed<readonly CustomOracleTable[]>(() =>
+    this.customOracleTablesState().map((table) => cloneCustomOracleTable(table)),
+  );
+  readonly selectedCustomOracleTableId = this.selectedCustomOracleTableIdState.asReadonly();
+
   private readonly vowsState = signal<readonly Vow[]>([]);
   private readonly selectedVowIdState = signal<string | null>(null);
 
@@ -218,6 +233,12 @@ export class CampaignWorkspaceService {
       this.selectedProgressTrackIdState.set(result.workspace.selectedProgressTrackId ?? null);
       this.vowsState.set(result.workspace.vows.map((vow) => cloneVow(vow)));
       this.selectedVowIdState.set(result.workspace.selectedVowId ?? null);
+      this.customOracleTablesState.set(
+        (result.workspace.customOracleTables ?? []).map((table) => cloneCustomOracleTable(table)),
+      );
+      this.selectedCustomOracleTableIdState.set(
+        result.workspace.selectedCustomOracleTableId ?? null,
+      );
     }
     return result;
   }
@@ -229,8 +250,65 @@ export class CampaignWorkspaceService {
         selectedProgressTrackId: this.selectedProgressTrackIdState(),
         vows: this.vowsState(),
         selectedVowId: this.selectedVowIdState(),
+        customOracleTables: this.customOracleTablesState(),
+        selectedCustomOracleTableId: this.selectedCustomOracleTableIdState(),
       }),
     );
+  }
+
+  saveCustomOracleTable(
+    input: SaveCustomOracleTableInput,
+  ): { ok: true; table: CustomOracleTable } | { ok: false; errors: readonly ValidationError[] } {
+    const id = input.id ?? createEntityId('custom-oracle');
+    const existing = input.id
+      ? this.customOracleTablesState().find((table) => table.id === input.id)
+      : undefined;
+    const now = new Date().toISOString();
+    const entries = input.entries.map((entry: CustomOracleEntryInput, index) => ({
+      id: entry.id && String(entry.id).trim() ? String(entry.id) : `${id}:entry-${index + 1}`,
+      range: { min: Number(entry.min), max: Number(entry.max) },
+      text: typeof entry.text === 'string' ? entry.text.trim() : '',
+    }));
+    const table = toCustomOracleTable({
+      id,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      name: typeof input.name === 'string' ? input.name.trim() : '',
+      category: typeof input.category === 'string' ? input.category.trim() : '',
+      description: typeof input.description === 'string' ? input.description.trim() : undefined,
+      rollRange: { min: Number(input.rollMin), max: Number(input.rollMax) },
+      entries,
+    });
+    const errors = [...validateOracleTableShape(table), ...validateOracleTableCoverage(table)];
+    if (errors.length > 0) return { ok: false, errors };
+
+    this.customOracleTablesState.update((tables) =>
+      existing
+        ? tables.map((candidate) => (candidate.id === existing.id ? table : candidate))
+        : [...tables, table],
+    );
+    this.selectedCustomOracleTableIdState.set(table.id);
+    this.persistWorkspace();
+    return { ok: true, table: cloneCustomOracleTable(table) };
+  }
+
+  deleteCustomOracleTable(
+    tableId: string,
+  ): { ok: true; table: CustomOracleTable } | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.customOracleTablesState().find((table) => table.id === tableId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [
+          { code: 'not_found', field: 'tableId', message: 'Custom oracle table was not found.' },
+        ],
+      };
+    }
+    this.customOracleTablesState.update((tables) => tables.filter((table) => table.id !== tableId));
+    if (this.selectedCustomOracleTableIdState() === tableId)
+      this.selectedCustomOracleTableIdState.set(null);
+    this.persistWorkspace();
+    return { ok: true, table: cloneCustomOracleTable(existing) };
   }
 
   setVows(vows: readonly Vow[]): void {
