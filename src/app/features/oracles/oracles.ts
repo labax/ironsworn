@@ -67,6 +67,7 @@ export class Oracles {
   protected readonly errorMessage = signal('');
   protected readonly validationErrors = signal<readonly ValidationError[]>([]);
   protected readonly rollResult = signal<ResolvedOracleTableResult | undefined>(undefined);
+  protected readonly oracleQuestionContext = signal('');
   protected readonly deleteTarget = signal<BrowsableOracleTable | undefined>(undefined);
   protected readonly selectedTable = computed(() => {
     const id = this.selectedTableId();
@@ -223,10 +224,23 @@ export class Oracles {
     void this.loadTables();
   }
 
+  protected updateOracleQuestionContext(event: Event): void {
+    this.oracleQuestionContext.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected clearOracleQuestionContext(): void {
+    this.oracleQuestionContext.set('');
+  }
+
   protected rollSelected(): void {
     const table = this.selectedTable();
     if (!table) return;
-    const result = resolveOracleTableRoll({ table });
+    const questionContext = this.oracleQuestionContext().trim();
+    this.oracleQuestionContext.set(questionContext);
+    const result = resolveOracleTableRoll({
+      table,
+      questionContext: questionContext || undefined,
+    });
     if (!result.ok) {
       this.validationErrors.set(result.errors);
       return;

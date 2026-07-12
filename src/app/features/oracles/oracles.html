@@ -185,17 +185,44 @@
               </li>
             }
           </ol>
+          <div class="oracle-context-field">
+            <label for="oracle-question-context">Question or context</label>
+            <p id="oracle-question-context-help">
+              Optional user-authored notes for this roll. Leading and trailing spaces are trimmed.
+            </p>
+            <textarea
+              id="oracle-question-context"
+              rows="4"
+              [value]="oracleQuestionContext()"
+              (input)="updateOracleQuestionContext($event)"
+              aria-describedby="oracle-question-context-help oracle-validation-errors"
+            ></textarea>
+          </div>
           <div class="button-row">
             <button type="button" (click)="rollSelected()">Roll on this table</button>
+            <button
+              type="button"
+              (click)="clearOracleQuestionContext()"
+              [disabled]="!oracleQuestionContext()"
+            >
+              Clear context
+            </button>
             @if (isSelectedCustom()) {
               <button type="button" (click)="editSelected()">Edit custom table</button>
               <button type="button" (click)="requestDeleteSelected()">Delete custom table</button>
             }
           </div>
+          <p id="oracle-validation-errors" class="field-error" aria-live="polite">
+            {{ fieldErrors('table') }} {{ fieldErrors('fixedRoll') }}
+          </p>
           @if (rollResult(); as result) {
-            <output class="state-card" aria-live="polite"
-              >Rolled {{ result.roll }}: {{ result.text || result.textRef }}</output
-            >
+            <output class="state-card oracle-roll-result" aria-live="polite">
+              <span>Rolled {{ result.roll }}: {{ result.text || result.textRef }}</span>
+              @if (result.questionContext) {
+                <span class="oracle-result-context-label">Question or context</span>
+                <span class="oracle-result-context">{{ result.questionContext }}</span>
+              }
+            </output>
           }
         </article>
       }

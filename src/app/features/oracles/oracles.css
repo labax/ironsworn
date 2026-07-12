@@ -225,3 +225,53 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+.oracle-context-field {
+  display: grid;
+  gap: 0.45rem;
+  margin: 1rem 0;
+  min-width: 0;
+}
+
+.oracle-context-field label,
+.oracle-result-context-label {
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.oracle-context-field p {
+  margin: 0;
+}
+
+.oracle-context-field textarea {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 0.75rem;
+  background: rgba(2, 6, 23, 0.34);
+  color: inherit;
+  font: inherit;
+  max-width: 100%;
+  min-height: 7rem;
+  padding: 0.7rem 0.85rem;
+  resize: vertical;
+  width: 100%;
+}
+
+.oracle-context-field textarea:focus-visible {
+  outline: 3px solid #bfdbfe;
+  outline-offset: 3px;
+}
+
+.oracle-roll-result {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.oracle-result-context {
+  border-left: 3px solid rgba(191, 219, 254, 0.8);
+  padding-left: 0.75rem;
+  white-space: pre-wrap;
+}
