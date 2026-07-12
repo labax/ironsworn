@@ -2,9 +2,13 @@ import { Component, computed, HostListener, inject, signal } from '@angular/core
 import { FormArray, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import {
+  filterOracleTablesForDiscovery,
+  groupOracleTablesByCategory,
   oracleAvailabilityLabel,
+  oracleSourceLabel,
   type BrowsableOracleTable,
   type OracleCategoryGroup,
+  type OracleSourceFilter,
 } from '@domain/oracles';
 import { CampaignWorkspaceService } from '@domain/services/campaign-workspace.service';
 import type { EntityId } from '@domain/shared';
@@ -26,7 +30,39 @@ export class Oracles {
   private readonly workspace = inject(CampaignWorkspaceService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
   protected readonly loadState = signal<LoadState>('loading');
-  protected readonly groups = signal<readonly OracleCategoryGroup[]>([]);
+  private readonly allTables = signal<readonly BrowsableOracleTable[]>([]);
+  protected readonly searchQuery = signal('');
+  protected readonly categoryFilter = signal('');
+  protected readonly sourceFilter = signal<OracleSourceFilter>('all');
+  protected readonly groups = computed<readonly OracleCategoryGroup[]>(() =>
+    groupOracleTablesByCategory(
+      filterOracleTablesForDiscovery(this.allTables(), {
+        query: this.searchQuery(),
+        category: this.categoryFilter(),
+        source: this.sourceFilter(),
+      }),
+    ),
+  );
+  protected readonly tableCount = computed(() => this.allTables().length);
+  protected readonly filteredTables = computed(() =>
+    this.groups().flatMap((group) => group.tables),
+  );
+  protected readonly hasDiscoveryFilters = computed(
+    () =>
+      Boolean(this.searchQuery().trim()) ||
+      Boolean(this.categoryFilter()) ||
+      this.sourceFilter() !== 'all',
+  );
+  protected readonly categoryOptions = computed(() =>
+    [...new Set(this.allTables().map((table) => table.category))].sort((a, b) =>
+      a.localeCompare(b),
+    ),
+  );
+  protected readonly sourceOptions = computed(() =>
+    [
+      ...new Set(this.allTables().map((table) => table.sourceType ?? table.provenance.category)),
+    ].sort((a, b) => oracleSourceLabel(a).localeCompare(oracleSourceLabel(b))),
+  );
   protected readonly selectedTableId = signal<EntityId | undefined>(undefined);
   protected readonly errorMessage = signal('');
   protected readonly validationErrors = signal<readonly ValidationError[]>([]);
@@ -35,11 +71,7 @@ export class Oracles {
   protected readonly selectedTable = computed(() => {
     const id = this.selectedTableId();
     if (!id) return undefined;
-    for (const group of this.groups()) {
-      const table = group.tables.find((candidate) => candidate.id === id);
-      if (table) return table;
-    }
-    return undefined;
+    return this.allTables().find((candidate) => candidate.id === id);
   });
   protected readonly isSelectedCustom = computed(
     () => this.selectedTable()?.provenance.category === 'custom',
@@ -81,16 +113,39 @@ export class Oracles {
     return oracleAvailabilityLabel(table);
   }
 
+  protected sourceLabel(source: OracleSourceFilter): string {
+    return oracleSourceLabel(source);
+  }
+
+  protected updateSearchQuery(event: Event): void {
+    this.searchQuery.set((event.target as HTMLInputElement).value);
+  }
+
+  protected updateCategoryFilter(event: Event): void {
+    this.categoryFilter.set((event.target as HTMLSelectElement).value);
+  }
+
+  protected updateSourceFilter(event: Event): void {
+    this.sourceFilter.set((event.target as HTMLSelectElement).value as OracleSourceFilter);
+  }
+
+  protected resetDiscoveryFilters(): void {
+    this.searchQuery.set('');
+    this.categoryFilter.set('');
+    this.sourceFilter.set('all');
+    this.selectedTableId.set(this.allTables()[0]?.id);
+  }
+
   protected async loadTables(): Promise<void> {
     this.loadState.set('loading');
     this.errorMessage.set('');
     try {
       const snapshot = await this.oracleBrowser.loadApprovedTables();
-      this.groups.set(snapshot.groups);
+      this.allTables.set(snapshot.tables);
       this.selectedTableId.set(this.selectedTableId() ?? snapshot.tables[0]?.id);
       this.loadState.set('ready');
     } catch {
-      this.groups.set([]);
+      this.allTables.set([]);
       this.selectedTableId.set(undefined);
       this.errorMessage.set('Oracle tables could not be loaded. Try refreshing the page.');
       this.loadState.set('error');
@@ -99,7 +154,7 @@ export class Oracles {
 
   protected openTable(tableId: EntityId): void {
     if (!this.confirmDiscard()) return;
-    const table = this.oracleBrowser.findApprovedTable(tableId);
+    const table = this.allTables().find((candidate) => candidate.id === tableId);
     if (!table) return;
     this.selectedTableId.set(table.id);
     this.rollResult.set(undefined);

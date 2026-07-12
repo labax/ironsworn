@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { PROJECT_ORIGINAL_PROVENANCE } from '@domain/content';
 import {
+  filterOracleTablesForDiscovery,
   filterReleaseEligibleOracleTables,
   findOracleTableById,
   groupOracleTablesByCategory,
@@ -64,6 +65,72 @@ describe('oracle browser data filtering', () => {
     };
 
     expect(filterReleaseEligibleOracleTables([table])).toEqual([]);
+  });
+
+  it('searches table names categories and descriptions without mutating input order', () => {
+    const scene = {
+      ...approved('oracle:scene', 'Session prompts'),
+      name: 'Scene Tone',
+      description: 'Mood cue.',
+    };
+    const npc = {
+      ...approved('oracle:npc', 'Characters'),
+      name: 'NPC Need',
+      description: 'Supporting character wants.',
+    };
+    const original = [scene, npc] as const;
+
+    expect(
+      filterOracleTablesForDiscovery(original, { query: 'scene', category: '', source: 'all' }),
+    ).toEqual([scene]);
+    expect(
+      filterOracleTablesForDiscovery(original, {
+        query: 'characters',
+        category: '',
+        source: 'all',
+      }),
+    ).toEqual([npc]);
+    expect(
+      filterOracleTablesForDiscovery(original, { query: 'mood', category: '', source: 'all' }),
+    ).toEqual([scene]);
+    expect(original.map((table) => table.id)).toEqual(['oracle:scene', 'oracle:npc']);
+  });
+
+  it('combines category and source filters after release eligibility excludes blocked content', () => {
+    const project = { ...approved('oracle:project', 'Session prompts'), name: 'Project Prompt' };
+    const srd = {
+      ...approved('oracle:srd', 'Session prompts'),
+      name: 'Approved Bundled Prompt',
+      provenance: {
+        ...PROJECT_ORIGINAL_PROVENANCE,
+        category: 'srd_derived' as const,
+        releaseStatus: 'allowed' as const,
+        reviewStatus: 'reviewed' as const,
+      },
+      sourceType: 'srd_derived' as const,
+    };
+    const blocked = {
+      ...approved('oracle:blocked', 'Session prompts'),
+      name: 'Blocked Prompt',
+      provenance: { ...PROJECT_ORIGINAL_PROVENANCE, releaseStatus: 'blocked' as const },
+    };
+    const releaseEligible = filterReleaseEligibleOracleTables([project, srd, blocked]);
+
+    expect(
+      filterOracleTablesForDiscovery(releaseEligible, {
+        query: 'prompt',
+        category: 'Session prompts',
+        source: 'srd_derived',
+      }).map((table) => table.id),
+    ).toEqual(['oracle:srd']);
+  });
+
+  it('returns an empty deterministic no-results view for unmatched queries', () => {
+    const tables = [approved('oracle:approved')];
+
+    expect(
+      filterOracleTablesForDiscovery(tables, { query: 'zzzz', category: '', source: 'all' }),
+    ).toEqual([]);
   });
 
   it('groups approved tables by category and sorts names inside each group', () => {
