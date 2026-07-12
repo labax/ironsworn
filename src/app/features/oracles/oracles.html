@@ -1,17 +1,64 @@
 <section class="oracles-page" aria-labelledby="page-title">
   <header class="oracles-header">
-    <p class="section-label">Approved oracle browser</p>
+    <p class="section-label">Oracle browser</p>
     <h2 id="page-title">Oracles</h2>
-    <p>
-      Browse project-original oracle helpers that have passed provenance review for bundled release.
-    </p>
+    <p>Browse reviewed bundled helpers and runtime-only user-authored custom tables.</p>
   </header>
 
+  @if (loadState() === 'ready') {
+    <form
+      class="state-card"
+      [formGroup]="form"
+      (ngSubmit)="saveCustomTable()"
+      aria-labelledby="custom-oracle-title"
+    >
+      <h3 id="custom-oracle-title">Custom oracle table editor</h3>
+      <p>
+        Enter only your own original text. Custom tables are saved in workspace data and are not
+        bundled content.
+      </p>
+      <input type="hidden" formControlName="id" />
+      <label>Name <input formControlName="name" autocomplete="off" /></label>
+      <p class="field-error" aria-live="polite">{{ fieldErrors('table.name') }}</p>
+      <label>Category <input formControlName="category" autocomplete="off" /></label>
+      <label>Description <textarea formControlName="description"></textarea></label>
+      <div class="range-row">
+        <label
+          >Roll minimum <input type="number" inputmode="numeric" formControlName="rollMin"
+        /></label>
+        <label
+          >Roll maximum <input type="number" inputmode="numeric" formControlName="rollMax"
+        /></label>
+      </div>
+      <p class="field-error" aria-live="polite">{{ fieldErrors('table.rollRange') }}</p>
+
+      <fieldset formArrayName="entries">
+        <legend>Ordered entries</legend>
+        @for (entry of entries.controls; track $index) {
+          <div class="entry-row" [formGroupName]="$index">
+            <input type="hidden" formControlName="id" />
+            <label>Min <input type="number" inputmode="numeric" formControlName="min" /></label>
+            <label>Max <input type="number" inputmode="numeric" formControlName="max" /></label>
+            <label>Entry text <input formControlName="text" autocomplete="off" /></label>
+            <button type="button" (click)="removeEntry($index)" [disabled]="entries.length === 1">
+              Remove row
+            </button>
+            <p class="field-error" aria-live="polite">
+              {{ fieldErrors('table.entries.' + $index) }}
+            </p>
+          </div>
+        }
+      </fieldset>
+      <p class="field-error" aria-live="polite">{{ fieldErrors('table.entries') }}</p>
+      <div class="button-row">
+        <button type="button" (click)="addEntry()">Add entry</button>
+        <button type="submit">Save custom table</button>
+      </div>
+    </form>
+  }
+
   @if (loadState() === 'loading') {
-    <div class="state-card" role="status" aria-live="polite">
-      <h3>Loading oracle tables…</h3>
-      <p>Checking the approved content source before showing player-facing tables.</p>
-    </div>
+    <div class="state-card" role="status" aria-live="polite"><h3>Loading oracle tables…</h3></div>
   } @else if (loadState() === 'error') {
     <div class="state-card state-card-error" role="alert">
       <h3>Oracle tables are unavailable.</h3>
@@ -19,16 +66,11 @@
       <button type="button" (click)="loadTables()">Try again</button>
     </div>
   } @else if (groups().length === 0) {
-    <div class="state-card" role="status">
-      <h3>No approved oracle tables yet.</h3>
-      <p>
-        Reviewed project-original tables will appear here after they are marked release-eligible.
-      </p>
-    </div>
+    <div class="state-card" role="status"><h3>No approved oracle tables yet.</h3></div>
   } @else {
     <div class="oracle-workspace">
       <nav class="oracle-nav" aria-labelledby="oracle-list-title">
-        <h3 id="oracle-list-title">Approved tables</h3>
+        <h3 id="oracle-list-title">Tables</h3>
         @for (group of groups(); track group.category) {
           <section class="oracle-group" [attr.aria-labelledby]="'oracle-category-' + $index">
             <h4 [id]="'oracle-category-' + $index">{{ group.category }}</h4>
@@ -70,29 +112,52 @@
               <dd>{{ table.rollRange.min }}–{{ table.rollRange.max }}</dd>
             </div>
             <div>
+              <dt>Classification</dt>
+              <dd>{{ table.provenance.category }}</dd>
+            </div>
+            <div>
               <dt>Availability</dt>
               <dd>{{ availabilityLabel(table) }}</dd>
             </div>
           </dl>
-          <details>
-            <summary>Provenance review details</summary>
-            <dl class="oracle-facts">
-              <div>
-                <dt>Manifest ID</dt>
-                <dd>{{ table.provenance.manifestId || 'Not recorded' }}</dd>
-              </div>
-              <div>
-                <dt>Review status</dt>
-                <dd>{{ table.provenance.reviewStatus }}</dd>
-              </div>
-              <div>
-                <dt>Release status</dt>
-                <dd>{{ table.provenance.releaseStatus }}</dd>
-              </div>
-            </dl>
-          </details>
+          <ol>
+            @for (entry of table.entries; track entry.id) {
+              <li>
+                {{ entry.range.min }}–{{ entry.range.max }}: {{ entry.text || entry.textRef }}
+              </li>
+            }
+          </ol>
+          <div class="button-row">
+            <button type="button" (click)="rollSelected()">Roll on this table</button>
+            @if (isSelectedCustom()) {
+              <button type="button" (click)="editSelected()">Edit custom table</button>
+              <button type="button" (click)="requestDeleteSelected()">Delete custom table</button>
+            }
+          </div>
+          @if (rollResult(); as result) {
+            <output class="state-card" aria-live="polite"
+              >Rolled {{ result.roll }}: {{ result.text || result.textRef }}</output
+            >
+          }
         </article>
       }
+    </div>
+  }
+
+  @if (deleteTarget(); as target) {
+    <div
+      class="state-card state-card-error"
+      role="alertdialog"
+      aria-labelledby="delete-title"
+      aria-describedby="delete-copy"
+    >
+      <h3 id="delete-title">Delete {{ target.name }}?</h3>
+      <p id="delete-copy">
+        This removes only the selected custom table from workspace data. Bundled tables are
+        unchanged.
+      </p>
+      <button type="button" (click)="cancelDelete()">Cancel</button>
+      <button type="button" (click)="confirmDelete()">Delete custom table</button>
     </div>
   }
 </section>

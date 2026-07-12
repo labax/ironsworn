@@ -8,6 +8,7 @@ import {
 } from '@app/core/storage';
 import { environment } from '@environments/environment';
 
+import type { CustomOracleTable } from '../oracles';
 import type { ProgressTrack } from '../progress';
 import type { Vow } from '../vows';
 import {
@@ -28,6 +29,8 @@ export const toPersistedCampaignWorkspace = (input: {
   readonly selectedProgressTrackId?: string | null;
   readonly vows?: readonly Vow[];
   readonly selectedVowId?: string | null;
+  readonly customOracleTables?: readonly CustomOracleTable[];
+  readonly selectedCustomOracleTableId?: string | null;
 }): PersistedCampaignWorkspace => ({
   progressTracks: input.progressTracks.map((track) => ({
     ...track,
@@ -40,6 +43,18 @@ export const toPersistedCampaignWorkspace = (input: {
     outcome: vow.outcome ? { ...vow.outcome } : undefined,
   })),
   selectedVowId: input.selectedVowId ?? undefined,
+  customOracleTables: (input.customOracleTables ?? []).map((table) => ({
+    ...table,
+    rollRange: { ...table.rollRange },
+    provenance: { ...table.provenance },
+    entries: table.entries.map((entry) => ({
+      ...entry,
+      range: { ...entry.range },
+      provenance: entry.provenance ? { ...entry.provenance } : undefined,
+    })),
+    metadata: table.metadata ? { ...table.metadata } : undefined,
+  })),
+  selectedCustomOracleTableId: input.selectedCustomOracleTableId ?? undefined,
 });
 
 @Injectable({ providedIn: 'root' })

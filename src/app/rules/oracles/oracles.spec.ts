@@ -214,4 +214,19 @@ describe('oracle table resolver', () => {
       'out_of_range_fixed_roll',
     );
   });
+  it('rejects ranges that are not in row order', () => {
+    expectCode(
+      resolveOracleTableRoll({
+        table: table({
+          entries: [
+            { id: 'entry:later', range: { min: 51, max: 100 }, text: 'Later original' },
+            { id: 'entry:earlier', range: { min: 1, max: 50 }, text: 'Earlier original' },
+          ],
+        }),
+        fixedRoll: 75,
+        now,
+      }),
+      'invalid_order',
+    );
+  });
 });
