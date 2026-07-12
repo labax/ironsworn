@@ -1,0 +1,162 @@
+:host {
+  display: block;
+}
+
+.oracles-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.oracles-header,
+.state-card,
+.oracle-nav,
+.oracle-detail {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow: 0 1rem 2rem rgba(2, 6, 23, 0.18);
+  padding: 1.25rem;
+}
+
+.section-label,
+.availability {
+  margin: 0 0 0.5rem;
+  color: #93c5fd;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.oracles-header h2,
+.state-card h3,
+.oracle-nav h3,
+.oracle-detail h3,
+.oracle-group h4 {
+  margin: 0;
+}
+
+.oracles-header p:last-child,
+.state-card p,
+.oracle-detail p,
+.table-description,
+.category-line {
+  color: #cbd5e1;
+}
+
+.state-card-error {
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.oracle-workspace {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+}
+
+.oracle-nav,
+.oracle-detail,
+.oracle-list-button,
+.oracle-facts dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.oracle-group {
+  margin-top: 1rem;
+}
+
+.oracle-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.oracle-list-button {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.85rem;
+  background: rgba(2, 6, 23, 0.24);
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem;
+  text-align: left;
+  width: 100%;
+}
+
+.oracle-list-button:hover,
+.oracle-list-button:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #bfdbfe;
+  outline-offset: 3px;
+}
+
+.oracle-list-button-selected {
+  border-color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.22);
+}
+
+.table-name {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.table-description {
+  font-size: 0.92rem;
+}
+
+.availability {
+  color: #d9f99d;
+  margin: 0.15rem 0 0;
+}
+
+.oracle-facts {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  margin: 1rem 0;
+}
+
+.oracle-facts div {
+  border-radius: 0.75rem;
+  background: rgba(2, 6, 23, 0.24);
+  padding: 0.75rem;
+}
+
+.oracle-facts dt {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.oracle-facts dd {
+  font-weight: 800;
+  margin: 0.25rem 0 0;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  background: #bfdbfe;
+  color: #0f172a;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.65rem 1rem;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .oracle-workspace {
+    grid-template-columns: 1fr;
+  }
+}
