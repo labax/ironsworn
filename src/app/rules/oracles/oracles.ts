@@ -6,12 +6,14 @@ import { rollDie, type RandomNumberProvider } from '../dice';
 import { rulesFailure, rulesSuccess, type RulesResult, type ValidationError } from '../validation';
 
 export interface OracleRollInput {
+  readonly questionContext?: string;
   readonly roll?: number;
   readonly odds?: OracleOdds;
   readonly ranges?: readonly OracleResultRange[];
 }
 
 export interface OracleRollResult extends OracleRollDice {
+  readonly questionContext?: string;
   readonly odds?: OracleOdds;
   readonly matchedRange?: OracleResultRange;
   readonly trace: readonly string[];
@@ -44,6 +46,7 @@ export interface ResolvableOracleTable {
 
 export interface ResolveOracleTableInput {
   readonly table: ResolvableOracleTable;
+  readonly questionContext?: string;
   readonly fixedRoll?: number;
   readonly randomProvider?: RandomNumberProvider;
   readonly now?: () => Date;
@@ -51,6 +54,7 @@ export interface ResolveOracleTableInput {
 
 export interface ResolvedOracleTableResult {
   readonly id: EntityId;
+  readonly questionContext?: string;
   readonly tableId: EntityId;
   readonly tableName: string;
   readonly tableKind: OracleTableKind;
@@ -234,6 +238,7 @@ export const resolveOracleRoll = (input: OracleRollInput = {}): RulesResult<Orac
 
   return rulesSuccess({
     roll,
+    questionContext: input.questionContext,
     odds: input.odds,
     matchedRange: findOracleRange(roll, input.ranges),
     trace: ['d100 oracle roll resolved without bundled table text'],
@@ -286,6 +291,7 @@ export const resolveOracleTableRoll = (
   const entry = matches[0]!;
   return rulesSuccess({
     id: `${input.table.id}:${roll}:${entry.id}`,
+    questionContext: input.questionContext,
     tableId: input.table.id,
     tableName: input.table.name,
     tableKind: input.table.kind,

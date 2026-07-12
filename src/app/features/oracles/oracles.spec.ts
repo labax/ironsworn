@@ -232,4 +232,112 @@ describe('Oracles', () => {
     expect(button?.getAttribute('aria-label')).toBe('Open oracle table First Table in Common');
     expect(button?.getAttribute('aria-current')).toBe('true');
   });
+
+  it('rolls with empty context and preserves selected table', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+
+    expect(compiled().querySelector('#selected-oracle-title')?.textContent).toContain(
+      'First Table',
+    );
+    expect(compiled().querySelector('.oracle-roll-result')?.textContent).toContain('Rolled');
+    expect(compiled().querySelector('.oracle-roll-result')?.textContent).not.toContain(
+      'Question or context',
+    );
+  });
+
+  it('trims accidental edge whitespace and shows single-line context separately from result text', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    const context = compiled().querySelector<HTMLTextAreaElement>('#oracle-question-context')!;
+    context.value = '  Is the camp hidden?  ';
+    context.dispatchEvent(new Event('input'));
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+
+    expect(context.value).toBe('Is the camp hidden?');
+    expect(compiled().querySelector('.oracle-result-context')?.textContent).toBe(
+      'Is the camp hidden?',
+    );
+    expect(compiled().querySelector('.oracle-roll-result')?.textContent).toContain(
+      'Original fixture result',
+    );
+  });
+
+  it('preserves multiline context line breaks in the result handoff', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    const context = compiled().querySelector<HTMLTextAreaElement>('#oracle-question-context')!;
+    context.value = 'Track the lights.\nKeep watch at dawn.';
+    context.dispatchEvent(new Event('input'));
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+
+    expect(compiled().querySelector('.oracle-result-context')?.textContent).toBe(
+      'Track the lights.\nKeep watch at dawn.',
+    );
+  });
+
+  it('preserves context across resolver errors', async () => {
+    const broken = { ...table('oracle:broken', 'Broken Table'), entries: [] };
+    service.snapshot = { tables: [broken], groups: groupOracleTablesByCategory([broken]) };
+    await createComponent();
+
+    const context = compiled().querySelector<HTMLTextAreaElement>('#oracle-question-context')!;
+    context.value = ' Check the sealed door. ';
+    context.dispatchEvent(new Event('input'));
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+
+    expect(compiled().textContent).toContain('Oracle table must contain at least one entry.');
+    expect(context.value).toBe('Check the sealed door.');
+    expect(compiled().querySelector('.oracle-roll-result')).toBeNull();
+  });
+
+  it('clears only current context without changing selected table or prior result', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    const context = compiled().querySelector<HTMLTextAreaElement>('#oracle-question-context')!;
+    context.value = 'Is the cache nearby?';
+    context.dispatchEvent(new Event('input'));
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+    const priorResult = compiled().querySelector('.oracle-roll-result')?.textContent;
+
+    compiled().querySelectorAll<HTMLButtonElement>('.oracle-detail .button-row button')[1]?.click();
+    fixture.detectChanges();
+
+    expect(compiled().querySelector('#selected-oracle-title')?.textContent).toContain(
+      'First Table',
+    );
+    expect(compiled().querySelector<HTMLTextAreaElement>('#oracle-question-context')?.value).toBe(
+      '',
+    );
+    expect(compiled().querySelector('.oracle-roll-result')?.textContent).toBe(priorResult);
+  });
+
+  it('associates the context textarea with visible label and help text', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    const label = compiled().querySelector('label[for="oracle-question-context"]');
+    const textarea = compiled().querySelector<HTMLTextAreaElement>('#oracle-question-context');
+
+    expect(label?.textContent).toContain('Question or context');
+    expect(textarea?.getAttribute('aria-describedby')).toContain('oracle-question-context-help');
+    expect(compiled().querySelector('#oracle-question-context-help')?.textContent).toContain(
+      'Optional user-authored notes',
+    );
+  });
 });

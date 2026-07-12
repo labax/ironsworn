@@ -20,6 +20,7 @@ export interface OracleTableMetadata extends DomainEntity {
 
 export interface OracleRollResult extends DomainEntity {
   readonly tableId: EntityId;
+  readonly questionContext?: string;
   readonly characterId?: EntityId;
   readonly roll: number;
   readonly odds?: OracleOdds;

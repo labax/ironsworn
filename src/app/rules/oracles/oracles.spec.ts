@@ -37,6 +37,15 @@ describe('oracle rolls', () => {
     expect(result.value.roll).toBe(42);
     expect(result.value.matchedRange?.label).toBe('placeholder low range');
   });
+
+  it('carries optional user-authored question context through typed oracle rolls', () => {
+    const context = 'Find a safe route.\nAvoid the broken bridge.';
+    const result = resolveOracleRoll({ roll: 42, questionContext: context });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.questionContext).toBe(context);
+  });
 });
 
 describe('oracle table resolver', () => {
@@ -122,6 +131,31 @@ describe('oracle table resolver', () => {
       sourceType: 'project_original',
       tableKind: 'table',
     });
+  });
+
+  it('keeps user-authored question context separate from bundled table text', () => {
+    const context = 'Ask whether the path is blocked.\nNote the storm.';
+    const result = resolveOracleTableRoll({
+      table: table(),
+      fixedRoll: 12,
+      now,
+      questionContext: context,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.questionContext).toBe(context);
+    expect(result.value.text).toBe('Project original low result');
+    expect(result.value.tableProvenance).toBe(PROJECT_ORIGINAL_PROVENANCE);
+  });
+
+  it('allows empty question context without changing resolver mechanics', () => {
+    const result = resolveOracleTableRoll({ table: table(), fixedRoll: 12, now });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.questionContext).toBeUndefined();
+    expect(result.value.entryId).toBe('entry:low');
   });
 
   it('preserves custom and user-authored structural compatibility', () => {
