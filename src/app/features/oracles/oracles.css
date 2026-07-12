@@ -275,3 +275,120 @@ button:disabled {
   padding-left: 0.75rem;
   white-space: pre-wrap;
 }
+
+.sr-only {
+  clip: rect(0 0 0 0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.oracle-results {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.oracle-results-heading h4,
+.oracle-result-header h5 {
+  margin: 0;
+}
+
+.oracle-result-header,
+.oracle-result-primary,
+.oracle-result-actions,
+.oracle-result-review {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.oracle-result-header {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.oracle-result-header time {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.oracle-result-primary {
+  grid-template-columns: minmax(7rem, 0.25fr) minmax(0, 1fr);
+}
+
+.oracle-result-roll,
+.oracle-result-entry,
+.oracle-result-context-block,
+.oracle-result-review div {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 0.85rem;
+  background: rgba(2, 6, 23, 0.28);
+  padding: 0.85rem;
+}
+
+.oracle-result-roll strong {
+  display: block;
+  font-size: clamp(2.25rem, 7vw, 4rem);
+  line-height: 1;
+}
+
+.oracle-result-entry strong {
+  display: block;
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  line-height: 1.15;
+}
+
+.oracle-result-label,
+.oracle-result-context-label {
+  color: #cbd5e1;
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.oracle-result-context-block {
+  border-style: dashed;
+}
+
+.oracle-result-review {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.oracle-result-review dt {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.oracle-result-review dd {
+  margin: 0.25rem 0 0;
+}
+
+.oracle-result-actions {
+  grid-template-columns: repeat(2, minmax(0, max-content));
+}
+
+@media (max-width: 720px) {
+  .oracle-result-header,
+  .oracle-result-primary,
+  .oracle-result-review,
+  .oracle-result-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .oracle-result-header time {
+    text-align: left;
+  }
+}

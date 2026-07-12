@@ -199,7 +199,9 @@
             ></textarea>
           </div>
           <div class="button-row">
-            <button type="button" (click)="rollSelected()">Roll on this table</button>
+            <button type="button" (click)="rollSelected()">
+              {{ rollResults().length ? 'Roll again' : 'Roll on this table' }}
+            </button>
             <button
               type="button"
               (click)="clearOracleQuestionContext()"
@@ -215,14 +217,87 @@
           <p id="oracle-validation-errors" class="field-error" aria-live="polite">
             {{ fieldErrors('table') }} {{ fieldErrors('fixedRoll') }}
           </p>
-          @if (rollResult(); as result) {
-            <output class="state-card oracle-roll-result" aria-live="polite">
-              <span>Rolled {{ result.roll }}: {{ result.text || result.textRef }}</span>
-              @if (result.questionContext) {
-                <span class="oracle-result-context-label">Question or context</span>
-                <span class="oracle-result-context">{{ result.questionContext }}</span>
+          <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {{ resultAnnouncement() }}
+          </p>
+          @if (rollResults().length > 0) {
+            <section class="oracle-results" aria-labelledby="oracle-results-title">
+              <div class="oracle-results-heading">
+                <p class="section-label">Resolved rolls</p>
+                <h4 id="oracle-results-title">Latest oracle result</h4>
+                <p>
+                  Each card is a preserved resolver snapshot for future history or journal actions.
+                </p>
+              </div>
+              @for (result of rollResults(); track result.timestamp + result.id + $index) {
+                <article
+                  class="state-card oracle-roll-result"
+                  [attr.aria-label]="'Oracle result for ' + result.tableName"
+                >
+                  <header class="oracle-result-header">
+                    <div>
+                      <span class="oracle-result-label">Table</span>
+                      <h5>{{ result.tableName }}</h5>
+                    </div>
+                    <time [attr.datetime]="result.timestamp">{{
+                      formatTimestamp(result.timestamp)
+                    }}</time>
+                  </header>
+                  <div class="oracle-result-primary">
+                    <div class="oracle-result-roll">
+                      <span class="oracle-result-label">Roll</span>
+                      <strong>{{ result.roll }}</strong>
+                    </div>
+                    <div class="oracle-result-entry">
+                      <span class="oracle-result-label">Bundled result</span>
+                      <strong>{{ result.text || result.textRef }}</strong>
+                    </div>
+                  </div>
+                  @if (result.questionContext) {
+                    <section class="oracle-result-context-block" aria-label="User-authored context">
+                      <span class="oracle-result-context-label"
+                        >User-authored question or context</span
+                      >
+                      <p class="oracle-result-context">{{ result.questionContext }}</p>
+                    </section>
+                  }
+                  <dl class="oracle-result-review">
+                    <div>
+                      <dt>Source shown to players</dt>
+                      <dd>{{ sourceLabelForResult(result) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Review reference</dt>
+                      <dd
+                        [attr.data-review-reference]="
+                          result.provenance.manifestId ||
+                          result.provenance.sourceId ||
+                          result.entryId
+                        "
+                      >
+                        Available to reviewers in development markup
+                      </dd>
+                    </div>
+                  </dl>
+                  <div class="oracle-result-actions" aria-label="Future integrations">
+                    <button
+                      type="button"
+                      disabled
+                      [attr.aria-label]="historyIntegrationLabel(result)"
+                    >
+                      Add to history later
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      [attr.aria-label]="journalIntegrationLabel(result)"
+                    >
+                      Send to journal later
+                    </button>
+                  </div>
+                </article>
               }
-            </output>
+            </section>
           }
         </article>
       }
