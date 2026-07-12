@@ -244,7 +244,9 @@ describe('Oracles', () => {
     expect(compiled().querySelector('#selected-oracle-title')?.textContent).toContain(
       'First Table',
     );
-    expect(compiled().querySelector('.oracle-roll-result')?.textContent).toContain('Rolled');
+    expect(compiled().querySelector('.oracle-roll-result')?.textContent).toContain(
+      'Bundled result',
+    );
     expect(compiled().querySelector('.oracle-roll-result')?.textContent).not.toContain(
       'Question or context',
     );
@@ -339,5 +341,111 @@ describe('Oracles', () => {
     expect(compiled().querySelector('#oracle-question-context-help')?.textContent).toContain(
       'Optional user-authored notes',
     );
+  });
+
+  it('displays a structured successful roll snapshot with table, value, entry, timestamp, and safe provenance label', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+
+    const result = compiled().querySelector('.oracle-roll-result')!;
+    expect(result.textContent).toContain('First Table');
+    expect(result.textContent).toContain('Roll');
+    expect(result.textContent).toContain('Original fixture result');
+    expect(result.textContent).toContain('Project original');
+    expect(result.querySelector('time')?.getAttribute('datetime')).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(result.textContent).not.toContain('sourceId');
+    expect(result.textContent).not.toContain('licenseUrl');
+  });
+
+  it('announces newly generated results accessibly', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+
+    const announcement = compiled().querySelector('[role="status"][aria-live="polite"]');
+    expect(announcement?.textContent).toContain('Oracle result: First Table');
+    expect(announcement?.textContent).toContain('rolled');
+  });
+
+  it('re-rolling prepends a distinct immutable snapshot without mutating the previous result object', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      rollResults: () => readonly Readonly<unknown>[];
+    };
+    const previous = component.rollResults()[0];
+
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+
+    const snapshots = component.rollResults();
+    expect(snapshots).toHaveLength(2);
+    expect(snapshots[1]).toBe(previous);
+    expect(snapshots[0]).not.toBe(previous);
+    expect(Object.isFrozen(snapshots[1])).toBe(true);
+    expect(compiled().querySelectorAll('.oracle-roll-result')).toHaveLength(2);
+  });
+
+  it('keeps bundled result text and user context in separately labelled structures for long mobile-readable content', async () => {
+    const longEntry = {
+      ...table('oracle:long', 'Long Entry Table'),
+      entries: [
+        {
+          id: 'long-entry',
+          range: { min: 1, max: 6 },
+          text: 'Project-original long fixture result with enough words to wrap across narrow layouts while remaining readable at a glance.',
+        },
+      ],
+    };
+    service.snapshot = { tables: [longEntry], groups: groupOracleTablesByCategory([longEntry]) };
+    await createComponent();
+
+    const context = compiled().querySelector<HTMLTextAreaElement>('#oracle-question-context')!;
+    context.value = 'Does the lookout notice the hidden path?';
+    context.dispatchEvent(new Event('input'));
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+
+    expect(compiled().querySelector('.oracle-result-entry')?.textContent).toContain(
+      'Bundled result',
+    );
+    expect(compiled().querySelector('.oracle-result-entry')?.textContent).toContain(
+      'Project-original long fixture result',
+    );
+    expect(compiled().querySelector('.oracle-result-context-block')?.textContent).toContain(
+      'User-authored question or context',
+    );
+    expect(compiled().querySelector('.oracle-result-context')?.textContent).toBe(
+      'Does the lookout notice the hidden path?',
+    );
+  });
+
+  it('renders disabled extension actions for later history and journal integrations', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+
+    const actions = [
+      ...compiled().querySelectorAll<HTMLButtonElement>('.oracle-result-actions button'),
+    ];
+    expect(actions.map((button) => button.textContent?.trim())).toEqual([
+      'Add to history later',
+      'Send to journal later',
+    ]);
+    expect(actions.every((button) => button.disabled)).toBe(true);
   });
 });

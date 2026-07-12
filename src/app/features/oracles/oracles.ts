@@ -66,7 +66,9 @@ export class Oracles {
   protected readonly selectedTableId = signal<EntityId | undefined>(undefined);
   protected readonly errorMessage = signal('');
   protected readonly validationErrors = signal<readonly ValidationError[]>([]);
-  protected readonly rollResult = signal<ResolvedOracleTableResult | undefined>(undefined);
+  protected readonly rollResults = signal<readonly Readonly<ResolvedOracleTableResult>[]>([]);
+  protected readonly rollResult = computed(() => this.rollResults()[0]);
+  protected readonly resultAnnouncement = signal('');
   protected readonly oracleQuestionContext = signal('');
   protected readonly deleteTarget = signal<BrowsableOracleTable | undefined>(undefined);
   protected readonly selectedTable = computed(() => {
@@ -158,7 +160,8 @@ export class Oracles {
     const table = this.allTables().find((candidate) => candidate.id === tableId);
     if (!table) return;
     this.selectedTableId.set(table.id);
-    this.rollResult.set(undefined);
+    this.rollResults.set([]);
+    this.resultAnnouncement.set('');
   }
 
   protected addEntry(): void {
@@ -243,10 +246,17 @@ export class Oracles {
     });
     if (!result.ok) {
       this.validationErrors.set(result.errors);
+      this.resultAnnouncement.set(
+        'Oracle roll could not be resolved. Review the table and try again.',
+      );
       return;
     }
     this.validationErrors.set([]);
-    this.rollResult.set(result.value);
+    const snapshot = this.freezeOracleResult(result.value);
+    this.rollResults.update((previous) => [snapshot, ...previous]);
+    this.resultAnnouncement.set(
+      `Oracle result: ${snapshot.tableName}, rolled ${snapshot.roll}, ${snapshot.text ?? snapshot.textRef}.`,
+    );
   }
 
   protected requestDeleteSelected(): void {
@@ -272,6 +282,38 @@ export class Oracles {
       .filter((error) => error.field === field || error.field?.startsWith(`${field}.`))
       .map((error) => error.message)
       .join(' ');
+  }
+
+  protected formatTimestamp(timestamp: string): string {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(timestamp));
+  }
+
+  protected sourceLabelForResult(result: ResolvedOracleTableResult): string {
+    return oracleSourceLabel(result.sourceType);
+  }
+
+  protected historyIntegrationLabel(result: ResolvedOracleTableResult): string {
+    return `Keep result snapshot ${result.id} ready for future history integration`;
+  }
+
+  protected journalIntegrationLabel(result: ResolvedOracleTableResult): string {
+    return `Keep result snapshot ${result.id} ready for future journal integration`;
+  }
+
+  private freezeOracleResult(
+    result: ResolvedOracleTableResult,
+  ): Readonly<ResolvedOracleTableResult> {
+    return Object.freeze({
+      ...result,
+      rollRange: Object.freeze({ ...result.rollRange }),
+      entryRange: Object.freeze({ ...result.entryRange }),
+      provenance: Object.freeze({ ...result.provenance }),
+      tableProvenance: Object.freeze({ ...result.tableProvenance }),
+      metadata: result.metadata ? Object.freeze({ ...result.metadata }) : undefined,
+    });
   }
 
   private confirmDiscard(): boolean {
