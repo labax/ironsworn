@@ -99,6 +99,107 @@ describe('Oracles', () => {
     expect(compiled().textContent).toContain('Reviewed for release');
   });
 
+  it('filters by search category source combinations and reset', async () => {
+    const scene = {
+      ...table('oracle:scene', 'Scene Tone', 'Session prompts'),
+      description: 'Mood cue.',
+    };
+    const npc = {
+      ...table('oracle:npc', 'NPC Need', 'Characters'),
+      description: 'Supporting character wants.',
+    };
+    service.snapshot = { tables: [scene, npc], groups: groupOracleTablesByCategory([scene, npc]) };
+    await createComponent();
+
+    const search = compiled().querySelector<HTMLInputElement>('#oracle-search')!;
+    search.value = 'mood';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(compiled().querySelector('.oracle-nav')?.textContent).toContain('Scene Tone');
+    expect(compiled().querySelector('.oracle-nav')?.textContent).not.toContain('NPC Need');
+
+    compiled().querySelector<HTMLButtonElement>('button[disabled]')?.click();
+    compiled().querySelector<HTMLButtonElement>('.oracle-filter-actions button')?.click();
+    fixture.detectChanges();
+    expect(compiled().textContent).toContain('NPC Need');
+
+    const category = compiled().querySelector<HTMLSelectElement>('#oracle-category-filter')!;
+    category.value = 'Characters';
+    category.dispatchEvent(new Event('change'));
+    const source = compiled().querySelector<HTMLSelectElement>('#oracle-source-filter')!;
+    source.value = 'project_original';
+    source.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(compiled().querySelector('.oracle-nav')?.textContent).toContain('NPC Need');
+    expect(compiled().querySelector('.oracle-nav')?.textContent).not.toContain('Scene Tone');
+  });
+
+  it('shows a recoverable no-results state', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    const search = compiled().querySelector<HTMLInputElement>('#oracle-search')!;
+    search.value = 'no match';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(compiled().textContent).toContain('No oracle tables match these filters.');
+    compiled().querySelector<HTMLButtonElement>('.no-results button')?.click();
+    fixture.detectChanges();
+
+    expect(compiled().textContent).toContain('First Table');
+    expect(compiled().querySelector<HTMLInputElement>('#oracle-search')?.value).toBe('');
+  });
+
+  it('preserves query state during in-page table navigation', async () => {
+    const first = { ...table('oracle:first', 'First Table'), description: 'Shared prompt.' };
+    const second = { ...table('oracle:second', 'Second Table'), description: 'Shared prompt.' };
+    service.snapshot = {
+      tables: [first, second],
+      groups: groupOracleTablesByCategory([first, second]),
+    };
+    await createComponent();
+
+    const search = compiled().querySelector<HTMLInputElement>('#oracle-search')!;
+    search.value = 'shared';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    compiled()
+      .querySelector<HTMLButtonElement>(
+        'button[aria-label="Open oracle table Second Table in Common"]',
+      )
+      ?.click();
+    fixture.detectChanges();
+
+    expect(compiled().querySelector<HTMLInputElement>('#oracle-search')?.value).toBe('shared');
+    expect(compiled().querySelector('#selected-oracle-title')?.textContent).toContain(
+      'Second Table',
+    );
+  });
+
+  it('uses persistent labels and native accessible controls for discovery', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    expect(compiled().querySelector('label[for="oracle-search"]')?.textContent).toContain(
+      'Search tables',
+    );
+    expect(compiled().querySelector('label[for="oracle-category-filter"]')?.textContent).toContain(
+      'Category',
+    );
+    expect(compiled().querySelector('label[for="oracle-source-filter"]')?.textContent).toContain(
+      'Source',
+    );
+    expect(compiled().querySelector('#oracle-filter-summary')?.textContent).toContain(
+      'Showing 1 of 1',
+    );
+  });
+
   it('opens the selected table by stable ID', async () => {
     const first = table('oracle:first', 'First Table');
     const second = table('oracle:second', 'Second Table');

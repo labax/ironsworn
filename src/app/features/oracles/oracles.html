@@ -65,12 +65,70 @@
       <p>{{ errorMessage() }}</p>
       <button type="button" (click)="loadTables()">Try again</button>
     </div>
-  } @else if (groups().length === 0) {
+  } @else if (tableCount() === 0) {
     <div class="state-card" role="status"><h3>No approved oracle tables yet.</h3></div>
   } @else {
+    <section class="oracle-discovery state-card" aria-labelledby="oracle-discovery-title">
+      <div>
+        <p class="section-label">Find tables</p>
+        <h3 id="oracle-discovery-title">Search and filter</h3>
+        <p>Search names, categories, and short descriptions in approved visible tables.</p>
+      </div>
+      <div class="oracle-filter-grid">
+        <label for="oracle-search">Search tables</label>
+        <input
+          id="oracle-search"
+          type="search"
+          autocomplete="off"
+          [value]="searchQuery()"
+          (input)="updateSearchQuery($event)"
+          aria-describedby="oracle-filter-summary"
+        />
+        <label for="oracle-category-filter">Category</label>
+        <select
+          id="oracle-category-filter"
+          [value]="categoryFilter()"
+          (change)="updateCategoryFilter($event)"
+        >
+          <option value="">All categories</option>
+          @for (category of categoryOptions(); track category) {
+            <option [value]="category">{{ category }}</option>
+          }
+        </select>
+        <label for="oracle-source-filter">Source</label>
+        <select
+          id="oracle-source-filter"
+          [value]="sourceFilter()"
+          (change)="updateSourceFilter($event)"
+        >
+          <option value="all">All sources</option>
+          @for (source of sourceOptions(); track source) {
+            <option [value]="source">{{ sourceLabel(source) }}</option>
+          }
+        </select>
+      </div>
+      <div class="oracle-filter-actions">
+        <p id="oracle-filter-summary" aria-live="polite">
+          Showing {{ filteredTables().length }} of {{ tableCount() }} available tables.
+        </p>
+        <button type="button" (click)="resetDiscoveryFilters()" [disabled]="!hasDiscoveryFilters()">
+          Reset filters
+        </button>
+      </div>
+    </section>
+
     <div class="oracle-workspace">
       <nav class="oracle-nav" aria-labelledby="oracle-list-title">
         <h3 id="oracle-list-title">Tables</h3>
+        @if (groups().length === 0) {
+          <div class="state-card no-results" role="status">
+            <h4>No oracle tables match these filters.</h4>
+            <p>Clear the search or reset filters to show approved tables again.</p>
+            <button type="button" (click)="resetDiscoveryFilters()">
+              Clear search and filters
+            </button>
+          </div>
+        }
         @for (group of groups(); track group.category) {
           <section class="oracle-group" [attr.aria-labelledby]="'oracle-category-' + $index">
             <h4 [id]="'oracle-category-' + $index">{{ group.category }}</h4>

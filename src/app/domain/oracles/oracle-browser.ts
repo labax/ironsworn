@@ -12,6 +12,57 @@ export interface BrowsableOracleTable extends ResolvableOracleTable {
   readonly description: string;
 }
 
+export type OracleSourceFilter = 'all' | ContentProvenance['category'];
+
+export interface OracleDiscoveryFilters {
+  readonly query: string;
+  readonly category: string;
+  readonly source: OracleSourceFilter;
+}
+
+const normalizeDiscoveryText = (value: string): string => value.trim().toLocaleLowerCase();
+
+export const filterOracleTablesForDiscovery = (
+  tables: readonly BrowsableOracleTable[],
+  filters: OracleDiscoveryFilters,
+): readonly BrowsableOracleTable[] => {
+  const query = normalizeDiscoveryText(filters.query);
+  const category = filters.category;
+  const source = filters.source;
+
+  return tables.filter((table) => {
+    if (category && table.category !== category) return false;
+    if (source !== 'all' && (table.sourceType ?? table.provenance.category) !== source)
+      return false;
+    if (!query) return true;
+
+    return [table.name, table.category, table.description].some((value) =>
+      normalizeDiscoveryText(value).includes(query),
+    );
+  });
+};
+
+export const oracleSourceLabel = (source: OracleSourceFilter): string => {
+  switch (source) {
+    case 'all':
+      return 'All sources';
+    case 'project_original':
+      return 'Project original';
+    case 'srd_derived':
+      return 'Approved bundled';
+    case 'user_authored':
+      return 'User authored';
+    case 'custom':
+      return 'Custom';
+    case 'official':
+      return 'Official';
+    case 'restricted':
+      return 'Restricted';
+    case 'unknown':
+      return 'Unknown';
+  }
+};
+
 export interface OracleCategoryGroup {
   readonly category: string;
   readonly tables: readonly BrowsableOracleTable[];
