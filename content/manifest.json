@@ -35,6 +35,54 @@
       "releaseStatus": "allowed",
       "reviewStatus": "reviewed",
       "notes": "Metadata placeholder for project-authored interface copy, separated from game data entries."
+    },
+    {
+      "id": "project-original-scene-tone-oracle",
+      "title": "Project Original Scene Tone Oracle",
+      "category": "original",
+      "contentType": "oracle-table",
+      "source": "project-original",
+      "sourceUrl": null,
+      "license": "project-content-license",
+      "licenseUrl": null,
+      "attributionRequired": false,
+      "attributionText": null,
+      "noticeRef": null,
+      "releaseStatus": "allowed",
+      "reviewStatus": "reviewed",
+      "notes": "Project-original oracle helper content created for the app; contains no official game prose."
+    },
+    {
+      "id": "project-original-travel-detail-oracle",
+      "title": "Project Original Travel Detail Oracle",
+      "category": "original",
+      "contentType": "oracle-table",
+      "source": "project-original",
+      "sourceUrl": null,
+      "license": "project-content-license",
+      "licenseUrl": null,
+      "attributionRequired": false,
+      "attributionText": null,
+      "noticeRef": null,
+      "releaseStatus": "allowed",
+      "reviewStatus": "reviewed",
+      "notes": "Project-original oracle helper content created for the app; contains no official game prose."
+    },
+    {
+      "id": "project-original-npc-need-oracle",
+      "title": "Project Original NPC Need Oracle",
+      "category": "original",
+      "contentType": "oracle-table",
+      "source": "project-original",
+      "sourceUrl": null,
+      "license": "project-content-license",
+      "licenseUrl": null,
+      "attributionRequired": false,
+      "attributionText": null,
+      "noticeRef": null,
+      "releaseStatus": "allowed",
+      "reviewStatus": "reviewed",
+      "notes": "Project-original oracle helper content created for the app; contains no official game prose."
     }
   ]
 }

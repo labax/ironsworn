@@ -1,8 +1,98 @@
-<section class="placeholder-page" aria-labelledby="page-title">
-  <p class="section-label">Placeholder</p>
-  <h2 id="page-title">{{ content.title }}</h2>
-  <p class="description">{{ content.description }}</p>
-  <div class="empty-state" role="status">
-    {{ content.emptyState }}
-  </div>
+<section class="oracles-page" aria-labelledby="page-title">
+  <header class="oracles-header">
+    <p class="section-label">Approved oracle browser</p>
+    <h2 id="page-title">Oracles</h2>
+    <p>
+      Browse project-original oracle helpers that have passed provenance review for bundled release.
+    </p>
+  </header>
+
+  @if (loadState() === 'loading') {
+    <div class="state-card" role="status" aria-live="polite">
+      <h3>Loading oracle tables…</h3>
+      <p>Checking the approved content source before showing player-facing tables.</p>
+    </div>
+  } @else if (loadState() === 'error') {
+    <div class="state-card state-card-error" role="alert">
+      <h3>Oracle tables are unavailable.</h3>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" (click)="loadTables()">Try again</button>
+    </div>
+  } @else if (groups().length === 0) {
+    <div class="state-card" role="status">
+      <h3>No approved oracle tables yet.</h3>
+      <p>
+        Reviewed project-original tables will appear here after they are marked release-eligible.
+      </p>
+    </div>
+  } @else {
+    <div class="oracle-workspace">
+      <nav class="oracle-nav" aria-labelledby="oracle-list-title">
+        <h3 id="oracle-list-title">Approved tables</h3>
+        @for (group of groups(); track group.category) {
+          <section class="oracle-group" [attr.aria-labelledby]="'oracle-category-' + $index">
+            <h4 [id]="'oracle-category-' + $index">{{ group.category }}</h4>
+            <ul class="oracle-list">
+              @for (table of group.tables; track table.id) {
+                <li>
+                  <button
+                    type="button"
+                    class="oracle-list-button"
+                    [class.oracle-list-button-selected]="selectedTableId() === table.id"
+                    [attr.aria-current]="selectedTableId() === table.id ? 'true' : null"
+                    [attr.aria-label]="'Open oracle table ' + table.name + ' in ' + table.category"
+                    (click)="openTable(table.id)"
+                  >
+                    <span class="table-name">{{ table.name }}</span>
+                    <span class="table-description">{{ table.description }}</span>
+                    <span class="availability">{{ availabilityLabel(table) }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </nav>
+
+      @if (selectedTable(); as table) {
+        <article class="oracle-detail" aria-labelledby="selected-oracle-title">
+          <p class="section-label">Selected table</p>
+          <h3 id="selected-oracle-title">{{ table.name }}</h3>
+          <p class="category-line">{{ table.category }}</p>
+          <p>{{ table.description }}</p>
+          <dl class="oracle-facts">
+            <div>
+              <dt>Stable ID</dt>
+              <dd>{{ table.id }}</dd>
+            </div>
+            <div>
+              <dt>Roll range</dt>
+              <dd>{{ table.rollRange.min }}–{{ table.rollRange.max }}</dd>
+            </div>
+            <div>
+              <dt>Availability</dt>
+              <dd>{{ availabilityLabel(table) }}</dd>
+            </div>
+          </dl>
+          <details>
+            <summary>Provenance review details</summary>
+            <dl class="oracle-facts">
+              <div>
+                <dt>Manifest ID</dt>
+                <dd>{{ table.provenance.manifestId || 'Not recorded' }}</dd>
+              </div>
+              <div>
+                <dt>Review status</dt>
+                <dd>{{ table.provenance.reviewStatus }}</dd>
+              </div>
+              <div>
+                <dt>Release status</dt>
+                <dd>{{ table.provenance.releaseStatus }}</dd>
+              </div>
+            </dl>
+          </details>
+        </article>
+      }
+    </div>
+  }
 </section>
