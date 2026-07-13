@@ -575,6 +575,59 @@ describe('CampaignWorkspaceService journal entries', () => {
     );
   });
 
+  it('previews and deletes only one journal entry by stable id without cascading linked records', () => {
+    const sourceReferences = [
+      { id: 'roll-history-1', type: 'roll' as const, label: 'Roll: Scout' },
+    ];
+    const snapshots = [
+      {
+        type: 'roll' as const,
+        roll: {
+          id: 'roll-history-1',
+          createdAt: '2026-07-13T00:00:00.000Z',
+          updatedAt: '2026-07-13T00:00:00.000Z',
+          schemaVersion: 1,
+          recordStatus: 'active' as const,
+          type: 'action' as const,
+          source: 'generated' as const,
+          outcome: 'weak_hit' as const,
+          label: 'Scout',
+          actionRoll: { actionDie: 4, challengeDice: [2, 7] as const, actionScore: 5 },
+          isMatch: false,
+        },
+      },
+    ];
+    service.saveJournalEntry({ id: 'journal-older', title: 'Older note', body: 'Keep first.' });
+    service.saveJournalEntry({
+      id: 'journal-linked',
+      title: 'Linked note',
+      body: 'Delete only this.',
+      sourceReferences,
+      snapshots,
+    });
+    service.saveJournalEntry({ id: 'journal-newer', title: 'Newer note', body: 'Keep second.' });
+
+    const preview = service.previewDeleteJournalEntry('journal-linked');
+    expect(preview.ok).toBe(true);
+    if (!preview.ok) return;
+    expect(preview.entry).toMatchObject({ id: 'journal-linked', sourceReferences, snapshots });
+    expect(preview.warnings.map((warning) => warning.code)).toEqual([
+      'has_source_links',
+      'has_snapshots',
+    ]);
+
+    const deleted = service.deleteJournalEntry('journal-linked');
+    expect(deleted.ok).toBe(true);
+    expect(service.journalEntries().map((entry) => entry.id)).toEqual([
+      'journal-newer',
+      'journal-older',
+    ]);
+    expect(service.deleteJournalEntry('journal-linked')).toMatchObject({
+      ok: false,
+      errors: [{ code: 'not_found' }],
+    });
+  });
+
   it('rejects missing title without mutating committed journal state', () => {
     const before = service.journalEntries();
     const result = service.saveJournalEntry({ title: '   ', body: 'Preserved draft text.' });

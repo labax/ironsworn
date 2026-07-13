@@ -149,6 +149,11 @@ export interface DeleteProgressTrackWarning {
   readonly message: string;
 }
 
+export interface DeleteJournalEntryWarning {
+  readonly code: 'has_source_links' | 'has_snapshots';
+  readonly message: string;
+}
+
 export interface DeleteVowWarning {
   readonly code: 'linked_track' | 'has_milestones' | 'has_notes' | 'has_outcome';
   readonly message: string;
@@ -169,6 +174,12 @@ export interface DeleteVowPreview {
   readonly ok: true;
   readonly vow: Vow;
   readonly warnings: readonly DeleteVowWarning[];
+}
+
+export interface DeleteJournalEntryPreview {
+  readonly ok: true;
+  readonly entry: JournalEntry;
+  readonly warnings: readonly DeleteJournalEntryWarning[];
 }
 
 const compareVows = (left: Vow, right: Vow): number => {
@@ -359,6 +370,34 @@ export class CampaignWorkspaceService {
     const selected = this.journalEntriesState().find((entry) => entry.id === entryId) ?? null;
     this.selectedJournalEntryIdState.set(selected?.id ?? null);
     return selected ? cloneJournalEntry(selected) : null;
+  }
+
+  previewDeleteJournalEntry(
+    entryId: string,
+  ): DeleteJournalEntryPreview | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.journalEntriesState().find((entry) => entry.id === entryId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'entryId', message: 'Journal entry was not found.' }],
+      };
+    }
+
+    const warnings: DeleteJournalEntryWarning[] = [];
+    if (existing.sourceReferences.length > 0) {
+      warnings.push({
+        code: 'has_source_links',
+        message: 'This entry has source links. Linked rolls, oracles, and vows will stay in place.',
+      });
+    }
+    if (existing.snapshots.length > 0) {
+      warnings.push({
+        code: 'has_snapshots',
+        message: 'This entry has generated snapshots. Deleting removes only these journal copies.',
+      });
+    }
+
+    return { ok: true, entry: cloneJournalEntry(existing), warnings };
   }
 
   deleteJournalEntry(

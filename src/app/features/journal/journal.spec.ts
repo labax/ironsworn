@@ -278,4 +278,115 @@ describe('Journal', () => {
     expect(compiled().textContent).toContain('Roll snapshot: Temporary roll');
     expect(compiled().textContent).toContain('No body text.');
   });
+  it('requires confirmation, cancels without state changes, and returns focus to the delete trigger', async () => {
+    workspace.saveJournalEntry({
+      id: 'journal-delete-a',
+      title: 'Delete candidate',
+      body: 'Keep until confirmed.',
+    });
+    workspace.saveJournalEntry({
+      id: 'journal-delete-b',
+      title: 'Other entry',
+      body: 'Unrelated.',
+    });
+    fixture.detectChanges();
+    const before = workspace.journalEntries();
+    const readTarget = Array.from(
+      compiled().querySelectorAll<HTMLButtonElement>('.card-actions .secondary'),
+    ).find((button) => button.textContent?.includes('Delete candidate'))!;
+    readTarget.click();
+    fixture.detectChanges();
+    const trigger = compiled().querySelector<HTMLButtonElement>('.reading-actions .secondary')!;
+
+    trigger.click();
+    fixture.detectChanges();
+    expect(compiled().querySelector('[role="dialog"]')?.textContent).toContain('Delete candidate');
+    expect(compiled().querySelector('[role="dialog"]')?.textContent).toContain(
+      'Linked rolls, oracles, vows, and other records are kept.',
+    );
+
+    compiled().querySelector<HTMLButtonElement>('.delete-actions .secondary')!.click();
+    await new Promise((resolve) => setTimeout(resolve));
+    fixture.detectChanges();
+
+    expect(workspace.journalEntries()).toEqual(before);
+    expect(compiled().querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('confirms deletion of only the selected entry while preserving order, unrelated entries, and linked records', async () => {
+    const result = resolveActionRoll({ stat: 2, adds: 1, actionDie: 4, challengeDice: [3, 9] });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const savedRoll = rollHistory.saveActionRoll({
+      prepared: { label: 'Linked roll', statKey: 'edge', statValue: 2, adds: 1, source: 'manual' },
+      result: result.value,
+      createdAt: '2026-07-13T00:00:00.000Z',
+    });
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-07-13T09:00:00.000Z'));
+      workspace.saveJournalEntry({ id: 'journal-older', title: 'Older', body: '' });
+      vi.setSystemTime(new Date('2026-07-13T10:00:00.000Z'));
+      workspace.saveJournalEntry({
+        id: 'journal-linked',
+        title: 'Linked entry',
+        body: 'Delete this note only.',
+        sourceReferences: [{ id: savedRoll.id, type: 'roll', label: 'Roll: Linked roll' }],
+        snapshots: [{ type: 'roll', roll: savedRoll }],
+      });
+      vi.setSystemTime(new Date('2026-07-13T11:00:00.000Z'));
+      workspace.saveJournalEntry({ id: 'journal-newer', title: 'Newer', body: '' });
+    } finally {
+      vi.useRealTimers();
+    }
+    fixture.detectChanges();
+    workspace.selectJournalEntry('journal-linked');
+    fixture.componentInstance['selectedEntryId'].set('journal-linked');
+    fixture.detectChanges();
+
+    compiled().querySelector<HTMLButtonElement>('.reading-actions .secondary')!.click();
+    fixture.detectChanges();
+    expect(compiled().querySelector('[role="dialog"]')?.textContent).toContain('source links');
+    expect(compiled().querySelector('[role="dialog"]')?.textContent).toContain(
+      'generated snapshots',
+    );
+
+    compiled().querySelector<HTMLButtonElement>('.delete-actions .danger')!.click();
+    compiled().querySelector<HTMLButtonElement>('.delete-actions .danger')?.click();
+    await new Promise((resolve) => setTimeout(resolve));
+    fixture.detectChanges();
+
+    expect(workspace.journalEntries().map((entry) => entry.id)).toEqual([
+      'journal-newer',
+      'journal-older',
+    ]);
+    expect(rollHistory.entries()).toEqual([savedRoll]);
+    expect(compiled().textContent).toContain('Linked records were kept.');
+  });
+
+  it('dismisses the confirmation with Escape and handles stale deletion safely', async () => {
+    workspace.saveJournalEntry({ id: 'journal-stale', title: 'Stale entry', body: '' });
+    fixture.detectChanges();
+
+    compiled().querySelector<HTMLButtonElement>('.reading-actions .secondary')!.click();
+    fixture.detectChanges();
+    compiled()
+      .querySelector<HTMLElement>('.delete-dialog')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve));
+    fixture.detectChanges();
+    expect(workspace.journalEntries().map((entry) => entry.id)).toEqual(['journal-stale']);
+    expect(compiled().querySelector('[role="dialog"]')).toBeNull();
+
+    compiled().querySelector<HTMLButtonElement>('.reading-actions .secondary')!.click();
+    fixture.detectChanges();
+    expect(workspace.deleteJournalEntry('journal-stale').ok).toBe(true);
+    compiled().querySelector<HTMLButtonElement>('.delete-actions .danger')!.click();
+    await new Promise((resolve) => setTimeout(resolve));
+    fixture.detectChanges();
+
+    expect(workspace.journalEntries()).toEqual([]);
+    expect(compiled().textContent).toContain('Journal entry was not found.');
+  });
 });
