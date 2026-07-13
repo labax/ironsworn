@@ -1,4 +1,12 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -41,6 +49,12 @@ export class Journal {
   protected readonly attachedRoll = signal<RollHistoryEntry | undefined>(undefined);
   protected readonly errors = signal<readonly ValidationError[]>([]);
   protected readonly announcement = signal('');
+  protected readonly deleteRequest = signal<JournalEntry | undefined>(undefined);
+  protected readonly deleteWarnings = signal<readonly string[]>([]);
+  protected readonly deleteError = signal('');
+  protected readonly isDeleting = signal(false);
+  @ViewChild('deleteCancelButton') private deleteCancelButton?: ElementRef<HTMLButtonElement>;
+  private deleteReturnFocus: HTMLElement | null = null;
   private readonly returnUrl = signal<string | undefined>(undefined);
   private saving = false;
 
@@ -80,14 +94,57 @@ export class Journal {
     );
   }
 
-  protected deleteEntry(entry: JournalEntry): void {
-    if (!confirm(`Delete journal entry ${entry.title}?`)) return;
+  protected requestDeleteEntry(entry: JournalEntry, event?: Event): void {
+    const preview = this.workspace.previewDeleteJournalEntry(entry.id);
+    if (!preview.ok) {
+      this.deleteError.set(preview.errors[0]?.message ?? 'Journal entry was not found.');
+      this.announcement.set(this.deleteError());
+      return;
+    }
+    this.deleteReturnFocus =
+      event?.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+    this.deleteRequest.set(preview.entry);
+    this.deleteWarnings.set(preview.warnings.map((warning) => warning.message));
+    this.deleteError.set('');
+    queueMicrotask(() => this.deleteCancelButton?.nativeElement.focus());
+  }
+
+  protected cancelDelete(): void {
+    this.deleteRequest.set(undefined);
+    this.deleteWarnings.set([]);
+    this.deleteError.set('');
+    this.isDeleting.set(false);
+    this.returnDeleteFocus();
+  }
+
+  protected confirmDelete(): void {
+    const entry = this.deleteRequest();
+    if (!entry || this.isDeleting()) return;
+    this.isDeleting.set(true);
     const result = this.workspace.deleteJournalEntry(entry.id);
-    this.announcement.set(
-      result.ok ? `Deleted journal entry ${entry.title}.` : 'Journal entry was not deleted.',
-    );
+    if (!result.ok) {
+      this.deleteRequest.set(undefined);
+      this.deleteWarnings.set([]);
+      this.deleteError.set(result.errors[0]?.message ?? 'Journal entry was already deleted.');
+      this.announcement.set(this.deleteError());
+      this.isDeleting.set(false);
+      this.returnDeleteFocus();
+      return;
+    }
+    this.deleteRequest.set(undefined);
+    this.deleteWarnings.set([]);
+    this.announcement.set(`Deleted journal entry ${entry.title}. Linked records were kept.`);
     if (this.selectedEntryId() === entry.id) this.selectedEntryId.set(this.entries()[0]?.id);
-    if (this.editingId() === entry.id) this.startCreate();
+    if (this.editingId() === entry.id) {
+      this.mode.set('create');
+      this.editingId.set(undefined);
+      this.attachedRoll.set(undefined);
+      this.errors.set([]);
+      this.form.reset({ title: '', sessionLabel: '', body: '' });
+      this.form.markAsPristine();
+    }
+    this.isDeleting.set(false);
+    this.returnDeleteFocus();
   }
 
   protected editEntry(entry: JournalEntry): void {
@@ -234,6 +291,28 @@ export class Journal {
       : `Roll snapshot: ${snapshot.roll.label ?? snapshot.roll.type} (${snapshot.roll.id})`;
   }
 
+  protected onDeleteDialogKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cancelDelete();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const buttons = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.delete-dialog button:not([disabled])'),
+    );
+    if (buttons.length === 0) return;
+    const first = buttons[0];
+    const last = buttons[buttons.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   protected rollLabel(roll: RollHistoryEntry): string {
     if (roll.type === 'oracle') return `Oracle: ${roll.oracleRoll?.tableName ?? roll.id}`;
     return `Roll: ${roll.label ?? roll.id}`;
@@ -277,6 +356,19 @@ export class Journal {
     const url = this.returnUrl();
     this.returnUrl.set(undefined);
     if (url) void this.router.navigateByUrl(url).catch(() => undefined);
+  }
+
+  private returnDeleteFocus(): void {
+    setTimeout(() => {
+      if (this.deleteReturnFocus?.isConnected) {
+        this.deleteReturnFocus.focus();
+      } else {
+        document
+          .querySelector<HTMLButtonElement>('.journal-card button, .reading-actions button')
+          ?.focus();
+      }
+      this.deleteReturnFocus = null;
+    });
   }
 
   private confirmDiscard(): boolean {

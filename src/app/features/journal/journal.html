@@ -142,7 +142,9 @@
         </div>
         <div class="reading-actions" aria-label="Journal entry actions">
           <button type="button" (click)="editEntry(entry)">Edit</button>
-          <button type="button" class="secondary" (click)="deleteEntry(entry)">Delete</button>
+          <button type="button" class="secondary" (click)="requestDeleteEntry(entry, $event)">
+            Delete
+          </button>
         </div>
       </header>
 
@@ -195,5 +197,51 @@
         </section>
       }
     </article>
+  }
+
+  @if (deleteRequest(); as entry) {
+    <div class="dialog-backdrop" (click)="cancelDelete()">
+      <section
+        class="delete-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+        tabindex="-1"
+        (click)="$event.stopPropagation()"
+        (keydown)="onDeleteDialogKeydown($event)"
+      >
+        <h3 id="delete-dialog-title">Delete journal entry?</h3>
+        <p id="delete-dialog-description">
+          Delete <strong>{{ entry.title }}</strong
+          >, created
+          <time [attr.datetime]="entry.createdAt">{{ formatTimestamp(entry.createdAt) }}</time>
+          ? This removes only this journal entry from your workspace. Linked rolls, oracles, vows,
+          and other records are kept.
+        </p>
+        @if (deleteWarnings().length > 0) {
+          <div class="delete-warnings" role="note" aria-label="Deletion warnings">
+            <p>Review before deleting:</p>
+            <ul>
+              @for (warning of deleteWarnings(); track warning) {
+                <li>{{ warning }}</li>
+              }
+            </ul>
+          </div>
+        }
+        <div class="delete-actions">
+          <button #deleteCancelButton type="button" class="secondary" (click)="cancelDelete()">
+            Cancel
+          </button>
+          <button type="button" class="danger" [disabled]="isDeleting()" (click)="confirmDelete()">
+            Delete
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (deleteError()) {
+    <p class="delete-feedback" role="alert">{{ deleteError() }}</p>
   }
 </section>
