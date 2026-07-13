@@ -8,6 +8,7 @@ import {
   type ProgressTrackStatus,
 } from '@app/domain/progress';
 import { CUSTOM_ORACLE_PROVENANCE, type CustomOracleTable } from '@app/domain/oracles';
+import type { JournalEntry, JournalSnapshot, JournalSourceReference } from '@app/domain/journal';
 import { isVowStatus, type Vow, type VowMilestone, type VowOutcome } from '@app/domain/vows';
 
 export const WORKSPACE_SAVE_SCHEMA_VERSION = CURRENT_SAVE_SCHEMA_VERSION;
@@ -21,6 +22,8 @@ export interface PersistedCampaignWorkspace {
   readonly selectedVowId?: string;
   readonly customOracleTables?: readonly CustomOracleTable[];
   readonly selectedCustomOracleTableId?: string;
+  readonly journalEntries?: readonly JournalEntry[];
+  readonly selectedJournalEntryId?: string;
 }
 
 const STATUSES: readonly ProgressTrackStatus[] = [
@@ -182,6 +185,83 @@ const migrateVow = (value: unknown): Vow | null => {
   };
 };
 
+const migrateJournalEntry = (value: unknown): JournalEntry | null => {
+  if (!isRecord(value)) return null;
+  if (
+    !isNonEmptyString(value['id']) ||
+    !isNonEmptyString(value['createdAt']) ||
+    !isNonEmptyString(value['title']) ||
+    typeof value['body'] !== 'string' ||
+    !isOptionalString(value['updatedAt']) ||
+    !isOptionalString(value['sessionLabel'])
+  ) {
+    return null;
+  }
+
+  const links = isRecord(value['links']) ? value['links'] : {};
+  const sourceReferences: JournalSourceReference[] = Array.isArray(value['sourceReferences'])
+    ? value['sourceReferences']
+        .filter(isRecord)
+        .flatMap((reference) =>
+          isNonEmptyString(reference['id']) &&
+          (reference['type'] === 'roll' || reference['type'] === 'oracle') &&
+          isNonEmptyString(reference['label'])
+            ? [{ id: reference['id'], type: reference['type'], label: reference['label'] }]
+            : [],
+        )
+    : [];
+  const snapshots: JournalSnapshot[] = Array.isArray(value['snapshots'])
+    ? value['snapshots'].filter(isRecord).flatMap((snapshot) =>
+        (snapshot['type'] === 'roll' || snapshot['type'] === 'oracle') && isRecord(snapshot['roll'])
+          ? [
+              {
+                type: snapshot['type'],
+                roll: snapshot['roll'] as unknown as JournalSnapshot['roll'],
+              },
+            ]
+          : [],
+      )
+    : [];
+
+  return {
+    schemaVersion: Number.isInteger(value['schemaVersion'])
+      ? (value['schemaVersion'] as number)
+      : 1,
+    recordStatus:
+      value['recordStatus'] === 'archived' || value['recordStatus'] === 'deleted'
+        ? value['recordStatus']
+        : 'active',
+    id: value['id'],
+    createdAt: value['createdAt'],
+    updatedAt: optionalText(value['updatedAt']) ?? value['createdAt'],
+    type:
+      value['type'] === 'oracle_result' ||
+      value['type'] === 'roll_result' ||
+      value['type'] === 'vow_note' ||
+      value['type'] === 'milestone' ||
+      value['type'] === 'freeform'
+        ? value['type']
+        : 'session_note',
+    title: value['title'],
+    body: value['body'],
+    links: {
+      characterId: optionalText(links['characterId']),
+      campaignId: optionalText(links['campaignId']),
+      sessionId: optionalText(links['sessionId']),
+      vowId: optionalText(links['vowId']),
+      progressTrackId: optionalText(links['progressTrackId']),
+      rollId: optionalText(links['rollId']),
+      oracleResultId: optionalText(links['oracleResultId']),
+    },
+    sourceReferences,
+    snapshots,
+    tags: Array.isArray(value['tags'])
+      ? value['tags'].filter((tag): tag is string => typeof tag === 'string')
+      : [],
+    sessionLabel: optionalText(value['sessionLabel']),
+  };
+};
+
 const migrateCustomOracleTable = (value: unknown): CustomOracleTable | null => {
   if (!isRecord(value)) return null;
   const rollRange = value['rollRange'];
@@ -256,7 +336,9 @@ export const migratePersistedCampaignWorkspace = (
   if (
     (payload['progressTracks'] !== undefined && !Array.isArray(payload['progressTracks'])) ||
     (payload['vows'] !== undefined && !Array.isArray(payload['vows'])) ||
-    (payload['customOracleTables'] !== undefined && !Array.isArray(payload['customOracleTables']))
+    (payload['customOracleTables'] !== undefined &&
+      !Array.isArray(payload['customOracleTables'])) ||
+    (payload['journalEntries'] !== undefined && !Array.isArray(payload['journalEntries']))
   ) {
     return null;
   }
@@ -273,6 +355,11 @@ export const migratePersistedCampaignWorkspace = (
     ? payload['customOracleTables']
         .map(migrateCustomOracleTable)
         .filter((table): table is CustomOracleTable => table !== null)
+    : [];
+  const migratedJournalEntries = Array.isArray(payload['journalEntries'])
+    ? payload['journalEntries']
+        .map(migrateJournalEntry)
+        .filter((entry): entry is JournalEntry => entry !== null)
     : [];
   const selectedProgressTrackId =
     typeof payload['selectedProgressTrackId'] === 'string' &&
@@ -291,6 +378,12 @@ export const migratePersistedCampaignWorkspace = (
       ? payload['selectedCustomOracleTableId']
       : undefined;
 
+  const selectedJournalEntryId =
+    typeof payload['selectedJournalEntryId'] === 'string' &&
+    migratedJournalEntries.some((entry) => entry.id === payload['selectedJournalEntryId'])
+      ? payload['selectedJournalEntryId']
+      : undefined;
+
   return {
     progressTracks: migratedTracks,
     selectedProgressTrackId,
@@ -298,6 +391,9 @@ export const migratePersistedCampaignWorkspace = (
     selectedVowId,
     ...(migratedCustomOracleTables.length > 0 || payload['customOracleTables'] !== undefined
       ? { customOracleTables: migratedCustomOracleTables, selectedCustomOracleTableId }
+      : {}),
+    ...(migratedJournalEntries.length > 0 || payload['journalEntries'] !== undefined
+      ? { journalEntries: migratedJournalEntries, selectedJournalEntryId }
       : {}),
   };
 };

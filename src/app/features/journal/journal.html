@@ -1,8 +1,121 @@
-<section class="placeholder-page" aria-labelledby="page-title">
-  <p class="section-label">Placeholder</p>
-  <h2 id="page-title">{{ content.title }}</h2>
-  <p class="description">{{ content.description }}</p>
-  <div class="empty-state" role="status">
-    {{ content.emptyState }}
+<section class="journal-page" aria-labelledby="journal-title-heading">
+  <header class="journal-header">
+    <p class="section-label">Journal</p>
+    <h2 id="journal-title-heading">Session journal</h2>
+    <p>Write your own notes. Roll and oracle snapshots stay attached as separate references.</p>
+  </header>
+
+  <p class="sr-only" role="status" aria-live="polite">{{ announcement() }}</p>
+
+  <div class="journal-layout">
+    <form
+      class="journal-editor"
+      [formGroup]="form"
+      (ngSubmit)="save()"
+      aria-labelledby="editor-title"
+    >
+      <div class="editor-heading">
+        <h3 id="editor-title">{{ mode() === 'edit' ? 'Edit entry' : 'Create entry' }}</h3>
+        <button type="button" (click)="startCreate()">New entry</button>
+      </div>
+
+      <div class="field-block">
+        <label for="journal-title">Title <span aria-hidden="true">*</span></label>
+        <input
+          id="journal-title"
+          type="text"
+          formControlName="title"
+          [attr.aria-describedby]="fieldError('title') ? 'journal-title-error' : null"
+          [attr.aria-invalid]="fieldError('title') ? 'true' : null"
+        />
+        <p id="journal-title-error" class="field-error" aria-live="polite">
+          {{ fieldError('title') }}
+        </p>
+      </div>
+
+      <div class="field-block">
+        <label for="journal-session-label">Session label</label>
+        <input id="journal-session-label" type="text" formControlName="sessionLabel" />
+      </div>
+
+      @if (mode() === 'create' && rollHandoffs().length > 0) {
+        <div class="field-block snapshot-picker">
+          <label for="journal-handoff">Attach roll or oracle snapshot</label>
+          <select id="journal-handoff" (change)="attachHandoff($event)">
+            <option value="">No snapshot</option>
+            @for (roll of rollHandoffs(); track roll.id) {
+              <option [value]="roll.id">{{ rollLabel(roll) }}</option>
+            }
+          </select>
+          <p class="help-text">
+            Attached snapshots are shown below the body and are not inserted into your note text.
+          </p>
+        </div>
+      }
+
+      @if (attachedRoll(); as roll) {
+        <aside class="snapshot-preview" aria-label="Attached generated snapshot preview">
+          <strong>Attached generated snapshot</strong>
+          <p>{{ rollLabel(roll) }}</p>
+        </aside>
+      }
+
+      <div class="field-block">
+        <label for="journal-body">Body</label>
+        <textarea
+          id="journal-body"
+          rows="14"
+          formControlName="body"
+          aria-describedby="journal-body-help"
+        ></textarea>
+        <p id="journal-body-help" class="help-text">
+          Plain text only. The app renders it as text, not HTML.
+        </p>
+      </div>
+
+      <div class="journal-actions">
+        <button type="submit">Save entry</button>
+        <button type="button" class="secondary" (click)="cancel()">Cancel</button>
+      </div>
+    </form>
+
+    <section class="journal-list" aria-labelledby="entries-title">
+      <h3 id="entries-title">Entries</h3>
+      @if (entries().length === 0) {
+        <p class="empty-state">No journal entries yet.</p>
+      } @else {
+        @for (entry of entries(); track entry.id) {
+          <article class="journal-card">
+            <header>
+              <h4>{{ entry.title }}</h4>
+              <time [attr.datetime]="entry.updatedAt"
+                >Updated {{ formatTimestamp(entry.updatedAt) }}</time
+              >
+            </header>
+            @if (entry.sessionLabel) {
+              <p class="session-label">{{ entry.sessionLabel }}</p>
+            }
+            <p class="journal-body-preview">{{ entry.body }}</p>
+            @if (entry.sourceReferences.length > 0) {
+              <dl class="source-list">
+                <dt>Source references</dt>
+                @for (source of entry.sourceReferences; track source.id) {
+                  <dd>{{ source.label }} — {{ source.id }}</dd>
+                }
+              </dl>
+            }
+            @if (entry.snapshots.length > 0) {
+              <section class="snapshot-list" aria-label="Generated snapshots attached to entry">
+                <h5>Generated snapshots</h5>
+                @for (snapshot of entry.snapshots; track snapshot.roll.id) {
+                  <p>{{ snapshotLabel(snapshot) }}</p>
+                }
+              </section>
+            }
+            <button type="button" (click)="editEntry(entry)">Edit {{ entry.title }}</button>
+          </article>
+        }
+      }
+    </section>
   </div>
 </section>
