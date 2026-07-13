@@ -207,6 +207,8 @@ export class CampaignWorkspaceService {
   readonly loadFailed = this.persistence.loadFailed;
   readonly lastSaveResult = this.persistence.lastSaveResult;
   readonly lastLoadError = this.persistence.lastLoadError;
+  private readonly loadStatusState = signal<'idle' | 'loading' | 'loaded' | 'failed'>('idle');
+  readonly loadStatus = this.loadStatusState.asReadonly();
 
   readonly workspaceName = signal('Local campaign workspace');
   readonly mode = signal('Ready for MVP features');
@@ -258,6 +260,7 @@ export class CampaignWorkspaceService {
   });
 
   async loadSavedWorkspace(): Promise<CampaignWorkspaceLoadResult> {
+    this.loadStatusState.set('loading');
     const result = await this.persistence.loadWorkspace();
     if (result.success && result.found) {
       this.progressTracksState.set(
@@ -277,6 +280,7 @@ export class CampaignWorkspaceService {
         result.workspace.selectedCustomOracleTableId ?? null,
       );
     }
+    this.loadStatusState.set(result.success ? 'loaded' : 'failed');
     return result;
   }
 
@@ -325,7 +329,7 @@ export class CampaignWorkspaceService {
           updatedAt: now,
         })
       : createDefaultJournalEntry({
-          id: createEntityId('journal'),
+          id: input.id ?? createEntityId('journal'),
           createdAt: now,
           updatedAt: now,
           title,
@@ -355,6 +359,24 @@ export class CampaignWorkspaceService {
     const selected = this.journalEntriesState().find((entry) => entry.id === entryId) ?? null;
     this.selectedJournalEntryIdState.set(selected?.id ?? null);
     return selected ? cloneJournalEntry(selected) : null;
+  }
+
+  deleteJournalEntry(
+    entryId: string,
+  ): { ok: true; entry: JournalEntry } | { ok: false; errors: readonly ValidationError[] } {
+    const existing = this.journalEntriesState().find((entry) => entry.id === entryId);
+    if (!existing) {
+      return {
+        ok: false,
+        errors: [{ code: 'not_found', field: 'entryId', message: 'Journal entry was not found.' }],
+      };
+    }
+    this.journalEntriesState.update((entries) => entries.filter((entry) => entry.id !== entryId));
+    if (this.selectedJournalEntryIdState() === entryId) {
+      this.selectedJournalEntryIdState.set(this.journalEntriesState()[0]?.id ?? null);
+    }
+    this.persistWorkspace();
+    return { ok: true, entry: cloneJournalEntry(existing) };
   }
 
   clearJournalEntries(): void {

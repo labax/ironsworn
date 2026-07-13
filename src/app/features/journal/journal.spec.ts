@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { PROJECT_ORIGINAL_PROVENANCE } from '@app/domain/content';
 import { RollHistoryService } from '@app/domain/rolls';
+import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
 import { resolveActionRoll } from '@app/rules/action-rolls';
 
 import { Journal } from './journal';
@@ -14,11 +15,14 @@ const setInput = (element: HTMLInputElement | HTMLTextAreaElement, value: string
 describe('Journal', () => {
   let fixture: ComponentFixture<Journal>;
   let rollHistory: RollHistoryService;
+  let workspace: CampaignWorkspaceService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({ imports: [Journal] }).compileComponents();
     rollHistory = TestBed.inject(RollHistoryService);
+    workspace = TestBed.inject(CampaignWorkspaceService);
     rollHistory.clear();
+    workspace.clearJournalEntries();
     fixture = TestBed.createComponent(Journal);
     fixture.detectChanges();
   });
@@ -145,5 +149,75 @@ describe('Journal', () => {
     const event = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
     window.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('orders entries newest first with stable tie ordering and opens the selected stable record', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-07-13T10:00:00.000Z'));
+      const beta = workspace.saveJournalEntry({
+        id: 'journal-beta',
+        title: 'Beta title',
+        body: '',
+      });
+      const alpha = workspace.saveJournalEntry({
+        id: 'journal-alpha',
+        title: 'Alpha title',
+        body: 'Older',
+      });
+      vi.setSystemTime(new Date('2026-07-13T11:00:00.000Z'));
+      workspace.saveJournalEntry({
+        id: 'journal-newest',
+        title: 'Newest title',
+        body: 'Latest body',
+      });
+      expect(beta.ok && alpha.ok).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+    fixture.detectChanges();
+
+    const cards = [...compiled().querySelectorAll('.journal-card h4')].map((node) =>
+      node.textContent?.trim(),
+    );
+    expect(cards).toEqual(['Newest title', 'Alpha title', 'Beta title']);
+
+    compiled().querySelectorAll<HTMLButtonElement>('.journal-card .secondary')[2].click();
+    fixture.detectChanges();
+    expect(compiled().querySelector('.reading-view h3')?.textContent).toContain('Beta title');
+    expect(compiled().textContent).toContain('No body text.');
+  });
+
+  it('keeps historical generated snapshots readable when the live source link is broken', () => {
+    const result = resolveActionRoll({ stat: 1, actionDie: 5, challengeDice: [2, 8] });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const saved = rollHistory.saveActionRoll({
+      prepared: {
+        label: 'Temporary roll',
+        statKey: 'edge',
+        statValue: 1,
+        adds: 0,
+        source: 'manual',
+      },
+      result: result.value,
+      createdAt: '2026-07-13T02:00:00.000Z',
+    });
+    const roll = saved;
+    workspace.saveJournalEntry({
+      id: 'journal-broken-source',
+      title: 'Broken source note',
+      body: '',
+      sourceReferences: [{ id: roll.id, type: 'roll', label: 'Roll: Temporary roll' }],
+      snapshots: [{ type: 'roll', roll }],
+    });
+    rollHistory.clear();
+    fixture.detectChanges();
+
+    expect(compiled().textContent).toContain(
+      'Roll: Temporary roll is unavailable; snapshot preserved.',
+    );
+    expect(compiled().textContent).toContain('Roll snapshot: Temporary roll');
+    expect(compiled().textContent).toContain('No body text.');
   });
 });

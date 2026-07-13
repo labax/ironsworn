@@ -79,43 +79,121 @@
       </div>
     </form>
 
-    <section class="journal-list" aria-labelledby="entries-title">
-      <h3 id="entries-title">Entries</h3>
-      @if (entries().length === 0) {
-        <p class="empty-state">No journal entries yet.</p>
-      } @else {
-        @for (entry of entries(); track entry.id) {
-          <article class="journal-card">
-            <header>
-              <h4>{{ entry.title }}</h4>
-              <time [attr.datetime]="entry.updatedAt"
-                >Updated {{ formatTimestamp(entry.updatedAt) }}</time
-              >
-            </header>
-            @if (entry.sessionLabel) {
-              <p class="session-label">{{ entry.sessionLabel }}</p>
-            }
-            <p class="journal-body-preview">{{ entry.body }}</p>
-            @if (entry.sourceReferences.length > 0) {
-              <dl class="source-list">
-                <dt>Source references</dt>
-                @for (source of entry.sourceReferences; track source.id) {
-                  <dd>{{ source.label }} — {{ source.id }}</dd>
-                }
-              </dl>
-            }
-            @if (entry.snapshots.length > 0) {
-              <section class="snapshot-list" aria-label="Generated snapshots attached to entry">
-                <h5>Generated snapshots</h5>
-                @for (snapshot of entry.snapshots; track snapshot.roll.id) {
-                  <p>{{ snapshotLabel(snapshot) }}</p>
-                }
-              </section>
-            }
-            <button type="button" (click)="editEntry(entry)">Edit {{ entry.title }}</button>
-          </article>
+    <section class="journal-list" aria-labelledby="entries-title" aria-busy="{{ isLoading() }}">
+      <div class="list-heading">
+        <h3 id="entries-title">Entries</h3>
+        @if (entries().length) {
+          <p>Newest first</p>
         }
+      </div>
+      @if (isLoading()) {
+        <p class="loading-state" role="status">Loading journal entries…</p>
+      } @else if (loadError()) {
+        <section class="error-state" aria-labelledby="journal-load-error-title" role="alert">
+          <h4 id="journal-load-error-title">Journal entries are unavailable.</h4>
+          <p>{{ loadError() }}</p>
+        </section>
+      } @else if (entries().length === 0) {
+        <p class="empty-state" role="status">No journal entries yet.</p>
+      } @else {
+        <ol class="entry-list" aria-label="Journal entries, newest first">
+          @for (entry of entries(); track entry.id) {
+            <li>
+              <article class="journal-card" [class.selected]="selectedEntry()?.id === entry.id">
+                <header>
+                  <h4>{{ entry.title }}</h4>
+                  <time [attr.datetime]="entry.createdAt">{{
+                    formatTimestamp(entry.createdAt)
+                  }}</time>
+                </header>
+                @if (sourceIndicator(entry)) {
+                  <p class="session-label">{{ sourceIndicator(entry) }}</p>
+                }
+                <p class="journal-body-preview">{{ entryExcerpt(entry) }}</p>
+                <div class="card-actions">
+                  <button type="button" (click)="editEntry(entry)">Edit {{ entry.title }}</button>
+                  <button type="button" class="secondary" (click)="openEntry(entry.id)">
+                    Read {{ entry.title }}
+                  </button>
+                </div>
+              </article>
+            </li>
+          }
+        </ol>
       }
     </section>
   </div>
+
+  @if (!isLoading() && !loadError() && selectedEntry(); as entry) {
+    <article class="reading-view" [attr.aria-labelledby]="'journal-entry-title-' + entry.id">
+      <header class="reading-header">
+        <div>
+          <p class="section-label">Reading view</p>
+          <h3 [id]="'journal-entry-title-' + entry.id">{{ entry.title }}</h3>
+          <p>
+            <time [attr.datetime]="entry.createdAt"
+              >Created {{ formatTimestamp(entry.createdAt) }}</time
+            >
+            <span aria-hidden="true"> · </span>
+            <time [attr.datetime]="entry.updatedAt"
+              >Updated {{ formatTimestamp(entry.updatedAt) }}</time
+            >
+          </p>
+        </div>
+        <div class="reading-actions" aria-label="Journal entry actions">
+          <button type="button" (click)="editEntry(entry)">Edit</button>
+          <button type="button" class="secondary" (click)="deleteEntry(entry)">Delete</button>
+        </div>
+      </header>
+
+      @if (entry.sessionLabel) {
+        <p class="session-label">{{ entry.sessionLabel }}</p>
+      }
+
+      <section aria-label="Journal body" class="entry-prose">
+        @if (entry.body.trim()) {
+          <p>{{ entry.body }}</p>
+        } @else {
+          <p class="empty-body">No body text.</p>
+        }
+      </section>
+
+      @if (entry.links.vowId || entry.sourceReferences.length > 0) {
+        <nav class="related-links" aria-label="Related journal sources">
+          <h4>Source references</h4>
+          @if (entry.links.vowId) {
+            <a [attr.href]="vowHref(entry)">Vow {{ entry.links.vowId }}</a>
+          }
+          @for (source of entry.sourceReferences; track source.id) {
+            @if (sourceHref(source); as href) {
+              <a [attr.href]="href">{{ source.label }}</a>
+            } @else {
+              <span class="broken-link" role="note"
+                >{{ source.label }} is unavailable; snapshot preserved.</span
+              >
+            }
+          }
+        </nav>
+      }
+
+      @if (entry.snapshots.length > 0) {
+        <section class="snapshot-list" aria-labelledby="snapshots-title">
+          <h4 id="snapshots-title">Generated snapshots</h4>
+          @for (snapshot of entry.snapshots; track snapshot.roll.id) {
+            <article class="snapshot-card">
+              <h5>{{ snapshotLabel(snapshot) }}</h5>
+              <dl>
+                @for (detail of snapshotDetails(snapshot); track detail) {
+                  <div>
+                    <dt>Snapshot detail</dt>
+                    <dd>{{ detail }}</dd>
+                  </div>
+                }
+              </dl>
+            </article>
+          }
+        </section>
+      }
+    </article>
+  }
 </section>
