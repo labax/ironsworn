@@ -8,6 +8,13 @@ import {
   type SaveCustomOracleTableInput,
 } from '@app/domain/oracles';
 import {
+  cloneJournalEntry,
+  createDefaultJournalEntry,
+  type JournalEntry,
+  type JournalSnapshot,
+  type JournalSourceReference,
+} from '@app/domain/journal';
+import {
   createDefaultProgressTrack,
   validateProgressTrackDetails,
   validateProgressTrackTicks,
@@ -64,6 +71,15 @@ export interface SaveVowInput {
   readonly rank: ChallengeRank;
   readonly status: VowStatus;
   readonly notes?: string;
+}
+
+export interface SaveJournalEntryInput {
+  readonly id?: string;
+  readonly title: string;
+  readonly body: string;
+  readonly sessionLabel?: string;
+  readonly sourceReferences?: readonly JournalSourceReference[];
+  readonly snapshots?: readonly JournalSnapshot[];
 }
 
 export interface SaveProgressTrackInput {
@@ -163,6 +179,14 @@ const compareVows = (left: Vow, right: Vow): number => {
   return createdComparison !== 0 ? createdComparison : left.id.localeCompare(right.id);
 };
 
+const compareJournalEntries = (left: JournalEntry, right: JournalEntry): number => {
+  const leftCreated = typeof left.createdAt === 'string' ? left.createdAt : '';
+  const rightCreated = typeof right.createdAt === 'string' ? right.createdAt : '';
+  const createdComparison = rightCreated.localeCompare(leftCreated);
+
+  return createdComparison !== 0 ? createdComparison : left.id.localeCompare(right.id);
+};
+
 const compareProgressTracks = (left: ProgressTrack, right: ProgressTrack): number => {
   const leftCreated = typeof left.createdAt === 'string' ? left.createdAt : '';
   const rightCreated = typeof right.createdAt === 'string' ? right.createdAt : '';
@@ -208,6 +232,15 @@ export class CampaignWorkspaceService {
     return selected ? cloneVow(selected) : null;
   });
 
+  private readonly journalEntriesState = signal<readonly JournalEntry[]>([]);
+  private readonly selectedJournalEntryIdState = signal<string | null>(null);
+  readonly journalEntries = computed<readonly JournalEntry[]>(() =>
+    [...this.journalEntriesState()]
+      .sort(compareJournalEntries)
+      .map((entry) => cloneJournalEntry(entry)),
+  );
+  readonly selectedJournalEntryId = this.selectedJournalEntryIdState.asReadonly();
+
   private readonly progressTracksState = signal<readonly ProgressTrack[]>([]);
   private readonly selectedProgressTrackIdState = signal<string | null>(null);
 
@@ -236,6 +269,10 @@ export class CampaignWorkspaceService {
       this.customOracleTablesState.set(
         (result.workspace.customOracleTables ?? []).map((table) => cloneCustomOracleTable(table)),
       );
+      this.journalEntriesState.set(
+        (result.workspace.journalEntries ?? []).map((entry) => cloneJournalEntry(entry)),
+      );
+      this.selectedJournalEntryIdState.set(result.workspace.selectedJournalEntryId ?? null);
       this.selectedCustomOracleTableIdState.set(
         result.workspace.selectedCustomOracleTableId ?? null,
       );
@@ -252,8 +289,78 @@ export class CampaignWorkspaceService {
         selectedVowId: this.selectedVowIdState(),
         customOracleTables: this.customOracleTablesState(),
         selectedCustomOracleTableId: this.selectedCustomOracleTableIdState(),
+        journalEntries: this.journalEntriesState(),
+        selectedJournalEntryId: this.selectedJournalEntryIdState(),
       }),
     );
+  }
+
+  saveJournalEntry(
+    input: SaveJournalEntryInput,
+  ): { ok: true; entry: JournalEntry } | { ok: false; errors: readonly ValidationError[] } {
+    const title = typeof input.title === 'string' ? input.title.trim() : '';
+    if (!title) {
+      return {
+        ok: false,
+        errors: [{ code: 'required', field: 'title', message: 'Enter a journal title.' }],
+      };
+    }
+
+    const now = new Date().toISOString();
+    const existing = input.id
+      ? this.journalEntriesState().find((entry) => entry.id === input.id)
+      : undefined;
+    const sourceReferences = input.sourceReferences ?? existing?.sourceReferences ?? [];
+    const snapshots = input.snapshots ?? existing?.snapshots ?? [];
+    const links = existing?.links ?? {
+      rollId: sourceReferences.find((reference) => reference.type === 'roll')?.id,
+      oracleResultId: sourceReferences.find((reference) => reference.type === 'oracle')?.id,
+    };
+    const entry = existing
+      ? cloneJournalEntry({
+          ...existing,
+          title,
+          body: input.body ?? '',
+          sessionLabel: input.sessionLabel?.trim() || undefined,
+          updatedAt: now,
+        })
+      : createDefaultJournalEntry({
+          id: createEntityId('journal'),
+          createdAt: now,
+          updatedAt: now,
+          title,
+          body: input.body ?? '',
+          type: sourceReferences.some((reference) => reference.type === 'oracle')
+            ? 'oracle_result'
+            : sourceReferences.some((reference) => reference.type === 'roll')
+              ? 'roll_result'
+              : 'session_note',
+          links,
+          sourceReferences,
+          snapshots,
+          sessionLabel: input.sessionLabel,
+        });
+
+    this.journalEntriesState.update((entries) =>
+      existing
+        ? entries.map((candidate) => (candidate.id === existing.id ? entry : candidate))
+        : [...entries, entry],
+    );
+    this.selectedJournalEntryIdState.set(entry.id);
+    this.persistWorkspace();
+    return { ok: true, entry: cloneJournalEntry(entry) };
+  }
+
+  selectJournalEntry(entryId: string): JournalEntry | null {
+    const selected = this.journalEntriesState().find((entry) => entry.id === entryId) ?? null;
+    this.selectedJournalEntryIdState.set(selected?.id ?? null);
+    return selected ? cloneJournalEntry(selected) : null;
+  }
+
+  clearJournalEntries(): void {
+    this.journalEntriesState.set([]);
+    this.selectedJournalEntryIdState.set(null);
+    this.persistWorkspace();
   }
 
   saveCustomOracleTable(

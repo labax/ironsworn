@@ -514,3 +514,72 @@ describe('CampaignWorkspaceService progress track archive restore delete actions
     expect(service.vows()).toEqual(beforeVows);
   });
 });
+
+describe('CampaignWorkspaceService journal entries', () => {
+  let service: CampaignWorkspaceService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(CampaignWorkspaceService);
+    service.clearJournalEntries();
+  });
+
+  it('creates and edits one journal entry while preserving stable identity and source metadata', () => {
+    const sourceReferences = [
+      { id: 'roll-history-1', type: 'roll' as const, label: 'Roll: Scout' },
+    ];
+    const snapshots = [
+      {
+        type: 'roll' as const,
+        roll: {
+          id: 'roll-history-1',
+          createdAt: '2026-07-13T00:00:00.000Z',
+          updatedAt: '2026-07-13T00:00:00.000Z',
+          schemaVersion: 1,
+          recordStatus: 'active' as const,
+          type: 'action' as const,
+          source: 'generated' as const,
+          outcome: 'weak_hit' as const,
+          label: 'Scout',
+          actionRoll: { actionDie: 4, challengeDice: [2, 7] as const, actionScore: 5 },
+          isMatch: false,
+        },
+      },
+    ];
+
+    const created = service.saveJournalEntry({
+      title: 'Player note',
+      body: 'User-authored text.',
+      sourceReferences,
+      snapshots,
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const unrelated = service.saveJournalEntry({ title: 'Other note', body: 'Keep me.' });
+    expect(unrelated.ok).toBe(true);
+
+    const edited = service.saveJournalEntry({
+      id: created.entry.id,
+      title: 'Edited player note',
+      body: 'Edited text.',
+    });
+
+    expect(edited.ok).toBe(true);
+    if (!edited.ok) return;
+    expect(edited.entry.id).toBe(created.entry.id);
+    expect(edited.entry.createdAt).toBe(created.entry.createdAt);
+    expect(edited.entry.sourceReferences).toEqual(sourceReferences);
+    expect(edited.entry.snapshots).toHaveLength(1);
+    expect(service.journalEntries().find((entry) => entry.title === 'Other note')?.body).toBe(
+      'Keep me.',
+    );
+  });
+
+  it('rejects missing title without mutating committed journal state', () => {
+    const before = service.journalEntries();
+    const result = service.saveJournalEntry({ title: '   ', body: 'Preserved draft text.' });
+
+    expect(result).toMatchObject({ ok: false, errors: [{ field: 'title' }] });
+    expect(service.journalEntries()).toEqual(before);
+  });
+});
