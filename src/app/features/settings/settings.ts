@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 
-import { PlaceholderPageContent } from '@app/features/placeholder-page';
+import { ApplicationBackupService, type ApplicationBackupResult } from '@app/domain/backup';
 
 @Component({
   selector: 'app-settings',
@@ -8,9 +8,10 @@ import { PlaceholderPageContent } from '@app/features/placeholder-page';
   styleUrl: '../placeholder-page.css',
 })
 export class Settings {
-  protected readonly content: PlaceholderPageContent = {
-    title: 'Settings',
-    description: 'Adjust local companion preferences after options are defined.',
-    emptyState: 'Settings controls will be added as the app grows.',
-  };
+  private readonly backup = inject(ApplicationBackupService);
+  protected readonly lastBackup = signal<ApplicationBackupResult | null>(null);
+
+  protected exportBackup(): void {
+    this.lastBackup.set(this.backup.exportAndDownload());
+  }
 }

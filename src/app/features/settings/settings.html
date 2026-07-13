@@ -1,8 +1,38 @@
 <section class="placeholder-page" aria-labelledby="page-title">
-  <p class="section-label">Placeholder</p>
-  <h2 id="page-title">{{ content.title }}</h2>
-  <p class="description">{{ content.description }}</p>
-  <div class="empty-state" role="status">
-    {{ content.emptyState }}
+  <p class="section-label">Settings</p>
+  <h2 id="page-title">Local backup</h2>
+  <p class="description">
+    Export a complete local MVP backup as human-inspectable JSON. The file stays on this device and
+    can be created without an account or network access.
+  </p>
+
+  <div class="empty-state" role="note">
+    Backups may contain private campaign notes, custom oracle text, character details, and journal
+    entries. Store downloaded files securely.
   </div>
+
+  <button type="button" (click)="exportBackup()">Export local backup</button>
+
+  @if (lastBackup(); as result) {
+    @if (result.ok) {
+      <div class="empty-state" role="status">
+        Backup downloaded as {{ result.filename }}. Records included:
+        {{ result.counts.characters }} character(s), {{ result.counts.vows }} vow(s),
+        {{ result.counts.progressTracks }} track(s), {{ result.counts.rollHistoryEntries }} roll
+        history entry/entries, {{ result.counts.journalEntries }} journal entry/entries, and
+        {{ result.counts.customOracleTables }} custom oracle table(s).
+      </div>
+    } @else {
+      <div class="empty-state" role="alert">
+        Backup was not created: {{ result.error.message }}
+        @if (result.diagnostics.length > 0) {
+          <ul>
+            @for (diagnostic of result.diagnostics; track diagnostic) {
+              <li>{{ diagnostic }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  }
 </section>
