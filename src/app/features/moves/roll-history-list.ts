@@ -1,6 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { RollHistoryService, type RollHistoryEntry, type RollOutcome } from '@app/domain/rolls';
+import { JournalHandoffService } from '../journal/journal-handoff.service';
 
 @Component({
   selector: 'app-roll-history-list',
@@ -9,6 +11,8 @@ import { RollHistoryService, type RollHistoryEntry, type RollOutcome } from '@ap
 })
 export class RollHistoryList {
   private readonly rollHistory = inject(RollHistoryService);
+  private readonly handoffs = inject(JournalHandoffService);
+  private readonly router = inject(Router);
 
   protected readonly entries = computed(() => this.rollHistory.entries().slice().reverse());
 
@@ -34,6 +38,11 @@ export class RollHistoryList {
   protected rollLabel(entry: RollHistoryEntry, index: number): string {
     if (entry.type === 'oracle') return entry.oracleRoll?.tableName ?? 'Oracle roll';
     return entry.label?.trim() || `Action roll ${this.actionRolls().length - index}`;
+  }
+
+  protected sendToJournal(entry: RollHistoryEntry): void {
+    this.handoffs.start(entry, '/moves');
+    void this.router.navigateByUrl('/journal').catch(() => undefined);
   }
 
   protected createdAtLabel(entry: RollHistoryEntry): string {

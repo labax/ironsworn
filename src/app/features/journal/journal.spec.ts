@@ -6,6 +6,7 @@ import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspac
 import { resolveActionRoll } from '@app/rules/action-rolls';
 
 import { Journal } from './journal';
+import { JournalHandoffService } from './journal-handoff.service';
 
 const setInput = (element: HTMLInputElement | HTMLTextAreaElement, value: string): void => {
   element.value = value;
@@ -107,6 +108,63 @@ describe('Journal', () => {
 
     expect(compiled().textContent).toContain('Oracle snapshot: Project weather');
     expect(compiled().querySelector('.journal-body-preview')?.textContent).toBe('My answer.');
+  });
+
+  it('consumes an oracle handoff as a reviewable draft, saves once, and leaves the source snapshot stable', async () => {
+    const saved = rollHistory.saveOracleRoll({
+      result: {
+        id: 'oracle-result-1',
+        tableId: 'oracle:weather',
+        tableName: 'Project weather',
+        tableKind: 'table',
+        roll: 42,
+        rollRange: { min: 1, max: 100 },
+        entryId: 'oracle-entry-1',
+        entryRange: { min: 41, max: 50 },
+        text: 'Project-original result',
+        provenance: PROJECT_ORIGINAL_PROVENANCE,
+        tableProvenance: PROJECT_ORIGINAL_PROVENANCE,
+        timestamp: '2026-07-13T01:00:00.000Z',
+        sourceType: 'project_original',
+        questionContext: 'User-authored question?',
+      },
+      note: 'User-authored note.',
+    });
+    const handoffs = TestBed.inject(JournalHandoffService);
+    handoffs.start(saved, '/oracles');
+
+    fixture = TestBed.createComponent(Journal);
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve));
+    fixture.detectChanges();
+
+    expect(compiled().querySelector<HTMLInputElement>('#journal-title')?.value).toContain(
+      'Oracle: Project weather',
+    );
+    expect(compiled().textContent).toContain('Attached generated snapshot');
+    setInput(
+      compiled().querySelector<HTMLTextAreaElement>('#journal-body')!,
+      'User-authored follow-up.',
+    );
+    const sourceBefore = rollHistory.entries()[0];
+
+    compiled().querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
+    compiled().querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
+    fixture.detectChanges();
+
+    expect(workspace.journalEntries()).toHaveLength(1);
+    expect(workspace.journalEntries()[0]).toMatchObject({
+      type: 'oracle_result',
+      body: 'User-authored follow-up.',
+      sourceReferences: [{ id: saved.id, type: 'oracle', label: 'Oracle: Project weather' }],
+      snapshots: [
+        {
+          type: 'oracle',
+          roll: { id: saved.id, oracleRoll: { roll: 42, tableName: 'Project weather' } },
+        },
+      ],
+    });
+    expect(rollHistory.entries()[0]).toEqual(sourceBefore);
   });
 
   it('warns before discarding dirty changes and stores roll handoff snapshots separately', () => {

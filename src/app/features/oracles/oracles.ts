@@ -1,4 +1,5 @@
 import { Component, computed, HostListener, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormArray, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import {
@@ -17,6 +18,7 @@ import { resolveOracleTableRoll, type ResolvedOracleTableResult } from '@app/rul
 import type { ValidationError } from '@app/rules/validation';
 
 import { OracleBrowserService } from './oracle-browser.service';
+import { JournalHandoffService } from '../journal/journal-handoff.service';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -30,6 +32,8 @@ export class Oracles {
   private readonly oracleBrowser = inject(OracleBrowserService);
   private readonly workspace = inject(CampaignWorkspaceService);
   private readonly rollHistory = inject(RollHistoryService);
+  private readonly handoffs = inject(JournalHandoffService);
+  private readonly router = inject(Router);
   private readonly formBuilder = inject(NonNullableFormBuilder);
   protected readonly loadState = signal<LoadState>('loading');
   private readonly allTables = signal<readonly BrowsableOracleTable[]>([]);
@@ -69,6 +73,7 @@ export class Oracles {
   protected readonly errorMessage = signal('');
   protected readonly validationErrors = signal<readonly ValidationError[]>([]);
   protected readonly rollResults = signal<readonly Readonly<ResolvedOracleTableResult>[]>([]);
+  private readonly resultHistoryIds = signal<ReadonlyMap<string, string>>(new Map());
   protected readonly rollResult = computed(() => this.rollResults()[0]);
   protected readonly resultAnnouncement = signal('');
   protected readonly oracleQuestionContext = signal('');
@@ -164,6 +169,7 @@ export class Oracles {
     if (!table) return;
     this.selectedTableId.set(table.id);
     this.rollResults.set([]);
+    this.resultHistoryIds.set(new Map());
     this.resultAnnouncement.set('');
   }
 
@@ -271,6 +277,7 @@ export class Oracles {
       note: note || undefined,
       clientSaveKey: `${snapshot.timestamp}:${snapshot.id}`,
     });
+    this.resultHistoryIds.update((ids) => new Map(ids).set(snapshot.id, history.id));
     this.rollResults.update((previous) => [snapshot, ...previous]);
     this.resultAnnouncement.set(
       `Oracle result saved to history: ${snapshot.tableName}, rolled ${snapshot.roll}, ${snapshot.text ?? snapshot.textRef}. History record ${history.id}.`,
@@ -314,7 +321,15 @@ export class Oracles {
   }
 
   protected journalIntegrationLabel(result: ResolvedOracleTableResult): string {
-    return `Keep result snapshot ${result.id} ready for future journal integration`;
+    return `Send oracle result ${result.id} to the journal`;
+  }
+
+  protected sendResultToJournal(result: ResolvedOracleTableResult): void {
+    const historyId = this.resultHistoryIds().get(result.id);
+    const history = this.rollHistory.entries().find((entry) => entry.id === historyId);
+    if (!history) return;
+    this.handoffs.start(history, '/oracles');
+    void this.router.navigateByUrl('/journal').catch(() => undefined);
   }
 
   private freezeOracleResult(

@@ -1,10 +1,12 @@
 import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import type { JournalEntry, JournalSnapshot, JournalSourceReference } from '@app/domain/journal';
 import { RollHistoryService, type RollHistoryEntry } from '@app/domain/rolls';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
 import type { ValidationError } from '@app/rules/validation';
+import { JournalHandoffService } from './journal-handoff.service';
 
 type EditorMode = 'create' | 'edit';
 
@@ -17,6 +19,8 @@ type EditorMode = 'create' | 'edit';
 export class Journal {
   private readonly workspace = inject(CampaignWorkspaceService);
   private readonly rollHistory = inject(RollHistoryService);
+  private readonly handoffs = inject(JournalHandoffService);
+  private readonly router = inject(Router);
   private readonly formBuilder = inject(NonNullableFormBuilder);
 
   protected readonly entries = this.workspace.journalEntries;
@@ -37,12 +41,18 @@ export class Journal {
   protected readonly attachedRoll = signal<RollHistoryEntry | undefined>(undefined);
   protected readonly errors = signal<readonly ValidationError[]>([]);
   protected readonly announcement = signal('');
+  private readonly returnUrl = signal<string | undefined>(undefined);
+  private saving = false;
 
   protected readonly form = this.formBuilder.group({
     title: ['', [Validators.required, Validators.pattern(/\S/)]],
     sessionLabel: [''],
     body: [''],
   });
+
+  constructor() {
+    queueMicrotask(() => this.acceptPendingHandoff());
+  }
 
   @HostListener('window:beforeunload', ['$event'])
   warnBeforeUnload(event: BeforeUnloadEvent): void {
@@ -103,6 +113,8 @@ export class Journal {
   }
 
   protected save(): void {
+    if (this.saving) return;
+    this.saving = true;
     this.form.markAllAsTouched();
     const attached = this.attachedRoll();
     const result = this.workspace.saveJournalEntry({
@@ -116,6 +128,7 @@ export class Journal {
     if (!result.ok) {
       this.errors.set(result.errors);
       this.announcement.set('Journal entry was not saved. Review the title field.');
+      this.saving = false;
       return;
     }
     this.errors.set([]);
@@ -130,12 +143,15 @@ export class Journal {
     this.form.markAsPristine();
     this.selectedEntryId.set(result.entry.id);
     this.announcement.set(`Saved journal entry ${result.entry.title}.`);
+    this.saving = false;
+    this.returnAfterHandoff();
   }
 
   protected cancel(): void {
     if (!this.confirmDiscard()) return;
     this.startCreate();
     this.announcement.set('Journal changes discarded.');
+    this.returnAfterHandoff();
   }
 
   protected fieldError(field: string): string {
@@ -173,9 +189,11 @@ export class Journal {
   }
 
   protected sourceHref(source: JournalSourceReference): string | undefined {
-    if (source.type === 'oracle') return `/oracles?source=${encodeURIComponent(source.id)}`;
     const entry = this.rollHistory.entries().find((roll) => roll.id === source.id);
-    return entry ? `/moves?source=${encodeURIComponent(source.id)}` : undefined;
+    if (!entry) return undefined;
+    return source.type === 'oracle'
+      ? `/oracles?source=${encodeURIComponent(source.id)}`
+      : `/moves?source=${encodeURIComponent(source.id)}`;
   }
 
   protected vowHref(entry: JournalEntry): string | undefined {
@@ -183,7 +201,6 @@ export class Journal {
   }
 
   protected sourceState(source: JournalSourceReference): 'valid' | 'broken' {
-    if (source.type === 'oracle') return 'valid';
     return this.rollHistory.entries().some((roll) => roll.id === source.id) ? 'valid' : 'broken';
   }
 
@@ -232,6 +249,34 @@ export class Journal {
 
   private toSnapshot(roll: RollHistoryEntry): JournalSnapshot {
     return { type: roll.type === 'oracle' ? 'oracle' : 'roll', roll };
+  }
+
+  private acceptPendingHandoff(): void {
+    const pending = this.handoffs.consume();
+    if (!pending) return;
+    this.mode.set('create');
+    this.editingId.set(undefined);
+    this.attachedRoll.set(pending.source);
+    this.returnUrl.set(pending.returnUrl);
+    this.form.reset({
+      title:
+        pending.source.type === 'oracle'
+          ? `Oracle: ${pending.source.oracleRoll?.tableName ?? 'Result'}`
+          : `Roll: ${pending.source.label ?? pending.source.id}`,
+      sessionLabel: '',
+      body: '',
+    });
+    this.form.markAsDirty();
+    this.announcement.set(
+      'Oracle snapshot attached. Review and add your own journal text before saving.',
+    );
+    this.focusTitle();
+  }
+
+  private returnAfterHandoff(): void {
+    const url = this.returnUrl();
+    this.returnUrl.set(undefined);
+    if (url) void this.router.navigateByUrl(url).catch(() => undefined);
   }
 
   private confirmDiscard(): boolean {
