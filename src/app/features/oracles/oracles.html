@@ -12,23 +12,41 @@
       (ngSubmit)="saveCustomTable()"
       aria-labelledby="custom-oracle-title"
     >
-      <h3 id="custom-oracle-title">Custom oracle table editor</h3>
+      <h3 id="custom-oracle-title" tabindex="-1">Custom oracle table editor</h3>
       <p>
         Enter only your own original text. Custom tables are saved in workspace data and are not
         bundled content.
       </p>
       <input type="hidden" formControlName="id" />
-      <label>Name <input formControlName="name" autocomplete="off" /></label>
-      <p class="field-error" aria-live="polite">{{ fieldErrors('table.name') }}</p>
-      <label>Category <input formControlName="category" autocomplete="off" /></label>
-      <label>Description <textarea formControlName="description"></textarea></label>
+      <label for="custom-oracle-name">Name</label>
+      <input
+        id="custom-oracle-name"
+        formControlName="name"
+        autocomplete="off"
+        aria-describedby="custom-oracle-name-error"
+      />
+      <p id="custom-oracle-name-error" class="field-error" aria-live="polite">
+        {{ fieldErrors('table.name') }}
+      </p>
+      <label for="custom-oracle-category">Category</label>
+      <input id="custom-oracle-category" formControlName="category" autocomplete="off" />
+      <label for="custom-oracle-description">Description</label>
+      <textarea id="custom-oracle-description" formControlName="description"></textarea>
       <div class="range-row">
-        <label
-          >Roll minimum <input type="number" inputmode="numeric" formControlName="rollMin"
-        /></label>
-        <label
-          >Roll maximum <input type="number" inputmode="numeric" formControlName="rollMax"
-        /></label>
+        <label for="custom-oracle-roll-min">Roll minimum</label>
+        <input
+          id="custom-oracle-roll-min"
+          type="number"
+          inputmode="numeric"
+          formControlName="rollMin"
+        />
+        <label for="custom-oracle-roll-max">Roll maximum</label>
+        <input
+          id="custom-oracle-roll-max"
+          type="number"
+          inputmode="numeric"
+          formControlName="rollMax"
+        />
       </div>
       <p class="field-error" aria-live="polite">{{ fieldErrors('table.rollRange') }}</p>
 
@@ -37,9 +55,22 @@
         @for (entry of entries.controls; track $index) {
           <div class="entry-row" [formGroupName]="$index">
             <input type="hidden" formControlName="id" />
-            <label>Min <input type="number" inputmode="numeric" formControlName="min" /></label>
-            <label>Max <input type="number" inputmode="numeric" formControlName="max" /></label>
-            <label>Entry text <input formControlName="text" autocomplete="off" /></label>
+            <label [attr.for]="'custom-entry-min-' + $index">Min</label>
+            <input
+              [id]="'custom-entry-min-' + $index"
+              type="number"
+              inputmode="numeric"
+              formControlName="min"
+            />
+            <label [attr.for]="'custom-entry-max-' + $index">Max</label>
+            <input
+              [id]="'custom-entry-max-' + $index"
+              type="number"
+              inputmode="numeric"
+              formControlName="max"
+            />
+            <label [attr.for]="'custom-entry-text-' + $index">Entry text</label>
+            <input [id]="'custom-entry-text-' + $index" formControlName="text" autocomplete="off" />
             <button type="button" (click)="removeEntry($index)" [disabled]="entries.length === 1">
               Remove row
             </button>
@@ -228,7 +259,9 @@
             </button>
             @if (isSelectedCustom()) {
               <button type="button" (click)="editSelected()">Edit custom table</button>
-              <button type="button" (click)="requestDeleteSelected()">Delete custom table</button>
+              <button type="button" (click)="requestDeleteSelected($event)">
+                Delete custom table
+              </button>
             }
           </div>
           <p id="oracle-validation-errors" class="field-error" aria-live="polite">
@@ -318,8 +351,10 @@
 
   @if (deleteTarget(); as target) {
     <div
-      class="state-card state-card-error"
+      class="state-card state-card-error delete-dialog"
+      (keydown.escape)="cancelDelete()"
       role="alertdialog"
+      aria-modal="true"
       aria-labelledby="delete-title"
       aria-describedby="delete-copy"
     >
@@ -328,7 +363,7 @@
         This removes only the selected custom table from workspace data. Bundled tables are
         unchanged.
       </p>
-      <button type="button" (click)="cancelDelete()">Cancel</button>
+      <button #deleteCancelButton type="button" (click)="cancelDelete()">Cancel</button>
       <button type="button" (click)="confirmDelete()">Delete custom table</button>
     </div>
   }

@@ -240,6 +240,61 @@ describe('Oracles', () => {
     expect(button?.getAttribute('aria-current')).toBe('true');
   });
 
+  it('labels custom editor fields and entry controls persistently for narrow layouts', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    expect(compiled().querySelector('label[for="custom-oracle-name"]')?.textContent).toContain(
+      'Name',
+    );
+    expect(
+      compiled()
+        .querySelector<HTMLInputElement>('#custom-oracle-name')
+        ?.getAttribute('aria-describedby'),
+    ).toBe('custom-oracle-name-error');
+    expect(compiled().querySelector('label[for="custom-entry-text-0"]')?.textContent).toContain(
+      'Entry text',
+    );
+    expect(compiled().querySelector<HTMLInputElement>('#custom-entry-text-0')).not.toBeNull();
+  });
+
+  it('exposes delete confirmation as a named dialog and restores focus on cancel', async () => {
+    const custom = {
+      ...table('custom:long', 'Very Long Custom Oracle Name That Must Wrap Safely'),
+      provenance: {
+        category: 'custom' as const,
+        reviewedForUse: true,
+        releaseStatus: 'allowed' as const,
+        reviewStatus: 'reviewed' as const,
+      },
+      sourceType: 'custom' as const,
+    };
+    service.snapshot = { tables: [custom], groups: groupOracleTablesByCategory([custom]) };
+    await createComponent();
+
+    const deleteButton = [...compiled().querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent?.includes('Delete custom table'),
+    )!;
+    deleteButton.focus();
+    deleteButton.click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    const dialog = compiled().querySelector<HTMLElement>('[role="alertdialog"]')!;
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(dialog.getAttribute('aria-labelledby')).toBe('delete-title');
+    expect(dialog.textContent).toContain('Very Long Custom Oracle Name');
+    expect(document.activeElement?.textContent).toContain('Cancel');
+
+    compiled().querySelector<HTMLButtonElement>('[role="alertdialog"] button')?.click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    expect(compiled().querySelector('[role="alertdialog"]')).toBeNull();
+    expect(document.activeElement).toBe(deleteButton);
+  });
+
   it('rolls with empty context and preserves selected table', async () => {
     const first = table('oracle:first', 'First Table');
     service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
