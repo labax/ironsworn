@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { RollHistoryService, type PreparedActionRollInput } from '@app/domain/rolls';
 import type { ActionRollResult } from '@app/rules';
+import type { ResolvedOracleTableResult } from '@app/rules/oracles';
 
 import { RollHistoryList } from './roll-history-list';
 
@@ -44,11 +45,13 @@ describe('RollHistoryList', () => {
     rollHistory.clear();
   });
 
-  it('shows an empty state when there are no saved action rolls', () => {
+  it('shows an empty state when there are no saved rolls', () => {
     createComponent();
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('No saved action rolls yet. Make an action roll to start the history.');
+    expect(text).toContain(
+      'No saved rolls yet. Make an action, progress, or oracle roll to start the history.',
+    );
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.history-entry')).toHaveLength(
       0,
     );
@@ -101,6 +104,57 @@ describe('RollHistoryList', () => {
     expect(entries[0].textContent).toContain('Second roll');
     expect(entries[0].textContent).toContain('Latest');
     expect(entries[1].textContent).toContain('First roll');
+  });
+
+  it('renders oracle records from the same newest-first history collection', () => {
+    const oracle: ResolvedOracleTableResult = {
+      id: 'oracle:first:4:entry-high',
+      tableId: 'oracle:first',
+      tableName: 'First Table',
+      tableKind: 'table',
+      roll: 4,
+      rollRange: { min: 1, max: 6 },
+      entryId: 'entry-high',
+      entryRange: { min: 4, max: 6 },
+      text: 'Project-original fixture result',
+      questionContext: 'Is the path safe?',
+      provenance: {
+        category: 'project_original',
+        title: 'Fixture provenance',
+        license: 'Project original',
+        releaseStatus: 'allowed',
+        reviewStatus: 'reviewed',
+        reviewedForUse: true,
+      },
+      tableProvenance: {
+        category: 'project_original',
+        title: 'Fixture table provenance',
+        license: 'Project original',
+        releaseStatus: 'allowed',
+        reviewStatus: 'reviewed',
+        reviewedForUse: true,
+      },
+      timestamp: '2026-07-09T00:01:00.000Z',
+      sourceType: 'project_original',
+    };
+    rollHistory.saveActionRoll({
+      prepared: preparedInput({ label: 'First roll' }),
+      result: resolvedRoll(),
+      createdAt: '2026-07-09T00:00:00.000Z',
+    });
+    rollHistory.saveOracleRoll({ result: oracle, note: 'Use this answer soon.' });
+    createComponent();
+
+    const entries = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.history-entry'),
+    );
+    expect(entries).toHaveLength(2);
+    expect(entries[0].textContent).toContain('oracle');
+    expect(entries[0].textContent).toContain('First Table');
+    expect(entries[0].textContent).toContain('Project-original fixture result');
+    expect(entries[0].textContent).toContain('Is the path safe?');
+    expect(entries[0].textContent).toContain('Use this answer soon.');
+    expect(entries[1].textContent).toContain('action');
   });
 
   it('uses a compact order label when an action roll has no saved label', () => {

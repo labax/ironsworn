@@ -1,4 +1,5 @@
-import type { DomainEntity, EntityId } from '../shared';
+import type { ContentProvenance } from '../content';
+import type { DomainEntity, EntityId, ISODateString } from '../shared';
 
 export type RollType = 'action' | 'progress' | 'oracle';
 export type RollOutcome = 'strong_hit' | 'weak_hit' | 'miss' | 'oracle_result' | 'yes' | 'no';
@@ -21,6 +22,20 @@ export interface OracleRollDice {
   readonly roll: number;
 }
 
+export interface OracleRollSnapshot extends OracleRollDice {
+  readonly tableId: EntityId;
+  readonly tableName: string;
+  readonly tableKind: string;
+  readonly entryId: EntityId;
+  readonly entryRange: { readonly min: number; readonly max: number };
+  readonly resultText?: string;
+  readonly resultTextRef?: EntityId;
+  readonly resolvedAt: ISODateString;
+  readonly questionContext?: string;
+  readonly provenance: ContentProvenance;
+  readonly tableProvenance: ContentProvenance;
+}
+
 export interface MomentumBurn {
   readonly applied: boolean;
   readonly canceledDice: readonly { readonly position: 0 | 1; readonly value: number }[];
@@ -38,11 +53,12 @@ export interface RollHistoryEntry extends DomainEntity {
   readonly moveId?: EntityId;
   readonly progressTrackId?: EntityId;
   readonly oracleTableId?: EntityId;
+  readonly oracleEntryId?: EntityId;
   readonly outcome: RollOutcome;
   readonly label?: string;
   readonly actionRoll?: ActionRollDice;
   readonly progressRoll?: ProgressRollDice;
-  readonly oracleRoll?: OracleRollDice;
+  readonly oracleRoll?: OracleRollSnapshot;
   readonly isMatch: boolean;
   readonly momentumBurn?: MomentumBurn;
   readonly notes?: string;
