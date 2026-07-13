@@ -4,15 +4,123 @@
       <p class="section-label">Roll history</p>
       <h3 id="roll-history-title">Saved rolls</h3>
     </div>
-    @if (entries().length) {
+    @if (allEntries().length) {
       <p class="history-order">Newest first</p>
     }
   </div>
 
-  @if (entries().length === 0) {
+  @if (allEntries().length > 0) {
+    <form
+      class="history-filters"
+      aria-label="Filter roll history"
+      (submit)="$event.preventDefault()"
+    >
+      <div class="filter-field filter-search">
+        <label for="roll-history-search">Search history</label>
+        <input
+          id="roll-history-search"
+          name="roll-history-search"
+          type="search"
+          [ngModel]="query()"
+          (ngModelChange)="setQuery($event)"
+          autocomplete="off"
+          placeholder="Labels, context, notes, source titles"
+        />
+      </div>
+
+      <fieldset class="filter-types">
+        <legend>Roll types</legend>
+        <label
+          ><input
+            type="checkbox"
+            [checked]="isTypeSelected('action')"
+            (change)="toggleType('action', $any($event.target).checked)"
+          />
+          Action roll</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            [checked]="isTypeSelected('progress')"
+            (change)="toggleType('progress', $any($event.target).checked)"
+          />
+          Progress roll</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            [checked]="isTypeSelected('oracle')"
+            (change)="toggleType('oracle', $any($event.target).checked)"
+          />
+          Oracle roll</label
+        >
+      </fieldset>
+
+      <div class="filter-field">
+        <label for="roll-history-date-from">From date</label>
+        <input
+          id="roll-history-date-from"
+          name="roll-history-date-from"
+          type="date"
+          [ngModel]="dateFrom()"
+          (ngModelChange)="setDateFrom($event)"
+        />
+      </div>
+
+      <div class="filter-field">
+        <label for="roll-history-date-to">To date</label>
+        <input
+          id="roll-history-date-to"
+          name="roll-history-date-to"
+          type="date"
+          [ngModel]="dateTo()"
+          (ngModelChange)="setDateTo($event)"
+        />
+      </div>
+
+      <fieldset class="filter-session" aria-describedby="roll-history-session-help" disabled>
+        <legend>Session range</legend>
+        <div class="session-inputs">
+          <label for="roll-history-session-from">From session</label>
+          <input
+            id="roll-history-session-from"
+            name="roll-history-session-from"
+            type="text"
+            [ngModel]="sessionFrom()"
+          />
+          <label for="roll-history-session-to">To session</label>
+          <input
+            id="roll-history-session-to"
+            name="roll-history-session-to"
+            type="text"
+            [ngModel]="sessionTo()"
+          />
+        </div>
+        <p id="roll-history-session-help">
+          Session filters will appear when roll history includes session data.
+        </p>
+      </fieldset>
+
+      <button
+        type="button"
+        class="clear-filters"
+        (click)="resetFilters()"
+        [disabled]="!hasActiveFilters()"
+      >
+        Clear filters
+      </button>
+    </form>
+  }
+
+  @if (allEntries().length === 0) {
     <p class="history-empty" role="status">
       No saved rolls yet. Make an action, progress, or oracle roll to start the history.
     </p>
+  } @else if (entries().length === 0) {
+    <div class="history-empty" role="status">
+      <p>No roll history matches these filters.</p>
+      <button type="button" (click)="resetFilters()">Clear filters and show all rolls</button>
+    </div>
   } @else {
     <ol class="history-list" aria-label="Saved rolls, newest first">
       @for (entry of entries(); track entry.id; let index = $index) {
