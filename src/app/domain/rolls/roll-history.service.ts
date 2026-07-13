@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { ApplicationAutosaveService } from '@app/domain/services/application-autosave.service';
 
 import { createDomainEntity, type ISODateString } from '../shared';
 import type { MomentumBurn, PreparedActionRollInput, RollHistoryEntry } from './index';
@@ -71,6 +72,7 @@ const cloneEntry = (entry: RollHistoryEntry): RollHistoryEntry => ({
 @Injectable({ providedIn: 'root' })
 export class RollHistoryService {
   private readonly persistence = inject(RollHistoryPersistenceService);
+  private readonly autosave = inject(ApplicationAutosaveService);
   private readonly entriesState = signal<readonly RollHistoryEntry[]>([]);
   private nextId = 1;
   private readonly oracleSaveKeys = new Set<string>();
@@ -80,6 +82,13 @@ export class RollHistoryService {
   readonly loadFailed = this.persistence.loadFailed;
   readonly lastSaveResult = this.persistence.lastSaveResult;
   readonly lastLoadError = this.persistence.lastLoadError;
+
+  constructor() {
+    this.autosave.registerSource('rollHistory', {
+      snapshot: () => this.entriesState().map((entry) => cloneEntry(entry)),
+      restore: (entries) => this.restoreEntries(entries ?? []),
+    });
+  }
 
   entries(): readonly RollHistoryEntry[] {
     return this.entriesState().map((entry) => cloneEntry(entry));
@@ -108,7 +117,8 @@ export class RollHistoryService {
     };
 
     this.entriesState.update((entries) => [...entries, entry]);
-    void this.persistCurrentHistory();
+    this.autosave.markCommittedChange('rollHistory');
+    void this.persistence.saveHistory(this.entriesState().map((entry) => cloneEntry(entry)));
     return cloneEntry(entry);
   }
 
@@ -147,7 +157,8 @@ export class RollHistoryService {
     };
 
     this.entriesState.update((entries) => [...entries, entry]);
-    void this.persistCurrentHistory();
+    this.autosave.markCommittedChange('rollHistory');
+    void this.persistence.saveHistory(this.entriesState().map((entry) => cloneEntry(entry)));
     return cloneEntry(entry);
   }
 
@@ -191,7 +202,8 @@ export class RollHistoryService {
     };
 
     this.entriesState.update((entries) => [...entries, entry]);
-    void this.persistCurrentHistory();
+    this.autosave.markCommittedChange('rollHistory');
+    void this.persistence.saveHistory(this.entriesState().map((entry) => cloneEntry(entry)));
     return cloneEntry(entry);
   }
 
@@ -212,7 +224,8 @@ export class RollHistoryService {
       this.entriesState.update((entries) =>
         entries.map((entry) => (entry.id === current.id ? updated : entry)),
       );
-      void this.persistCurrentHistory();
+      this.autosave.markCommittedChange('rollHistory');
+      void this.persistence.saveHistory(this.entriesState().map((entry) => cloneEntry(entry)));
       return cloneEntry(updated);
     }
 
@@ -225,7 +238,8 @@ export class RollHistoryService {
     this.entriesState.update((entries) =>
       entries.map((entry) => (entry.id === created.id ? updated : entry)),
     );
-    void this.persistCurrentHistory();
+    this.autosave.markCommittedChange('rollHistory');
+    void this.persistence.saveHistory(this.entriesState().map((entry) => cloneEntry(entry)));
     return cloneEntry(updated);
   }
 
@@ -238,6 +252,7 @@ export class RollHistoryService {
   }
 
   async persistCurrentHistory(): Promise<SaveResult> {
+    this.autosave.markCommittedChange('rollHistory');
     return this.persistence.saveHistory(this.entriesState().map((entry) => cloneEntry(entry)));
   }
 

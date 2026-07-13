@@ -12,6 +12,7 @@ import {
   type MomentumState,
   type StatusTracks,
 } from './character';
+import { ApplicationAutosaveService } from '@app/domain/services/application-autosave.service';
 import { ActiveCharacterService } from './active-character.service';
 import {
   ActiveCharacterPersistenceService,
@@ -70,10 +71,20 @@ const createAssetReferenceId = (): string => createEntityId('asset-reference');
 export class CharacterDraftService {
   private readonly activeCharacterState = inject(ActiveCharacterService);
   private readonly activeCharacterPersistence = inject(ActiveCharacterPersistenceService);
+  private readonly autosave = inject(ApplicationAutosaveService);
 
   readonly character = this.activeCharacterState.activeCharacter;
   readonly saveStatus = this.activeCharacterPersistence.saveStatus;
   readonly lastSaveResult = this.activeCharacterPersistence.lastSaveResult;
+
+  constructor() {
+    this.autosave.registerSource('character', {
+      snapshot: () => this.activeCharacterState.activeCharacter(),
+      restore: (character) => {
+        if (character) this.activeCharacterState.setActiveCharacter(character);
+      },
+    });
+  }
 
   async loadSavedCharacter(): Promise<ActiveCharacterLoadResult> {
     if (this.activeCharacterState.hasActiveCharacter()) {
@@ -97,6 +108,7 @@ export class CharacterDraftService {
     const updated = this.activeCharacterState.updateActiveCharacter({ equipmentNotes });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -107,6 +119,7 @@ export class CharacterDraftService {
     const updated = this.activeCharacterState.updateActiveCharacter({ notes });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -117,6 +130,7 @@ export class CharacterDraftService {
     const updated = this.activeCharacterState.updateActiveCharacter({ experience });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -127,6 +141,7 @@ export class CharacterDraftService {
     const updated = this.activeCharacterState.updateActiveCharacter({ momentum });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -140,6 +155,7 @@ export class CharacterDraftService {
     const updated = this.activeCharacterState.updateActiveCharacter({ debilities, momentum });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -152,6 +168,7 @@ export class CharacterDraftService {
     });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -166,6 +183,7 @@ export class CharacterDraftService {
     });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -191,6 +209,7 @@ export class CharacterDraftService {
     };
 
     this.activeCharacterState.setActiveCharacter(character);
+    this.autosave.markCommittedChange('character');
     void this.activeCharacterPersistence.saveActiveCharacter(character);
     return character;
   }
@@ -210,6 +229,7 @@ export class CharacterDraftService {
     });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -234,6 +254,7 @@ export class CharacterDraftService {
     const updated = this.activeCharacterState.updateActiveCharacter({ bonds: updatedBonds });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -249,6 +270,7 @@ export class CharacterDraftService {
     });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -278,6 +300,7 @@ export class CharacterDraftService {
     });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -305,6 +328,7 @@ export class CharacterDraftService {
     const updated = this.activeCharacterState.updateActiveCharacter({ assets: updatedAssets });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 
@@ -320,6 +344,7 @@ export class CharacterDraftService {
     });
 
     if (updated) {
+      this.autosave.markCommittedChange('character');
       void this.activeCharacterPersistence.saveActiveCharacter(updated);
     }
 

@@ -14,6 +14,13 @@
     </aside>
   }
 
+  <section class="autosave-status" aria-live="polite" aria-label="Save status">
+    Save status: {{ saveStatus() }}
+    @if (saveStatus() === 'failed') {
+      <button type="button" (click)="retrySave()">Retry save</button>
+    }
+  </section>
+
   <div class="app-body">
     <aside class="navigation-panel">
       <app-navigation />

@@ -42,11 +42,13 @@ import {
 import { validateOracleTableCoverage, validateOracleTableShape } from '@app/rules/oracles';
 import type { RulesResult, ValidationError } from '@app/rules/validation';
 import { rulesFailure, rulesSuccess } from '@app/rules/validation';
+import { ApplicationAutosaveService } from './application-autosave.service';
 import {
   CampaignWorkspacePersistenceService,
   toPersistedCampaignWorkspace,
   type CampaignWorkspaceLoadResult,
 } from './campaign-workspace-persistence.service';
+import type { PersistedCampaignWorkspace } from './campaign-workspace-persistence.migrations';
 
 const cloneProgressTrack = (track: ProgressTrack): ProgressTrack => ({
   ...track,
@@ -213,6 +215,7 @@ const compareProgressTracks = (left: ProgressTrack, right: ProgressTrack): numbe
 @Injectable({ providedIn: 'root' })
 export class CampaignWorkspaceService {
   private readonly persistence = inject(CampaignWorkspacePersistenceService);
+  private readonly autosave = inject(ApplicationAutosaveService);
 
   readonly saveStatus = this.persistence.saveStatus;
   readonly loadFailed = this.persistence.loadFailed;
@@ -223,6 +226,13 @@ export class CampaignWorkspaceService {
 
   readonly workspaceName = signal('Local campaign workspace');
   readonly mode = signal('Ready for MVP features');
+
+  constructor() {
+    this.autosave.registerSource('workspace', {
+      snapshot: () => this.currentPersistedWorkspace(),
+      restore: (workspace) => this.restorePersistedWorkspace(workspace),
+    });
+  }
 
   private readonly customOracleTablesState = signal<readonly CustomOracleTable[]>([]);
   private readonly selectedCustomOracleTableIdState = signal<string | null>(null);
@@ -296,18 +306,41 @@ export class CampaignWorkspaceService {
   }
 
   private persistWorkspace(): void {
-    void this.persistence.saveWorkspace(
-      toPersistedCampaignWorkspace({
-        progressTracks: this.progressTracksState(),
-        selectedProgressTrackId: this.selectedProgressTrackIdState(),
-        vows: this.vowsState(),
-        selectedVowId: this.selectedVowIdState(),
-        customOracleTables: this.customOracleTablesState(),
-        selectedCustomOracleTableId: this.selectedCustomOracleTableIdState(),
-        journalEntries: this.journalEntriesState(),
-        selectedJournalEntryId: this.selectedJournalEntryIdState(),
-      }),
+    this.autosave.markCommittedChange('workspace');
+    void this.persistence.saveWorkspace(this.currentPersistedWorkspace());
+  }
+
+  private currentPersistedWorkspace(): PersistedCampaignWorkspace {
+    return toPersistedCampaignWorkspace({
+      progressTracks: this.progressTracksState(),
+      selectedProgressTrackId: this.selectedProgressTrackIdState(),
+      vows: this.vowsState(),
+      selectedVowId: this.selectedVowIdState(),
+      customOracleTables: this.customOracleTablesState(),
+      selectedCustomOracleTableId: this.selectedCustomOracleTableIdState(),
+      journalEntries: this.journalEntriesState(),
+      selectedJournalEntryId: this.selectedJournalEntryIdState(),
+    });
+  }
+
+  private restorePersistedWorkspace(
+    workspace: PersistedCampaignWorkspace | null | undefined,
+  ): void {
+    if (!workspace) return;
+    this.progressTracksState.set(
+      workspace.progressTracks.map((track) => cloneProgressTrack(track)),
     );
+    this.selectedProgressTrackIdState.set(workspace.selectedProgressTrackId ?? null);
+    this.vowsState.set(workspace.vows.map((vow) => cloneVow(vow)));
+    this.selectedVowIdState.set(workspace.selectedVowId ?? null);
+    this.customOracleTablesState.set(
+      (workspace.customOracleTables ?? []).map((table) => cloneCustomOracleTable(table)),
+    );
+    this.journalEntriesState.set(
+      (workspace.journalEntries ?? []).map((entry) => cloneJournalEntry(entry)),
+    );
+    this.selectedJournalEntryIdState.set(workspace.selectedJournalEntryId ?? null);
+    this.selectedCustomOracleTableIdState.set(workspace.selectedCustomOracleTableId ?? null);
   }
 
   saveJournalEntry(
