@@ -3,3 +3,5 @@ export * from './roll-history-entry';
 export * from './roll-history.service';
 export * from './momentum-burn-application.service';
 export * from './roll-history-filters';
+export * from './roll-history.persistence';
+export * from './roll-history.migrations';
