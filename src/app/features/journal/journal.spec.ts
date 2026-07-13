@@ -291,6 +291,11 @@ describe('Journal', () => {
     });
     fixture.detectChanges();
     const before = workspace.journalEntries();
+    const readTarget = Array.from(
+      compiled().querySelectorAll<HTMLButtonElement>('.card-actions .secondary'),
+    ).find((button) => button.textContent?.includes('Delete candidate'))!;
+    readTarget.click();
+    fixture.detectChanges();
     const trigger = compiled().querySelector<HTMLButtonElement>('.reading-actions .secondary')!;
 
     trigger.click();
