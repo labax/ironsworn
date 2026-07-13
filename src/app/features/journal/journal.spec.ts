@@ -45,6 +45,7 @@ describe('Journal', () => {
     expect(compiled().querySelector('.journal-body-preview')?.textContent).toContain(
       '<img src=x onerror=alert(1)>',
     );
+    expect(title.getAttribute('aria-describedby')).toBe('journal-title-help journal-title-error');
     expect(body.getAttribute('aria-describedby')).toBe('journal-body-help');
 
     compiled().querySelector<HTMLButtonElement>('.journal-card button')!.click();
@@ -199,6 +200,11 @@ describe('Journal', () => {
 
     expect(compiled().textContent).toContain('Source references');
     expect(compiled().textContent).toContain('Generated snapshots');
+    expect(compiled().textContent).toContain(
+      'These generated mechanical results are preserved separately from your journal text.',
+    );
+    expect(compiled().textContent).toContain('User-authored journal text');
+    expect(compiled().querySelector('[aria-label="Generated mechanical snapshot"]')).toBeTruthy();
     expect(compiled().querySelector('.journal-body-preview')?.textContent).toBe(
       'My interpretation only.',
     );
@@ -388,5 +394,33 @@ describe('Journal', () => {
 
     expect(workspace.journalEntries()).toEqual([]);
     expect(compiled().textContent).toContain('Journal entry was not found.');
+  });
+
+  it('keeps delete dialog focus inside the dialog and labels the destructive action', async () => {
+    workspace.saveJournalEntry({ id: 'journal-focus', title: 'Focus target', body: '' });
+    fixture.detectChanges();
+
+    compiled().querySelector<HTMLButtonElement>('.reading-actions .secondary')!.click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    const dialog = compiled().querySelector<HTMLElement>('.delete-dialog')!;
+    const cancel = compiled().querySelector<HTMLButtonElement>('.delete-actions .secondary')!;
+    const danger = compiled().querySelector<HTMLButtonElement>('.delete-actions .danger')!;
+    expect(document.activeElement).toBe(cancel);
+    expect(danger.getAttribute('aria-label')).toBe(
+      'Permanently delete journal entry: Focus target',
+    );
+
+    cancel.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }),
+    );
+    fixture.detectChanges();
+    expect(document.activeElement).toBe(danger);
+
+    dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve));
+    fixture.detectChanges();
+    expect(compiled().querySelector('[role="dialog"]')).toBeNull();
   });
 });

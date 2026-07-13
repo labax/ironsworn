@@ -1,4 +1,5 @@
 .history-panel {
+  min-width: 0;
   border: 1px solid #d8d2c4;
   border-radius: 1rem;
   margin-top: 1.25rem;
@@ -12,6 +13,7 @@
   justify-content: space-between;
   gap: 1rem;
   align-items: flex-start;
+  min-width: 0;
 }
 
 .history-heading h3,
@@ -47,6 +49,7 @@ time {
 }
 
 .history-entry {
+  min-width: 0;
   border: 1px solid #e3dccf;
   border-radius: 0.85rem;
   padding: 1rem;
@@ -79,6 +82,7 @@ time {
 }
 
 .history-stats div {
+  min-width: 0;
   border-radius: 0.65rem;
   background: #f8f4eb;
   padding: 0.65rem;
@@ -96,6 +100,7 @@ time {
   color: #283747;
   font-size: 1.05rem;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .result-stat {
@@ -168,6 +173,7 @@ time {
   border: 1px solid #bdb4a6;
   border-radius: 0.55rem;
   padding: 0.55rem 0.65rem;
+  min-height: 2.75rem;
   background: #fff;
   color: #283747;
   font: inherit;
@@ -193,6 +199,7 @@ time {
   display: inline-flex;
   gap: 0.35rem;
   align-items: center;
+  min-height: 2.75rem;
   margin: 0.35rem 0.7rem 0 0;
   font-weight: 700;
   text-transform: none;
@@ -217,7 +224,12 @@ time {
 
 .clear-filters,
 .history-empty button,
-.history-actions button {
+.history-actions button,
+.history-source-link a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  box-sizing: border-box;
   border: 1px solid #8f7f63;
   border-radius: 999px;
   padding: 0.55rem 0.85rem;
@@ -236,7 +248,8 @@ time {
 .history-stats dd,
 .history-stats dt,
 .history-source-link,
-.history-empty {
+.history-empty,
+.history-actions {
   overflow-wrap: anywhere;
 }
 

@@ -193,7 +193,10 @@ describe('RollHistoryList', () => {
     expect(entries[0].textContent).toContain('Weak hit');
     expect(entries[0].textContent).toContain('2 / 7');
     expect(entries[0].textContent).toContain('Protect the crossing');
+    expect(entries[0].textContent).toContain('User-authored note');
     expect(entries[0].textContent).toContain('User-authored progress note.');
+    expect(entries[0].textContent).toContain('Current source link');
+    expect(entries[0].querySelector('a')?.textContent).toContain('Open current journey source');
     expect(entries[0].querySelector('a')?.getAttribute('href')).toBe('/vows');
   });
 
@@ -274,6 +277,11 @@ describe('RollHistoryList', () => {
     expect(compiled.querySelector('fieldset[disabled]')?.textContent).toContain(
       'Session filters will appear when roll history includes session data.',
     );
+    expect(
+      compiled.querySelector<HTMLButtonElement>(
+        '[aria-label="Send oracle roll to journal: Weather Shift"]',
+      ),
+    ).toBeTruthy();
 
     const oracleType = Array.from(
       compiled.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),

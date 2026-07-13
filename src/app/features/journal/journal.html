@@ -25,9 +25,10 @@
           id="journal-title"
           type="text"
           formControlName="title"
-          [attr.aria-describedby]="fieldError('title') ? 'journal-title-error' : null"
+          aria-describedby="journal-title-help journal-title-error"
           [attr.aria-invalid]="fieldError('title') ? 'true' : null"
         />
+        <p id="journal-title-help" class="help-text">Required. Use your own journal title.</p>
         <p id="journal-title-error" class="field-error" aria-live="polite">
           {{ fieldError('title') }}
         </p>
@@ -73,7 +74,7 @@
         </p>
       </div>
 
-      <div class="journal-actions">
+      <div class="journal-actions" aria-label="Journal editor actions">
         <button type="submit">Save entry</button>
         <button type="button" class="secondary" (click)="cancel()">Cancel</button>
       </div>
@@ -111,7 +112,13 @@
                 }
                 <p class="journal-body-preview">{{ entryExcerpt(entry) }}</p>
                 <div class="card-actions">
-                  <button type="button" (click)="editEntry(entry)">Edit {{ entry.title }}</button>
+                  <button
+                    type="button"
+                    (click)="editEntry(entry)"
+                    [attr.aria-label]="'Edit journal entry: ' + entry.title"
+                  >
+                    Edit {{ entry.title }}
+                  </button>
                   <button type="button" class="secondary" (click)="openEntry(entry.id)">
                     Read {{ entry.title }}
                   </button>
@@ -152,7 +159,8 @@
         <p class="session-label">{{ entry.sessionLabel }}</p>
       }
 
-      <section aria-label="Journal body" class="entry-prose">
+      <section aria-labelledby="journal-body-heading" class="entry-prose">
+        <h4 id="journal-body-heading">User-authored journal text</h4>
         @if (entry.body.trim()) {
           <p>{{ entry.body }}</p>
         } @else {
@@ -181,8 +189,11 @@
       @if (entry.snapshots.length > 0) {
         <section class="snapshot-list" aria-labelledby="snapshots-title">
           <h4 id="snapshots-title">Generated snapshots</h4>
+          <p class="help-text">
+            These generated mechanical results are preserved separately from your journal text.
+          </p>
           @for (snapshot of entry.snapshots; track snapshot.roll.id) {
-            <article class="snapshot-card">
+            <article class="snapshot-card" aria-label="Generated mechanical snapshot">
               <h5>{{ snapshotLabel(snapshot) }}</h5>
               <dl>
                 @for (detail of snapshotDetails(snapshot); track detail) {
@@ -233,7 +244,13 @@
           <button #deleteCancelButton type="button" class="secondary" (click)="cancelDelete()">
             Cancel
           </button>
-          <button type="button" class="danger" [disabled]="isDeleting()" (click)="confirmDelete()">
+          <button
+            type="button"
+            class="danger"
+            [disabled]="isDeleting()"
+            (click)="confirmDelete()"
+            [attr.aria-label]="'Permanently delete journal entry: ' + entry.title"
+          >
             Delete
           </button>
         </div>

@@ -217,13 +217,16 @@
                 </div>
                 @if (entry.notes) {
                   <div>
-                    <dt>Note</dt>
+                    <dt>User-authored note</dt>
                     <dd>{{ entry.notes }}</dd>
                   </div>
                 }
               </dl>
               @if (progressSourceLink(entry); as link) {
-                <p class="history-source-link"><a [attr.href]="link">Open current source</a></p>
+                <p class="history-source-link">
+                  Current source link:
+                  <a [attr.href]="link">Open current {{ progress.trackType }} source</a>
+                </p>
               }
             }
 
@@ -253,7 +256,7 @@
                 }
                 @if (entry.notes) {
                   <div>
-                    <dt>Note</dt>
+                    <dt>User-authored note</dt>
                     <dd>{{ entry.notes }}</dd>
                   </div>
                 }
@@ -261,7 +264,13 @@
             }
             @if (entry.type === 'oracle') {
               <div class="history-actions">
-                <button type="button" (click)="sendToJournal(entry)">Send to Journal</button>
+                <button
+                  type="button"
+                  (click)="sendToJournal(entry)"
+                  [attr.aria-label]="'Send oracle roll to journal: ' + rollLabel(entry, index)"
+                >
+                  Send to Journal
+                </button>
               </div>
             }
           </article>
