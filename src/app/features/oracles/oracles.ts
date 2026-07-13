@@ -1,4 +1,12 @@
-import { Component, computed, HostListener, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  ElementRef,
+  HostListener,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { FormArray, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -35,6 +43,8 @@ export class Oracles {
   private readonly handoffs = inject(JournalHandoffService);
   private readonly router = inject(Router);
   private readonly formBuilder = inject(NonNullableFormBuilder);
+  @ViewChild('deleteCancelButton') private deleteCancelButton?: ElementRef<HTMLButtonElement>;
+  private deleteReturnFocus?: HTMLElement;
   protected readonly loadState = signal<LoadState>('loading');
   private readonly allTables = signal<readonly BrowsableOracleTable[]>([]);
   protected readonly searchQuery = signal('');
@@ -214,6 +224,7 @@ export class Oracles {
       rollMax: table.rollRange.max,
     });
     this.form.markAsPristine();
+    this.focusElementById('custom-oracle-title');
   }
 
   protected saveCustomTable(): void {
@@ -284,13 +295,17 @@ export class Oracles {
     );
   }
 
-  protected requestDeleteSelected(): void {
+  protected requestDeleteSelected(event?: Event): void {
     const table = this.selectedTable();
-    if (table?.provenance.category === 'custom') this.deleteTarget.set(table);
+    if (table?.provenance.category !== 'custom') return;
+    this.deleteReturnFocus = event?.currentTarget as HTMLElement | undefined;
+    this.deleteTarget.set(table);
+    setTimeout(() => this.deleteCancelButton?.nativeElement.focus());
   }
 
   protected cancelDelete(): void {
     this.deleteTarget.set(undefined);
+    this.restoreDeleteFocus();
   }
 
   protected confirmDelete(): void {
@@ -298,6 +313,7 @@ export class Oracles {
     if (!target) return;
     this.workspace.deleteCustomOracleTable(target.id);
     this.deleteTarget.set(undefined);
+    this.deleteReturnFocus = undefined;
     this.selectedTableId.set(undefined);
     void this.loadTables();
   }
@@ -343,6 +359,16 @@ export class Oracles {
       tableProvenance: Object.freeze({ ...result.tableProvenance }),
       metadata: result.metadata ? Object.freeze({ ...result.metadata }) : undefined,
     });
+  }
+
+  private focusElementById(id: string): void {
+    setTimeout(() => document.getElementById(id)?.focus());
+  }
+
+  private restoreDeleteFocus(): void {
+    const target = this.deleteReturnFocus;
+    this.deleteReturnFocus = undefined;
+    setTimeout(() => target?.isConnected && target.focus());
   }
 
   private confirmDiscard(): boolean {

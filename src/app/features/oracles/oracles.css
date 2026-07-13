@@ -392,3 +392,122 @@ button:disabled {
     text-align: left;
   }
 }
+
+/* Responsive hardening for Oracle forms, actions, and long project/user content. */
+.state-card,
+.oracle-detail,
+.oracle-nav,
+.oracle-roll-result,
+.oracle-result-entry,
+.oracle-result-context,
+.oracle-result-review dd,
+.table-name,
+.table-description {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.state-card label,
+.entry-row label,
+.range-row label {
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.state-card input:not([type='hidden']),
+.state-card textarea,
+.entry-row input,
+.range-row input {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 0.75rem;
+  background: rgba(2, 6, 23, 0.34);
+  color: inherit;
+  font: inherit;
+  max-width: 100%;
+  min-height: 2.75rem;
+  padding: 0.7rem 0.85rem;
+  width: 100%;
+}
+
+.state-card input:focus-visible,
+.state-card textarea:focus-visible {
+  outline: 3px solid #bfdbfe;
+  outline-offset: 3px;
+}
+
+.range-row,
+.entry-row,
+.button-row {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.range-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.entry-row {
+  align-items: end;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  grid-template-columns: minmax(4.5rem, 0.5fr) minmax(4.5rem, 0.5fr) minmax(10rem, 2fr) auto;
+  padding: 1rem 0;
+}
+
+.entry-row .field-error {
+  grid-column: 1 / -1;
+}
+
+.button-row,
+.oracle-result-actions {
+  align-items: center;
+}
+
+.button-row {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), max-content));
+}
+
+button {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  white-space: normal;
+}
+
+.delete-dialog {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 920px) {
+  .entry-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .entry-row label:nth-of-type(3),
+  .entry-row input:nth-of-type(3),
+  .entry-row button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .oracles-header,
+  .state-card,
+  .oracle-nav,
+  .oracle-detail {
+    padding: 1rem;
+  }
+
+  .range-row,
+  .entry-row,
+  .button-row {
+    grid-template-columns: 1fr;
+  }
+
+  .button-row button,
+  .oracle-result-actions button,
+  .oracle-filter-actions button {
+    width: 100%;
+  }
+}
