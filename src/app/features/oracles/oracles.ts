@@ -10,6 +10,7 @@ import {
   type OracleCategoryGroup,
   type OracleSourceFilter,
 } from '@domain/oracles';
+import { RollHistoryService } from '@domain/rolls';
 import { CampaignWorkspaceService } from '@domain/services/campaign-workspace.service';
 import type { EntityId } from '@domain/shared';
 import { resolveOracleTableRoll, type ResolvedOracleTableResult } from '@app/rules/oracles';
@@ -28,6 +29,7 @@ type LoadState = 'loading' | 'ready' | 'error';
 export class Oracles {
   private readonly oracleBrowser = inject(OracleBrowserService);
   private readonly workspace = inject(CampaignWorkspaceService);
+  private readonly rollHistory = inject(RollHistoryService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
   protected readonly loadState = signal<LoadState>('loading');
   private readonly allTables = signal<readonly BrowsableOracleTable[]>([]);
@@ -70,6 +72,7 @@ export class Oracles {
   protected readonly rollResult = computed(() => this.rollResults()[0]);
   protected readonly resultAnnouncement = signal('');
   protected readonly oracleQuestionContext = signal('');
+  protected readonly oracleNote = signal('');
   protected readonly deleteTarget = signal<BrowsableOracleTable | undefined>(undefined);
   protected readonly selectedTable = computed(() => {
     const id = this.selectedTableId();
@@ -235,11 +238,21 @@ export class Oracles {
     this.oracleQuestionContext.set('');
   }
 
+  protected updateOracleNote(event: Event): void {
+    this.oracleNote.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected clearOracleNote(): void {
+    this.oracleNote.set('');
+  }
+
   protected rollSelected(): void {
     const table = this.selectedTable();
     if (!table) return;
     const questionContext = this.oracleQuestionContext().trim();
     this.oracleQuestionContext.set(questionContext);
+    const note = this.oracleNote().trim();
+    this.oracleNote.set(note);
     const result = resolveOracleTableRoll({
       table,
       questionContext: questionContext || undefined,
@@ -253,9 +266,14 @@ export class Oracles {
     }
     this.validationErrors.set([]);
     const snapshot = this.freezeOracleResult(result.value);
+    const history = this.rollHistory.saveOracleRoll({
+      result: snapshot,
+      note: note || undefined,
+      clientSaveKey: `${snapshot.timestamp}:${snapshot.id}`,
+    });
     this.rollResults.update((previous) => [snapshot, ...previous]);
     this.resultAnnouncement.set(
-      `Oracle result: ${snapshot.tableName}, rolled ${snapshot.roll}, ${snapshot.text ?? snapshot.textRef}.`,
+      `Oracle result saved to history: ${snapshot.tableName}, rolled ${snapshot.roll}, ${snapshot.text ?? snapshot.textRef}. History record ${history.id}.`,
     );
   }
 
@@ -293,10 +311,6 @@ export class Oracles {
 
   protected sourceLabelForResult(result: ResolvedOracleTableResult): string {
     return oracleSourceLabel(result.sourceType);
-  }
-
-  protected historyIntegrationLabel(result: ResolvedOracleTableResult): string {
-    return `Keep result snapshot ${result.id} ready for future history integration`;
   }
 
   protected journalIntegrationLabel(result: ResolvedOracleTableResult): string {

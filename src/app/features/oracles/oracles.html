@@ -198,6 +198,20 @@
               aria-describedby="oracle-question-context-help oracle-validation-errors"
             ></textarea>
           </div>
+          <div class="oracle-context-field">
+            <label for="oracle-roll-note">History note</label>
+            <p id="oracle-roll-note-help">
+              Optional user-authored note saved with this history record, separate from the bundled
+              result.
+            </p>
+            <textarea
+              id="oracle-roll-note"
+              rows="3"
+              [value]="oracleNote()"
+              (input)="updateOracleNote($event)"
+              aria-describedby="oracle-roll-note-help"
+            ></textarea>
+          </div>
           <div class="button-row">
             <button type="button" (click)="rollSelected()">
               {{ rollResults().length ? 'Roll again' : 'Roll on this table' }}
@@ -208,6 +222,9 @@
               [disabled]="!oracleQuestionContext()"
             >
               Clear context
+            </button>
+            <button type="button" (click)="clearOracleNote()" [disabled]="!oracleNote()">
+              Clear note
             </button>
             @if (isSelectedCustom()) {
               <button type="button" (click)="editSelected()">Edit custom table</button>
@@ -226,7 +243,8 @@
                 <p class="section-label">Resolved rolls</p>
                 <h4 id="oracle-results-title">Latest oracle result</h4>
                 <p>
-                  Each card is a preserved resolver snapshot for future history or journal actions.
+                  Each card is automatically saved as an immutable shared history snapshot. Journal
+                  creation is deferred.
                 </p>
               </div>
               @for (result of rollResults(); track result.timestamp + result.id + $index) {
@@ -279,14 +297,8 @@
                       </dd>
                     </div>
                   </dl>
-                  <div class="oracle-result-actions" aria-label="Future integrations">
-                    <button
-                      type="button"
-                      disabled
-                      [attr.aria-label]="historyIntegrationLabel(result)"
-                    >
-                      Add to history later
-                    </button>
+                  <div class="oracle-result-actions" aria-label="History integration status">
+                    <span role="status">Saved to shared roll history</span>
                     <button
                       type="button"
                       disabled

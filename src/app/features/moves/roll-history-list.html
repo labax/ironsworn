@@ -2,36 +2,36 @@
   <div class="history-heading">
     <div>
       <p class="section-label">Roll history</p>
-      <h3 id="roll-history-title">Saved action rolls</h3>
+      <h3 id="roll-history-title">Saved rolls</h3>
     </div>
-    @if (actionRolls().length) {
+    @if (entries().length) {
       <p class="history-order">Newest first</p>
     }
   </div>
 
-  @if (actionRolls().length === 0) {
+  @if (entries().length === 0) {
     <p class="history-empty" role="status">
-      No saved action rolls yet. Make an action roll to start the history.
+      No saved rolls yet. Make an action, progress, or oracle roll to start the history.
     </p>
   } @else {
-    <ol class="history-list" aria-label="Saved action rolls, newest first">
-      @for (entry of actionRolls(); track entry.id; let index = $index) {
-        @if (entry.actionRoll; as roll) {
-          <li class="history-entry" [class.latest-entry]="index === 0">
-            <article [attr.aria-labelledby]="'roll-history-entry-' + entry.id">
-              <header class="entry-header">
-                <div>
-                  <p class="entry-kicker">
-                    #{{ actionRolls().length - index }}
-                    @if (index === 0) {
-                      <span class="latest-label">Latest</span>
-                    }
-                  </p>
-                  <h4 [id]="'roll-history-entry-' + entry.id">{{ rollLabel(entry, index) }}</h4>
-                </div>
-                <time [attr.datetime]="entry.createdAt">{{ createdAtLabel(entry) }}</time>
-              </header>
+    <ol class="history-list" aria-label="Saved rolls, newest first">
+      @for (entry of entries(); track entry.id; let index = $index) {
+        <li class="history-entry" [class.latest-entry]="index === 0">
+          <article [attr.aria-labelledby]="'roll-history-entry-' + entry.id">
+            <header class="entry-header">
+              <div>
+                <p class="entry-kicker">
+                  #{{ entries().length - index }} · {{ entry.type }}
+                  @if (index === 0) {
+                    <span class="latest-label">Latest</span>
+                  }
+                </p>
+                <h4 [id]="'roll-history-entry-' + entry.id">{{ rollLabel(entry, index) }}</h4>
+              </div>
+              <time [attr.datetime]="entry.createdAt">{{ createdAtLabel(entry) }}</time>
+            </header>
 
+            @if (entry.actionRoll; as roll) {
               <dl class="history-stats">
                 <div class="result-stat">
                   <dt>Result</dt>
@@ -66,9 +66,42 @@
                   </dd>
                 </div>
               </dl>
-            </article>
-          </li>
-        }
+            }
+
+            @if (entry.oracleRoll; as oracle) {
+              <dl class="history-stats">
+                <div class="result-stat">
+                  <dt>Result</dt>
+                  <dd>{{ oracle.resultText || oracle.resultTextRef }}</dd>
+                </div>
+                <div>
+                  <dt>Roll</dt>
+                  <dd>{{ oracle.roll }}</dd>
+                </div>
+                <div>
+                  <dt>Table ID</dt>
+                  <dd>{{ oracle.tableId }}</dd>
+                </div>
+                <div>
+                  <dt>Entry ID</dt>
+                  <dd>{{ oracle.entryId }}</dd>
+                </div>
+                @if (oracle.questionContext) {
+                  <div>
+                    <dt>Context</dt>
+                    <dd>{{ oracle.questionContext }}</dd>
+                  </div>
+                }
+                @if (entry.notes) {
+                  <div>
+                    <dt>Note</dt>
+                    <dd>{{ entry.notes }}</dd>
+                  </div>
+                }
+              </dl>
+            }
+          </article>
+        </li>
       }
     </ol>
   }

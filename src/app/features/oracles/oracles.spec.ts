@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
 import { PROJECT_ORIGINAL_PROVENANCE } from '@domain/content';
+import { RollHistoryService } from '@domain/rolls';
 import { groupOracleTablesByCategory, type BrowsableOracleTable } from '@domain/oracles';
 
 import { OracleBrowserService, type OracleBrowserSnapshot } from './oracle-browser.service';
@@ -39,6 +40,7 @@ class MockOracleBrowserService {
 describe('Oracles', () => {
   let fixture: ComponentFixture<Oracles>;
   let service: MockOracleBrowserService;
+  let rollHistory: RollHistoryService;
   const compiled = (): HTMLElement => fixture.nativeElement as HTMLElement;
   const createComponent = async () => {
     fixture = TestBed.createComponent(Oracles);
@@ -54,6 +56,8 @@ describe('Oracles', () => {
       imports: [Oracles],
       providers: [{ provide: OracleBrowserService, useValue: service }],
     }).compileComponents();
+    rollHistory = TestBed.inject(RollHistoryService);
+    rollHistory.clear();
   });
 
   it('renders loading and empty states safely', async () => {
@@ -302,6 +306,7 @@ describe('Oracles', () => {
     expect(compiled().textContent).toContain('Oracle table must contain at least one entry.');
     expect(context.value).toBe('Check the sealed door.');
     expect(compiled().querySelector('.oracle-roll-result')).toBeNull();
+    expect(rollHistory.entries()).toHaveLength(0);
   });
 
   it('clears only current context without changing selected table or prior result', async () => {
@@ -370,7 +375,7 @@ describe('Oracles', () => {
     fixture.detectChanges();
 
     const announcement = compiled().querySelector('[role="status"][aria-live="polite"]');
-    expect(announcement?.textContent).toContain('Oracle result: First Table');
+    expect(announcement?.textContent).toContain('Oracle result saved to history: First Table');
     expect(announcement?.textContent).toContain('rolled');
   });
 
@@ -431,7 +436,7 @@ describe('Oracles', () => {
     );
   });
 
-  it('renders disabled extension actions for later history and journal integrations', async () => {
+  it('saves oracle rolls into shared history and leaves journal integration deferred', async () => {
     const first = table('oracle:first', 'First Table');
     service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
     await createComponent();
@@ -439,13 +444,18 @@ describe('Oracles', () => {
     compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
     fixture.detectChanges();
 
+    expect(compiled().querySelector('.oracle-result-actions')?.textContent).toContain(
+      'Saved to shared roll history',
+    );
     const actions = [
       ...compiled().querySelectorAll<HTMLButtonElement>('.oracle-result-actions button'),
     ];
-    expect(actions.map((button) => button.textContent?.trim())).toEqual([
-      'Add to history later',
-      'Send to journal later',
-    ]);
+    expect(actions.map((button) => button.textContent?.trim())).toEqual(['Send to journal later']);
     expect(actions.every((button) => button.disabled)).toBe(true);
+    expect(rollHistory.entries()).toHaveLength(1);
+    expect(rollHistory.entries()[0]).toMatchObject({
+      type: 'oracle',
+      oracleRoll: { tableName: 'First Table', resultText: 'Original fixture result' },
+    });
   });
 });

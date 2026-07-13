@@ -10,12 +10,10 @@ import { RollHistoryService, type RollHistoryEntry, type RollOutcome } from '@ap
 export class RollHistoryList {
   private readonly rollHistory = inject(RollHistoryService);
 
+  protected readonly entries = computed(() => this.rollHistory.entries().slice().reverse());
+
   protected readonly actionRolls = computed(() =>
-    this.rollHistory
-      .entries()
-      .filter((entry) => entry.type === 'action' && entry.actionRoll)
-      .slice()
-      .reverse(),
+    this.entries().filter((entry) => entry.type === 'action' && entry.actionRoll),
   );
 
   protected resultLabel(outcome: RollOutcome): string {
@@ -26,12 +24,15 @@ export class RollHistoryList {
         return 'Weak hit';
       case 'miss':
         return 'Miss';
+      case 'oracle_result':
+        return 'Oracle result';
       default:
         return 'Other result';
     }
   }
 
   protected rollLabel(entry: RollHistoryEntry, index: number): string {
+    if (entry.type === 'oracle') return entry.oracleRoll?.tableName ?? 'Oracle roll';
     return entry.label?.trim() || `Action roll ${this.actionRolls().length - index}`;
   }
 
