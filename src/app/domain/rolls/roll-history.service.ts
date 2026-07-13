@@ -1,9 +1,14 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 
 import { createDomainEntity, type ISODateString } from '../shared';
 import type { MomentumBurn, PreparedActionRollInput, RollHistoryEntry } from './index';
+import type { SaveResult } from '@app/core/storage';
 import type { ActionRollResult, ProgressRollResult } from '@app/rules';
 import type { ResolvedOracleTableResult } from '@app/rules/oracles';
+import {
+  RollHistoryPersistenceService,
+  type RollHistoryLoadResult,
+} from './roll-history.persistence';
 
 export interface SaveActionRollHistoryInput {
   readonly prepared: PreparedActionRollInput;
@@ -65,10 +70,16 @@ const cloneEntry = (entry: RollHistoryEntry): RollHistoryEntry => ({
 
 @Injectable({ providedIn: 'root' })
 export class RollHistoryService {
+  private readonly persistence = inject(RollHistoryPersistenceService);
   private readonly entriesState = signal<readonly RollHistoryEntry[]>([]);
   private nextId = 1;
   private readonly oracleSaveKeys = new Set<string>();
   private readonly progressSaveKeys = new Set<string>();
+
+  readonly saveStatus = this.persistence.saveStatus;
+  readonly loadFailed = this.persistence.loadFailed;
+  readonly lastSaveResult = this.persistence.lastSaveResult;
+  readonly lastLoadError = this.persistence.lastLoadError;
 
   entries(): readonly RollHistoryEntry[] {
     return this.entriesState().map((entry) => cloneEntry(entry));
@@ -97,6 +108,7 @@ export class RollHistoryService {
     };
 
     this.entriesState.update((entries) => [...entries, entry]);
+    void this.persistCurrentHistory();
     return cloneEntry(entry);
   }
 
@@ -135,6 +147,7 @@ export class RollHistoryService {
     };
 
     this.entriesState.update((entries) => [...entries, entry]);
+    void this.persistCurrentHistory();
     return cloneEntry(entry);
   }
 
@@ -178,6 +191,7 @@ export class RollHistoryService {
     };
 
     this.entriesState.update((entries) => [...entries, entry]);
+    void this.persistCurrentHistory();
     return cloneEntry(entry);
   }
 
@@ -198,6 +212,7 @@ export class RollHistoryService {
       this.entriesState.update((entries) =>
         entries.map((entry) => (entry.id === current.id ? updated : entry)),
       );
+      void this.persistCurrentHistory();
       return cloneEntry(updated);
     }
 
@@ -210,7 +225,32 @@ export class RollHistoryService {
     this.entriesState.update((entries) =>
       entries.map((entry) => (entry.id === created.id ? updated : entry)),
     );
+    void this.persistCurrentHistory();
     return cloneEntry(updated);
+  }
+
+  async loadSavedHistory(): Promise<RollHistoryLoadResult> {
+    const result = await this.persistence.loadHistory();
+    if (result.success && result.found) {
+      this.restoreEntries(result.entries);
+    }
+    return result;
+  }
+
+  async persistCurrentHistory(): Promise<SaveResult> {
+    return this.persistence.saveHistory(this.entriesState().map((entry) => cloneEntry(entry)));
+  }
+
+  restoreEntries(entries: readonly RollHistoryEntry[]): void {
+    const seen = new Set<string>();
+    const restored: RollHistoryEntry[] = [];
+    for (const entry of entries) {
+      if (seen.has(entry.id)) continue;
+      seen.add(entry.id);
+      restored.push(cloneEntry(entry));
+    }
+    this.entriesState.set(restored);
+    this.rebuildDerivedState(restored);
   }
 
   clear(): void {
@@ -218,5 +258,18 @@ export class RollHistoryService {
     this.nextId = 1;
     this.oracleSaveKeys.clear();
     this.progressSaveKeys.clear();
+  }
+
+  private rebuildDerivedState(entries: readonly RollHistoryEntry[]): void {
+    this.oracleSaveKeys.clear();
+    this.progressSaveKeys.clear();
+    let maxNumericId = 0;
+    for (const entry of entries) {
+      const match = /^roll-history-(\d+)$/.exec(entry.id);
+      if (match) maxNumericId = Math.max(maxNumericId, Number(match[1]));
+      if (entry.type === 'oracle' && entry.label) this.oracleSaveKeys.add(entry.label);
+      if (entry.type === 'progress' && entry.label) this.progressSaveKeys.add(entry.label);
+    }
+    this.nextId = maxNumericId + 1;
   }
 }
