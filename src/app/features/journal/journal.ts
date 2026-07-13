@@ -20,6 +20,17 @@ export class Journal {
   private readonly formBuilder = inject(NonNullableFormBuilder);
 
   protected readonly entries = this.workspace.journalEntries;
+  protected readonly selectedEntryId = signal<string | undefined>(undefined);
+  protected readonly selectedEntry = computed<JournalEntry | undefined>(() => {
+    const selectedId = this.selectedEntryId();
+    return this.entries().find((entry) => entry.id === selectedId) ?? this.entries()[0];
+  });
+  protected readonly isLoading = computed(() => this.workspace.loadStatus() === 'loading');
+  protected readonly loadError = computed(() =>
+    this.workspace.loadFailed()
+      ? (this.workspace.lastLoadError()?.message ?? 'Journal entries are unavailable.')
+      : '',
+  );
   protected readonly rollHandoffs = computed(() => this.rollHistory.entries().slice().reverse());
   protected readonly mode = signal<EditorMode>('create');
   protected readonly editingId = signal<string | undefined>(undefined);
@@ -51,8 +62,27 @@ export class Journal {
     this.focusTitle();
   }
 
+  protected openEntry(entryId: string): void {
+    const selected = this.workspace.selectJournalEntry(entryId);
+    this.selectedEntryId.set(selected?.id);
+    this.announcement.set(
+      selected ? `Opened journal entry ${selected.title}.` : 'Journal entry was not found.',
+    );
+  }
+
+  protected deleteEntry(entry: JournalEntry): void {
+    if (!confirm(`Delete journal entry ${entry.title}?`)) return;
+    const result = this.workspace.deleteJournalEntry(entry.id);
+    this.announcement.set(
+      result.ok ? `Deleted journal entry ${entry.title}.` : 'Journal entry was not deleted.',
+    );
+    if (this.selectedEntryId() === entry.id) this.selectedEntryId.set(this.entries()[0]?.id);
+    if (this.editingId() === entry.id) this.startCreate();
+  }
+
   protected editEntry(entry: JournalEntry): void {
     if (!this.confirmDiscard()) return;
+    this.openEntry(entry.id);
     this.mode.set('edit');
     this.editingId.set(entry.id);
     this.attachedRoll.set(undefined);
@@ -98,6 +128,7 @@ export class Journal {
       body: result.entry.body,
     });
     this.form.markAsPristine();
+    this.selectedEntryId.set(result.entry.id);
     this.announcement.set(`Saved journal entry ${result.entry.title}.`);
   }
 
@@ -120,6 +151,64 @@ export class Journal {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
       new Date(timestamp),
     );
+  }
+
+  protected entryExcerpt(entry: JournalEntry): string {
+    const normalized = entry.body.replace(/\s+/g, ' ').trim();
+    if (!normalized) return 'No body text.';
+    return normalized.length > 180 ? `${normalized.slice(0, 177)}…` : normalized;
+  }
+
+  protected sourceIndicator(entry: JournalEntry): string {
+    const parts = [
+      entry.sessionLabel ? `Session: ${entry.sessionLabel}` : '',
+      entry.sourceReferences.length
+        ? `${entry.sourceReferences.length} source link${entry.sourceReferences.length === 1 ? '' : 's'}`
+        : '',
+      entry.snapshots.length
+        ? `${entry.snapshots.length} generated snapshot${entry.snapshots.length === 1 ? '' : 's'}`
+        : '',
+    ].filter(Boolean);
+    return parts.join(' · ');
+  }
+
+  protected sourceHref(source: JournalSourceReference): string | undefined {
+    if (source.type === 'oracle') return `/oracles?source=${encodeURIComponent(source.id)}`;
+    const entry = this.rollHistory.entries().find((roll) => roll.id === source.id);
+    return entry ? `/moves?source=${encodeURIComponent(source.id)}` : undefined;
+  }
+
+  protected vowHref(entry: JournalEntry): string | undefined {
+    return entry.links.vowId ? `/vows?vow=${encodeURIComponent(entry.links.vowId)}` : undefined;
+  }
+
+  protected sourceState(source: JournalSourceReference): 'valid' | 'broken' {
+    if (source.type === 'oracle') return 'valid';
+    return this.rollHistory.entries().some((roll) => roll.id === source.id) ? 'valid' : 'broken';
+  }
+
+  protected snapshotDetails(snapshot: JournalSnapshot): readonly string[] {
+    const roll = snapshot.roll;
+    if (roll.oracleRoll)
+      return [
+        `Roll ${roll.oracleRoll.roll}`,
+        roll.oracleRoll.resultText ??
+          roll.oracleRoll.resultTextRef ??
+          'Result preserved in snapshot',
+      ];
+    if (roll.actionRoll)
+      return [
+        `Action ${roll.actionRoll.actionDie}`,
+        `Challenge ${roll.actionRoll.challengeDice[0]} / ${roll.actionRoll.challengeDice[1]}`,
+        roll.outcome,
+      ];
+    if (roll.progressRoll)
+      return [
+        `Progress ${roll.progressRoll.progressScore}`,
+        `Challenge ${roll.progressRoll.challengeDice[0]} / ${roll.progressRoll.challengeDice[1]}`,
+        roll.outcome,
+      ];
+    return [roll.outcome];
   }
 
   protected snapshotLabel(snapshot: JournalSnapshot): string {

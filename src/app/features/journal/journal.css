@@ -143,3 +143,99 @@ button.secondary {
     width: 100%;
   }
 }
+.list-heading,
+.reading-header,
+.reading-actions,
+.related-links {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.entry-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.journal-card.selected {
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 3px #dbeafe;
+}
+.link-button {
+  background: transparent;
+  color: #1e3a8a;
+  border-radius: 0.35rem;
+  padding: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.reading-view {
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  padding: 1rem;
+  background: #fff;
+  display: grid;
+  gap: 1rem;
+}
+.entry-prose {
+  border-block: 1px solid #e2e8f0;
+  padding-block: 1rem;
+}
+.entry-prose p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 72ch;
+  line-height: 1.65;
+}
+.empty-body,
+.loading-state,
+.error-state,
+.broken-link {
+  color: #475569;
+}
+.related-links {
+  justify-content: flex-start;
+  align-items: stretch;
+}
+.related-links h4 {
+  flex-basis: 100%;
+  margin: 0;
+}
+.related-links a,
+.broken-link {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  background: #f8fafc;
+}
+.related-links a:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+.snapshot-card {
+  border: 1px solid #ddd6fe;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+.snapshot-card dl {
+  display: grid;
+  gap: 0.5rem;
+}
+.snapshot-card dt {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+@media (max-width: 760px) {
+  .reading-actions,
+  .reading-actions button {
+    width: 100%;
+  }
+}
