@@ -243,8 +243,8 @@
                 <p class="section-label">Resolved rolls</p>
                 <h4 id="oracle-results-title">Latest oracle result</h4>
                 <p>
-                  Each card is automatically saved as an immutable shared history snapshot. Journal
-                  creation is deferred.
+                  Each card is saved as an immutable shared history snapshot. Send one to the
+                  journal when you want a reviewable draft.
                 </p>
               </div>
               @for (result of rollResults(); track result.timestamp + result.id + $index) {
@@ -301,10 +301,10 @@
                     <span role="status">Saved to shared roll history</span>
                     <button
                       type="button"
-                      disabled
+                      (click)="sendResultToJournal(result)"
                       [attr.aria-label]="journalIntegrationLabel(result)"
                     >
-                      Send to journal later
+                      Send to Journal
                     </button>
                   </div>
                 </article>

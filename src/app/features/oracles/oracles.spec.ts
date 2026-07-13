@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 
 import { PROJECT_ORIGINAL_PROVENANCE } from '@domain/content';
 import { RollHistoryService } from '@domain/rolls';
+import { JournalHandoffService } from '../journal/journal-handoff.service';
 import { groupOracleTablesByCategory, type BrowsableOracleTable } from '@domain/oracles';
 
 import { OracleBrowserService, type OracleBrowserSnapshot } from './oracle-browser.service';
@@ -41,6 +42,7 @@ describe('Oracles', () => {
   let fixture: ComponentFixture<Oracles>;
   let service: MockOracleBrowserService;
   let rollHistory: RollHistoryService;
+  let handoffs: JournalHandoffService;
   const compiled = (): HTMLElement => fixture.nativeElement as HTMLElement;
   const createComponent = async () => {
     fixture = TestBed.createComponent(Oracles);
@@ -57,6 +59,7 @@ describe('Oracles', () => {
       providers: [{ provide: OracleBrowserService, useValue: service }],
     }).compileComponents();
     rollHistory = TestBed.inject(RollHistoryService);
+    handoffs = TestBed.inject(JournalHandoffService);
     rollHistory.clear();
   });
 
@@ -436,7 +439,7 @@ describe('Oracles', () => {
     );
   });
 
-  it('saves oracle rolls into shared history and leaves journal integration deferred', async () => {
+  it('saves oracle rolls into shared history and offers journal handoff', async () => {
     const first = table('oracle:first', 'First Table');
     service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
     await createComponent();
@@ -450,12 +453,39 @@ describe('Oracles', () => {
     const actions = [
       ...compiled().querySelectorAll<HTMLButtonElement>('.oracle-result-actions button'),
     ];
-    expect(actions.map((button) => button.textContent?.trim())).toEqual(['Send to journal later']);
-    expect(actions.every((button) => button.disabled)).toBe(true);
+    expect(actions.map((button) => button.textContent?.trim())).toEqual(['Send to Journal']);
+    expect(actions.every((button) => button.disabled)).toBe(false);
     expect(rollHistory.entries()).toHaveLength(1);
     expect(rollHistory.entries()[0]).toMatchObject({
       type: 'oracle',
       oracleRoll: { tableName: 'First Table', resultText: 'Original fixture result' },
     });
+  });
+
+  it('starts a typed journal handoff from the latest result without mutating history', async () => {
+    const first = table('oracle:first', 'First Table');
+    service.snapshot = { tables: [first], groups: groupOracleTablesByCategory([first]) };
+    await createComponent();
+
+    compiled().querySelector<HTMLButtonElement>('.oracle-detail .button-row button')?.click();
+    fixture.detectChanges();
+    const before = rollHistory.entries()[0];
+
+    compiled().querySelector<HTMLButtonElement>('.oracle-result-actions button')?.click();
+    fixture.detectChanges();
+
+    const pending = handoffs.consume();
+    expect(pending?.source).toMatchObject({
+      id: before.id,
+      type: 'oracle',
+      oracleRoll: {
+        tableName: 'First Table',
+        roll: before.oracleRoll?.roll,
+        resultText: 'Original fixture result',
+        provenance: { manifestId: 'oracle:first-manifest' },
+      },
+    });
+    expect(pending?.returnUrl).toBe('/oracles');
+    expect(rollHistory.entries()[0]).toEqual(before);
   });
 });
