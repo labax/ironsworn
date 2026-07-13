@@ -10,3 +10,7 @@ Before adding content, document:
 - Review status and approval notes.
 
 Do not add unapproved Ironsworn rulebook prose, official art, icons, layout, trade dress, or other protected material.
+
+## Oracle content review
+
+Use [`oracle-content-licensing-review.md`](./oracle-content-licensing-review.md) for the repeatable bundled-oracle inventory, release-decision checklist, public-build gating evidence, and custom-table separation checks before approving oracle content for release.

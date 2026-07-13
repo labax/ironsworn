@@ -11,3 +11,5 @@ Run this checklist after each GitHub Pages UAT deployment.
 - [ ] Local persistence behavior, when available, stores only test data and survives a refresh.
 - [ ] `robots.txt` is available and discourages indexing with `Disallow: /`.
 - [ ] No secrets, private URLs, credentials, official prose, oracle text, art, icons, layout, or trade dress are present in the deployed artifact.
+
+- [ ] Bundled oracle content matches the [Oracle content licensing review checklist](../licensing/oracle-content-licensing-review.md); blocked, unknown, missing-provenance, or unreviewed records are absent from the public build.

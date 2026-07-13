@@ -14,3 +14,7 @@ The project content inventory starts in `content/manifest.json`. Future content 
 - Keep app helper text separate from game data entries.
 - Link notice requirements through `noticeRef` when attribution is required.
 - Treat manifest-to-NOTICE generation and release-blocking validation as future workflow improvements after content loading exists.
+
+## Oracle table release decisions
+
+Bundled oracle table release decisions are inventoried in [`oracle-content-licensing-review.md`](./oracle-content-licensing-review.md). Update that checklist whenever bundled oracle tables or their manifest provenance references change.
