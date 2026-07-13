@@ -238,3 +238,131 @@ describe('RollHistoryService oracle rolls', () => {
     });
   });
 });
+
+describe('RollHistoryService progress rolls', () => {
+  let service: RollHistoryService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(RollHistoryService);
+    service.clear();
+  });
+
+  const progressRoll = (
+    overrides: Partial<import('@app/rules').ProgressRollResult> = {},
+  ): import('@app/rules').ProgressRollResult => ({
+    type: 'progress',
+    trackId: 'track-ravine',
+    rolledAt: '2026-07-09T00:03:00.000Z',
+    source: 'generated',
+    progressScore: 6,
+    challengeDice: [4, 9],
+    outcome: 'weak_hit',
+    challengeResults: [true, false],
+    isMatch: false,
+    trace: ['progress score compares directly to challenge dice'],
+    ...overrides,
+  });
+
+  it('saves one completed progress roll as a complete shared history snapshot', () => {
+    const entry = service.saveProgressRoll({
+      result: progressRoll({ challengeDice: [3, 3], outcome: 'strong_hit', isMatch: true }),
+      trackTitle: 'Cross the broken bridge',
+      trackType: 'journey',
+      vowId: 'vow-bridge',
+      vowTitle: 'Reach the far watchtower',
+      note: 'Player-authored follow-up note.',
+      clientSaveKey: 'progress-click-1',
+    });
+
+    expect(entry).toMatchObject({
+      id: 'roll-history-1',
+      type: 'progress',
+      source: 'generated',
+      progressTrackId: 'track-ravine',
+      outcome: 'strong_hit',
+      isMatch: true,
+      createdAt: '2026-07-09T00:03:00.000Z',
+      notes: 'Player-authored follow-up note.',
+      progressRoll: {
+        progressScore: 6,
+        challengeDice: [3, 3],
+        trackId: 'track-ravine',
+        trackType: 'journey',
+        trackTitle: 'Cross the broken bridge',
+        vowId: 'vow-bridge',
+        vowTitle: 'Reach the far watchtower',
+        resolvedAt: '2026-07-09T00:03:00.000Z',
+      },
+    });
+    expect(service.entries()).toHaveLength(1);
+  });
+
+  it('keeps action, oracle, and progress records in deterministic shared oldest-first order', () => {
+    service.saveActionRoll({
+      prepared: preparedInput({ label: 'First action' }),
+      result: resolvedRoll(),
+      createdAt: '2026-07-09T00:00:00.000Z',
+    });
+    service.saveProgressRoll({
+      result: progressRoll({ rolledAt: '2026-07-09T00:01:00.000Z', challengeDice: [2, 8] }),
+      trackTitle: 'Secure the ford',
+      trackType: 'custom',
+    });
+    service.saveProgressRoll({
+      result: progressRoll({ rolledAt: '2026-07-09T00:02:00.000Z', challengeDice: [1, 10] }),
+      trackTitle: 'Scout the marsh',
+      trackType: 'journey',
+    });
+
+    expect(service.entries().map((entry) => [entry.id, entry.type, entry.createdAt])).toEqual([
+      ['roll-history-1', 'action', '2026-07-09T00:00:00.000Z'],
+      ['roll-history-2', 'progress', '2026-07-09T00:01:00.000Z'],
+      ['roll-history-3', 'progress', '2026-07-09T00:02:00.000Z'],
+    ]);
+  });
+
+  it('prevents duplicate progress saves for repeated activation of the same completed roll', () => {
+    const resolved = progressRoll();
+    const first = service.saveProgressRoll({
+      result: resolved,
+      trackTitle: 'Secure the ford',
+      trackType: 'custom',
+      clientSaveKey: 'same-progress-event',
+    });
+    const second = service.saveProgressRoll({
+      result: resolved,
+      trackTitle: 'Secure the ford',
+      trackType: 'custom',
+      clientSaveKey: 'same-progress-event',
+    });
+
+    expect(second.id).toBe(first.id);
+    expect(service.entries()).toHaveLength(1);
+  });
+
+  it('preserves immutable progress snapshots when source track or vow changes or is deleted', () => {
+    const resolved = progressRoll({ challengeDice: [5, 6] });
+    service.saveProgressRoll({
+      result: resolved,
+      trackTitle: 'Original track title',
+      trackType: 'vow',
+      vowId: 'vow-original',
+      vowTitle: 'Original vow title',
+    });
+    (resolved.challengeDice as [number, number])[0] = 10;
+    const readEntry = service.entries()[0];
+    (readEntry.progressRoll!.challengeDice as [number, number])[1] = 1;
+
+    expect(service.entries()[0]).toMatchObject({
+      progressRoll: {
+        progressScore: 6,
+        challengeDice: [5, 6],
+        trackTitle: 'Original track title',
+        trackType: 'vow',
+        vowId: 'vow-original',
+        vowTitle: 'Original vow title',
+      },
+    });
+  });
+});

@@ -68,6 +68,57 @@
               </dl>
             }
 
+            @if (entry.progressRoll; as progress) {
+              <dl class="history-stats">
+                <div class="result-stat">
+                  <dt>Result</dt>
+                  <dd [attr.aria-label]="'Result: ' + resultLabel(entry.outcome)">
+                    {{ resultLabel(entry.outcome) }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Progress</dt>
+                  <dd>{{ progress.progressScore }}</dd>
+                </div>
+                <div>
+                  <dt>Challenge dice</dt>
+                  <dd
+                    [attr.aria-label]="
+                      'Challenge dice: ' +
+                      progress.challengeDice[0] +
+                      ' and ' +
+                      progress.challengeDice[1]
+                    "
+                  >
+                    {{ progress.challengeDice[0] }} / {{ progress.challengeDice[1] }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Track</dt>
+                  <dd>{{ progress.trackTitle }} ({{ progress.trackType }})</dd>
+                </div>
+                @if (progress.vowTitle) {
+                  <div>
+                    <dt>Vow</dt>
+                    <dd>{{ progress.vowTitle }}</dd>
+                  </div>
+                }
+                <div>
+                  <dt>Match</dt>
+                  <dd>{{ entry.isMatch ? 'Match' : 'No match' }}</dd>
+                </div>
+                @if (entry.notes) {
+                  <div>
+                    <dt>Note</dt>
+                    <dd>{{ entry.notes }}</dd>
+                  </div>
+                }
+              </dl>
+              @if (progressSourceLink(entry); as link) {
+                <p class="history-source-link"><a [attr.href]="link">Open current source</a></p>
+              }
+            }
+
             @if (entry.oracleRoll; as oracle) {
               <dl class="history-stats">
                 <div class="result-stat">

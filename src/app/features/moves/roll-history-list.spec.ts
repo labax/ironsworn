@@ -157,6 +157,46 @@ describe('RollHistoryList', () => {
     expect(entries[1].textContent).toContain('action');
   });
 
+  it('renders progress records from the same newest-first history collection', () => {
+    rollHistory.saveActionRoll({
+      prepared: preparedInput({ label: 'First roll' }),
+      result: resolvedRoll(),
+      createdAt: '2026-07-09T00:00:00.000Z',
+    });
+    rollHistory.saveProgressRoll({
+      result: {
+        type: 'progress',
+        trackId: 'track-ford',
+        rolledAt: '2026-07-09T00:01:00.000Z',
+        source: 'generated',
+        progressScore: 7,
+        challengeDice: [2, 7],
+        outcome: 'weak_hit',
+        challengeResults: [true, false],
+        isMatch: false,
+        trace: ['test'],
+      },
+      trackTitle: 'Secure the ford',
+      trackType: 'journey',
+      vowId: 'vow-ford',
+      vowTitle: 'Protect the crossing',
+      note: 'User-authored progress note.',
+    });
+    createComponent();
+
+    const entries = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.history-entry'),
+    );
+    expect(entries).toHaveLength(2);
+    expect(entries[0].textContent).toContain('progress');
+    expect(entries[0].textContent).toContain('Secure the ford');
+    expect(entries[0].textContent).toContain('Weak hit');
+    expect(entries[0].textContent).toContain('2 / 7');
+    expect(entries[0].textContent).toContain('Protect the crossing');
+    expect(entries[0].textContent).toContain('User-authored progress note.');
+    expect(entries[0].querySelector('a')?.getAttribute('href')).toBe('/vows');
+  });
+
   it('uses a compact order label when an action roll has no saved label', () => {
     rollHistory.saveActionRoll({
       prepared: preparedInput({ label: undefined }),

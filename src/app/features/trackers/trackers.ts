@@ -12,6 +12,7 @@ import {
   type ProgressTrackStatus,
   type ProgressTrackType,
 } from '@app/domain/progress';
+import { RollHistoryService } from '@app/domain/rolls';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
 import {
   addProgressByRank,
@@ -70,6 +71,7 @@ const statusLabels: Record<ProgressTrackStatus, string> = {
 })
 export class Trackers {
   private readonly workspace = inject(CampaignWorkspaceService);
+  private readonly rollHistory = inject(RollHistoryService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly router = inject(Router);
 
@@ -245,6 +247,11 @@ export class Trackers {
     }
 
     this.latestProgressRoll = result.value;
+    this.rollHistory.saveProgressRoll({
+      result: result.value,
+      trackTitle: current.title,
+      trackType: current.type,
+    });
     this.progressMessage = `Progress roll: score ${result.value.progressScore} vs ${result.value.challengeDice[0]} and ${result.value.challengeDice[1]} — ${this.outcomeLabel(result.value.outcome)}${result.value.isMatch ? ', match' : ', no match'}.`;
   }
 
