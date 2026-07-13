@@ -18,6 +18,15 @@ export interface ProgressRollDice {
   readonly challengeDice: readonly [number, number];
 }
 
+export interface ProgressRollSnapshot extends ProgressRollDice {
+  readonly trackId: EntityId;
+  readonly trackType: string;
+  readonly trackTitle: string;
+  readonly resolvedAt: ISODateString;
+  readonly vowId?: EntityId;
+  readonly vowTitle?: string;
+}
+
 export interface OracleRollDice {
   readonly roll: number;
 }
@@ -57,7 +66,7 @@ export interface RollHistoryEntry extends DomainEntity {
   readonly outcome: RollOutcome;
   readonly label?: string;
   readonly actionRoll?: ActionRollDice;
-  readonly progressRoll?: ProgressRollDice;
+  readonly progressRoll?: ProgressRollSnapshot;
   readonly oracleRoll?: OracleRollSnapshot;
   readonly isMatch: boolean;
   readonly momentumBurn?: MomentumBurn;

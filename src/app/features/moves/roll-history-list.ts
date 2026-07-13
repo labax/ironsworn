@@ -37,7 +37,14 @@ export class RollHistoryList {
 
   protected rollLabel(entry: RollHistoryEntry, index: number): string {
     if (entry.type === 'oracle') return entry.oracleRoll?.tableName ?? 'Oracle roll';
+    if (entry.type === 'progress') return entry.progressRoll?.trackTitle ?? 'Progress roll';
     return entry.label?.trim() || `Action roll ${this.actionRolls().length - index}`;
+  }
+
+  protected progressSourceLink(entry: RollHistoryEntry): string | null {
+    const progress = entry.progressRoll;
+    if (!progress) return null;
+    return progress.vowId ? `/vows` : `/trackers`;
   }
 
   protected sendToJournal(entry: RollHistoryEntry): void {

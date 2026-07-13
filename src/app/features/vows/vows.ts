@@ -21,6 +21,7 @@ import {
   type VowMilestone,
   type VowStatus,
 } from '@app/domain/vows';
+import { RollHistoryService } from '@app/domain/rolls';
 import { progressScoreFromState, PROGRESS_TICKS_PER_BOX } from '@app/rules/progress-rolls';
 import type { ValidationError } from '@app/rules/validation';
 
@@ -188,6 +189,7 @@ const progressSummaryFor = (
 })
 export class Vows {
   private readonly workspace = inject(CampaignWorkspaceService);
+  private readonly rollHistory = inject(RollHistoryService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly router = inject(Router);
   private readonly titleInput = viewChild<ElementRef<HTMLInputElement>>('titleInput');
@@ -518,6 +520,13 @@ export class Vows {
     }
 
     this.latestVowProgressRoll = result.value;
+    this.rollHistory.saveProgressRoll({
+      result: result.value,
+      trackTitle: result.value.trackTitle || result.value.progressTrackId,
+      trackType: result.value.trackType ?? 'vow',
+      vowId: result.value.vowId,
+      vowTitle: result.value.vowTitle,
+    });
     this.formMessage = `Progress roll: score ${result.value.progressScore} vs ${result.value.challengeDice[0]} and ${result.value.challengeDice[1]} — ${this.outcomeLabel(result.value.outcome)}${result.value.isMatch ? ', match' : ', no match'}. Choose the narrative outcome separately.`;
   }
 

@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 
 import { createDomainEntity, type ISODateString } from '../shared';
 import type { MomentumBurn, PreparedActionRollInput, RollHistoryEntry } from './index';
-import type { ActionRollResult } from '@app/rules';
+import type { ActionRollResult, ProgressRollResult } from '@app/rules';
 import type { ResolvedOracleTableResult } from '@app/rules/oracles';
 
 export interface SaveActionRollHistoryInput {
@@ -10,6 +10,16 @@ export interface SaveActionRollHistoryInput {
   readonly result: ActionRollResult;
   readonly createdAt?: ISODateString;
   readonly note?: string;
+}
+
+export interface SaveProgressRollHistoryInput {
+  readonly result: Readonly<ProgressRollResult>;
+  readonly trackTitle: string;
+  readonly trackType: string;
+  readonly vowId?: string;
+  readonly vowTitle?: string;
+  readonly note?: string;
+  readonly clientSaveKey?: string;
 }
 
 export interface SaveOracleRollHistoryInput {
@@ -58,6 +68,7 @@ export class RollHistoryService {
   private readonly entriesState = signal<readonly RollHistoryEntry[]>([]);
   private nextId = 1;
   private readonly oracleSaveKeys = new Set<string>();
+  private readonly progressSaveKeys = new Set<string>();
 
   entries(): readonly RollHistoryEntry[] {
     return this.entriesState().map((entry) => cloneEntry(entry));
@@ -83,6 +94,44 @@ export class RollHistoryService {
       isMatch: input.result.isMatch,
       label: input.prepared.label,
       notes: input.note,
+    };
+
+    this.entriesState.update((entries) => [...entries, entry]);
+    return cloneEntry(entry);
+  }
+
+  saveProgressRoll(input: SaveProgressRollHistoryInput): RollHistoryEntry {
+    const saveKey =
+      input.clientSaveKey ??
+      `${input.result.rolledAt}:${input.result.trackId}:${input.result.progressScore}:${input.result.challengeDice[0]}:${input.result.challengeDice[1]}`;
+    const existing = this.entriesState().find(
+      (entry) => entry.type === 'progress' && entry.label === saveKey,
+    );
+    if (existing) return cloneEntry(existing);
+
+    this.progressSaveKeys.add(saveKey);
+    const entry: RollHistoryEntry = {
+      ...createDomainEntity({
+        id: `roll-history-${this.nextId++}`,
+        createdAt: input.result.rolledAt,
+      }),
+      type: 'progress',
+      source: input.result.source,
+      progressTrackId: input.result.trackId,
+      outcome: input.result.outcome,
+      label: saveKey,
+      progressRoll: {
+        progressScore: input.result.progressScore,
+        challengeDice: [...input.result.challengeDice] as [number, number],
+        trackId: input.result.trackId,
+        trackType: input.trackType,
+        trackTitle: input.trackTitle,
+        vowId: input.vowId,
+        vowTitle: input.vowTitle,
+        resolvedAt: input.result.rolledAt,
+      },
+      isMatch: input.result.isMatch,
+      notes: input.note?.trim() || undefined,
     };
 
     this.entriesState.update((entries) => [...entries, entry]);
@@ -168,5 +217,6 @@ export class RollHistoryService {
     this.entriesState.set([]);
     this.nextId = 1;
     this.oracleSaveKeys.clear();
+    this.progressSaveKeys.clear();
   }
 }
