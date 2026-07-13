@@ -129,3 +129,132 @@ time {
     grid-template-columns: 1fr;
   }
 }
+
+.history-filters {
+  display: grid;
+  grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(8rem, 1fr)) auto;
+  gap: 0.85rem;
+  align-items: end;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e3dccf;
+  border-radius: 0.85rem;
+  background: #fbf7ef;
+}
+
+.filter-field,
+.filter-types,
+.filter-session {
+  min-width: 0;
+}
+
+.filter-field label,
+.filter-types legend,
+.filter-session legend,
+.filter-session label {
+  display: block;
+  color: #4f473b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.filter-field input,
+.filter-session input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin-top: 0.25rem;
+  border: 1px solid #bdb4a6;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  background: #fff;
+  color: #283747;
+  font: inherit;
+}
+
+.filter-field input:focus-visible,
+.filter-types input:focus-visible,
+.clear-filters:focus-visible,
+.history-empty button:focus-visible,
+.history-actions button:focus-visible {
+  outline: 3px solid #2f6f9f;
+  outline-offset: 2px;
+}
+
+.filter-types,
+.filter-session {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.filter-types label {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin: 0.35rem 0.7rem 0 0;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.filter-session {
+  grid-column: 1 / -1;
+  color: #6f6657;
+}
+
+.session-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(8rem, 1fr));
+  gap: 0.55rem;
+  max-width: 28rem;
+}
+
+.filter-session p,
+.history-empty p {
+  margin: 0.45rem 0 0;
+}
+
+.clear-filters,
+.history-empty button,
+.history-actions button {
+  border: 1px solid #8f7f63;
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  background: #fffdf8;
+  color: #283747;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.clear-filters:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.entry-header,
+.history-stats dd,
+.history-stats dt,
+.history-source-link,
+.history-empty {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .history-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-search,
+  .filter-types,
+  .filter-session {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .history-filters,
+  .session-inputs {
+    grid-template-columns: 1fr;
+  }
+}

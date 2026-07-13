@@ -207,4 +207,101 @@ describe('RollHistoryList', () => {
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Action roll 1');
   });
+
+  it('filters by type, text, date boundaries, shows no-results, and resets', () => {
+    rollHistory.saveActionRoll({
+      prepared: preparedInput({ label: 'Cross the ice shelf with an especially long label' }),
+      result: resolvedRoll(),
+      createdAt: '2026-07-09T00:00:00.000Z',
+      note: 'Action note marker.',
+    });
+    rollHistory.saveProgressRoll({
+      result: {
+        type: 'progress',
+        trackId: 'track-ice',
+        rolledAt: '2026-07-10T00:00:00.000Z',
+        source: 'generated',
+        progressScore: 8,
+        challengeDice: [1, 9],
+        outcome: 'strong_hit',
+        challengeResults: [true, false],
+        isMatch: false,
+        trace: ['test'],
+      },
+      trackTitle: 'Complete the ice shelf crossing',
+      trackType: 'journey',
+      note: 'Progress note marker.',
+    });
+    rollHistory.saveOracleRoll({
+      result: {
+        id: 'oracle:weather:4:rain',
+        tableId: 'oracle:weather',
+        tableName: 'Weather Shift',
+        tableKind: 'table',
+        roll: 4,
+        rollRange: { min: 1, max: 6 },
+        entryId: 'rain',
+        entryRange: { min: 4, max: 6 },
+        text: 'Rain begins',
+        questionContext: 'Will the scout return with a long context that wraps on mobile?',
+        provenance: {
+          category: 'project_original',
+          title: 'Weather entry snapshot title',
+          license: 'Project original',
+          releaseStatus: 'allowed',
+          reviewStatus: 'reviewed',
+          reviewedForUse: true,
+        },
+        tableProvenance: {
+          category: 'project_original',
+          title: 'Weather table snapshot title',
+          license: 'Project original',
+          releaseStatus: 'allowed',
+          reviewStatus: 'reviewed',
+          reviewedForUse: true,
+        },
+        timestamp: '2026-07-11T00:00:00.000Z',
+        sourceType: 'project_original',
+      },
+    });
+    createComponent();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('form[aria-label="Filter roll history"]')).toBeTruthy();
+    expect(compiled.querySelector('label[for="roll-history-search"]')?.textContent).toContain(
+      'Search history',
+    );
+    expect(compiled.querySelector('fieldset[disabled]')?.textContent).toContain(
+      'Session filters will appear when roll history includes session data.',
+    );
+
+    const oracleType = Array.from(
+      compiled.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    ).find((input) => input.parentElement?.textContent?.includes('Oracle roll'));
+    oracleType?.click();
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.history-entry')).toHaveLength(1);
+    expect(compiled.textContent).toContain('Weather Shift');
+
+    const search = compiled.querySelector<HTMLInputElement>('#roll-history-search');
+    expect(search).toBeTruthy();
+    fixture.componentInstance['setQuery']('missing');
+    fixture.detectChanges();
+    expect(compiled.textContent).toContain('No roll history matches these filters.');
+    expect(compiled.textContent).toContain('Clear filters and show all rolls');
+
+    compiled.querySelector<HTMLButtonElement>('.history-empty button')?.click();
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.history-entry')).toHaveLength(3);
+
+    const from = compiled.querySelector<HTMLInputElement>('#roll-history-date-from');
+    const to = compiled.querySelector<HTMLInputElement>('#roll-history-date-to');
+    expect(from).toBeTruthy();
+    expect(to).toBeTruthy();
+    fixture.componentInstance['setDateFrom']('2026-07-10');
+    fixture.componentInstance['setDateTo']('2026-07-10');
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.history-entry')).toHaveLength(1);
+    expect(compiled.textContent).toContain('Complete the ice shelf crossing');
+  });
 });
