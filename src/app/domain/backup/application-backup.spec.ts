@@ -9,6 +9,7 @@ import { ApplicationAutosaveService } from '@app/domain/services/application-aut
 import { toPersistedCampaignWorkspace } from '@app/domain/services/campaign-workspace-persistence.service';
 import { createDefaultVow } from '@app/domain/vows';
 import { BROWSER_STORAGE } from '@app/core/storage';
+import { ApplicationBackupImportService } from './application-backup-import';
 import {
   ApplicationBackupService,
   APPLICATION_BACKUP_FORMAT,
@@ -28,6 +29,7 @@ const roll: RollHistoryEntry = {
   outcome: 'weak_hit',
   isMatch: false,
   notes: 'Project-original roll note.',
+  actionRoll: { actionDie: 4, challengeDice: [3, 7], statBonus: 1, adds: 0, actionScore: 5 },
 };
 
 const customOracle: CustomOracleTable = {
@@ -197,5 +199,189 @@ describe('ApplicationBackupService', () => {
 
     service.downloadBackup(result);
     expect(clicked).toEqual([result.filename]);
+  });
+});
+
+class MemoryStorage {
+  data = new Map<string, string>();
+  getItem(key: string): string | null {
+    return this.data.get(key) ?? null;
+  }
+  setItem(key: string, value: string): void {
+    this.data.set(key, value);
+  }
+  removeItem(key: string): void {
+    this.data.delete(key);
+  }
+}
+
+class FailingSetStorage extends MemoryStorage {
+  override setItem(): void {
+    throw new Error('quota');
+  }
+}
+
+const configureImport = (storage: MemoryStorage = new MemoryStorage()) => {
+  TestBed.configureTestingModule({ providers: [{ provide: BROWSER_STORAGE, useValue: storage }] });
+  const autosave = TestBed.inject(ApplicationAutosaveService);
+  let character: unknown = null;
+  let workspace: unknown = null;
+  let rollHistory: unknown = [];
+  autosave.registerSource('character', {
+    snapshot: () => character as never,
+    restore: (value) => {
+      character = value;
+    },
+  });
+  autosave.registerSource('workspace', {
+    snapshot: () => workspace as never,
+    restore: (value) => {
+      workspace = value;
+    },
+  });
+  autosave.registerSource('rollHistory', {
+    snapshot: () => rollHistory as never,
+    restore: (value) => {
+      rollHistory = value;
+    },
+  });
+  return {
+    service: TestBed.inject(ApplicationBackupImportService),
+    autosave,
+    storage,
+    state: () => ({ character, workspace, rollHistory }),
+  };
+};
+
+describe('ApplicationBackupImportService', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const validJson = () => {
+    TestBed.resetTestingModule();
+    const character = createDefaultCharacter({
+      id: 'character-1',
+      name: 'Import Character',
+      createdAt,
+    });
+    const track = createDefaultProgressTrack({
+      id: 'track-1',
+      title: 'Import Track',
+      type: 'vow',
+      rank: 'troublesome',
+      createdAt,
+    });
+    const vow = createDefaultVow({
+      id: 'vow-1',
+      title: 'Import Vow',
+      rank: 'troublesome',
+      progressTrackId: track.id,
+      createdAt,
+    });
+    const workspace = toPersistedCampaignWorkspace({
+      progressTracks: [track],
+      vows: [vow],
+      customOracleTables: [customOracle],
+      journalEntries: [
+        createDefaultJournalEntry({
+          id: 'journal-1',
+          title: 'Import Journal',
+          body: 'Private imported text.',
+          createdAt,
+        }),
+      ],
+    });
+    const { service } = configure([
+      ['character', { snapshot: () => character, restore: () => undefined }],
+      ['workspace', { snapshot: () => workspace, restore: () => undefined }],
+      ['rollHistory', { snapshot: () => [roll], restore: () => undefined }],
+    ]);
+    const backup = service.createBackup(createdAt);
+    if (!backup.ok) throw new Error('backup failed');
+    TestBed.resetTestingModule();
+    return backup.json;
+  };
+
+  it('previews, validates counts, and restores a valid backup through autosave hydration paths', async () => {
+    const json = validJson();
+    const { service, state } = configureImport();
+    const preview = service.previewJson(json);
+    expect(preview.ok).toBe(true);
+    if (!preview.ok) throw new Error('expected preview');
+    expect(preview.preview.counts).toMatchObject({
+      characters: 1,
+      vows: 1,
+      progressTracks: 1,
+      rollHistoryEntries: 1,
+    });
+    expect(preview.preview.replacementNotice).toContain('replace all current local');
+    const restored = await service.restore(preview.preview, true);
+    expect(restored.ok).toBe(true);
+    expect((state().character as { name: string }).name).toBe('Import Character');
+    expect((state().workspace as { vows: unknown[] }).vows).toHaveLength(1);
+  });
+
+  it('leaves state unchanged when confirmation is canceled after preview', async () => {
+    const { service, state } = configureImport();
+    const preview = service.previewJson(validJson());
+    if (!preview.ok) throw new Error('expected preview');
+    const result = await service.restore(preview.preview, false);
+    expect(result.ok).toBe(false);
+    expect(state()).toEqual({ character: null, workspace: null, rollHistory: [] });
+  });
+
+  it.each([
+    ['malformed JSON', '{'],
+    ['invalid format', JSON.stringify({ format: 'other', formatVersion: 1 })],
+    [
+      'future version',
+      JSON.stringify({
+        format: APPLICATION_BACKUP_FORMAT,
+        formatVersion: 999,
+        exportedAt: createdAt,
+        application: { version: 'x' },
+        validation: { ok: true },
+        save: {},
+      }),
+    ],
+  ])('rejects %s without private content in diagnostics', (_label, json) => {
+    const { service } = configureImport();
+    const result = service.previewJson(json);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.diagnostics.join(' ')).not.toContain('Private imported text');
+  });
+
+  it('rejects broken cross-record domains before writing', () => {
+    const { service } = configureImport();
+    const parsed = JSON.parse(validJson());
+    parsed.save.payload.workspace.progressTracks = 'not an array';
+    const result = service.previewJson(JSON.stringify(parsed));
+    expect(result.ok).toBe(false);
+  });
+
+  it('preserves current state when storage write fails', async () => {
+    const preview = (() => {
+      const p = configureImport().service.previewJson(validJson());
+      if (!p.ok) throw new Error('expected preview');
+      return p.preview;
+    })();
+    TestBed.resetTestingModule();
+    const { service, state } = configureImport(new FailingSetStorage());
+    const result = await service.restore(preview, true);
+    expect(result.ok).toBe(false);
+    expect(state()).toEqual({ character: null, workspace: null, rollHistory: [] });
+  });
+
+  it('rolls back when hydration fails after a successful write', async () => {
+    const { service, autosave } = configureImport();
+    autosave.registerSource('character', {
+      snapshot: () => null,
+      restore: () => {
+        throw new Error('hydrate');
+      },
+    });
+    const preview = service.previewJson(validJson());
+    if (!preview.ok) throw new Error('expected preview');
+    const result = await service.restore(preview.preview, true);
+    expect(result.ok).toBe(false);
   });
 });

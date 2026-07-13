@@ -111,6 +111,18 @@ export class ApplicationAutosaveService {
     this.initialized = true;
   }
 
+  replaceWithRestoredSnapshot(snapshot: ApplicationStateSnapshot): void {
+    this.clearDebounce();
+    this.pendingAfterInFlight = false;
+    this.restore(snapshot);
+    this.currentRevision = Math.max(snapshot.revision, this.lastSavedRevision) + 1;
+    this.lastSavedRevision = this.currentRevision;
+    this.inFlightRevision = 0;
+    this.lastSaveResultState.set({ success: true });
+    this.lastErrorState.set(null);
+    this.saveStatusState.set('saved');
+  }
+
   markCommittedChange(_domain: ApplicationStateDomain): void {
     if (!this.initialized) return;
     this.currentRevision += 1;

@@ -35,4 +35,71 @@
       </div>
     }
   }
+
+  <hr />
+  <h3>Restore a local backup</h3>
+  <p class="description">
+    Select a JSON backup exported by this app. The file is read locally in this browser only; its
+    campaign text is not uploaded or written to diagnostics.
+  </p>
+  <label>
+    Backup JSON file
+    <input type="file" accept="application/json,.json" (change)="selectBackup($event)" />
+  </label>
+
+  @if (importResult(); as result) {
+    @if (!result.ok) {
+      <div class="empty-state" role="alert">
+        {{ result.message }}
+        @if (result.diagnostics.length > 0) {
+          <ul>
+            @for (diagnostic of result.diagnostics; track diagnostic) {
+              <li>{{ diagnostic }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  }
+
+  @if (pendingPreview(); as preview) {
+    <div class="empty-state" role="status">
+      <strong>Review restore before replacing current data.</strong>
+      <p>{{ preview.replacementNotice }}</p>
+      <p>
+        Exported {{ preview.exportedAt }} from app version {{ preview.sourceApplicationVersion }}.
+        Schema {{ preview.schemaVersion }} will restore as schema
+        {{ preview.migratedSchemaVersion }}.
+      </p>
+      <p>
+        Includes {{ preview.counts.characters }} character(s), {{ preview.counts.vows }} vow(s),
+        {{ preview.counts.progressTracks }} track(s), {{ preview.counts.rollHistoryEntries }} roll
+        history entry/entries, {{ preview.counts.journalEntries }} journal entry/entries, and
+        {{ preview.counts.customOracleTables }} custom oracle table(s).
+      </p>
+      @if (preview.warnings.length > 0) {
+        <ul>
+          @for (warning of preview.warnings; track warning) {
+            <li>{{ warning }}</li>
+          }
+        </ul>
+      }
+      <p>Export your current local backup first if you want a copy before replacement.</p>
+      <button type="button" (click)="exportBackup()">Export current data first</button>
+      <button type="button" (click)="confirmRestore()">
+        Confirm restore and replace local data
+      </button>
+      <button type="button" (click)="cancelRestore()">Cancel restore</button>
+    </div>
+  }
+
+  @if (restoreResult(); as result) {
+    <div class="empty-state" [attr.role]="result.ok ? 'status' : 'alert'">
+      @if (result.ok) {
+        Restore complete. Active local data now uses the imported backup.
+      } @else {
+        {{ result.message }}
+      }
+    </div>
+  }
 </section>
