@@ -34,3 +34,7 @@ Epic #1 / issue #63 character-sheet acceptance is documented in [`epic-1-charact
 - A dedicated Angular ESLint configuration is not configured yet. Until it is added, `npm run lint` remains the scaffold static-check gate and runs the Angular development build.
 - End-to-end and smoke tests are deferred until the app shell and test runner requirements are defined.
 - CodeQL, dependency review, and extended content provenance fixture coverage runs through `npm run test:provenance`.
+
+## Oracle content licensing review
+
+Oracle release testing must include the [Oracle content licensing review checklist](../licensing/oracle-content-licensing-review.md), which maps resolver, browser, result display, context, history, journal handoff, search, custom-table, responsive, and content-gating evidence to pass/fail/blocker decisions.
