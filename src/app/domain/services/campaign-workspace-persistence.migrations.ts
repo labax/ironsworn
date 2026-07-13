@@ -185,6 +185,62 @@ const migrateVow = (value: unknown): Vow | null => {
   };
 };
 
+const isContentProvenance = (value: unknown): value is { readonly category: string } =>
+  isRecord(value) && isNonEmptyString(value['category']);
+
+const isRollHistorySnapshot = (value: unknown): value is JournalSnapshot['roll'] => {
+  if (!isRecord(value)) return false;
+  if (
+    !isNonEmptyString(value['id']) ||
+    !isNonEmptyString(value['createdAt']) ||
+    !isNonEmptyString(value['updatedAt']) ||
+    (value['type'] !== 'action' && value['type'] !== 'progress' && value['type'] !== 'oracle') ||
+    (value['source'] !== 'generated' && value['source'] !== 'manual') ||
+    (value['outcome'] !== 'strong_hit' &&
+      value['outcome'] !== 'weak_hit' &&
+      value['outcome'] !== 'miss' &&
+      value['outcome'] !== 'oracle_result' &&
+      value['outcome'] !== 'yes' &&
+      value['outcome'] !== 'no') ||
+    typeof value['isMatch'] !== 'boolean' ||
+    !isOptionalString(value['characterId']) ||
+    !isOptionalString(value['moveId']) ||
+    !isOptionalString(value['progressTrackId']) ||
+    !isOptionalString(value['oracleTableId']) ||
+    !isOptionalString(value['oracleEntryId']) ||
+    !isOptionalString(value['label']) ||
+    !isOptionalString(value['notes'])
+  ) {
+    return false;
+  }
+
+  if (value['oracleRoll'] !== undefined) {
+    const oracleRoll = value['oracleRoll'];
+    if (!isRecord(oracleRoll)) return false;
+    const entryRange = oracleRoll['entryRange'];
+    if (
+      !Number.isInteger(oracleRoll['roll']) ||
+      !isNonEmptyString(oracleRoll['tableId']) ||
+      !isNonEmptyString(oracleRoll['tableName']) ||
+      !isNonEmptyString(oracleRoll['tableKind']) ||
+      !isNonEmptyString(oracleRoll['entryId']) ||
+      !isRecord(entryRange) ||
+      !Number.isInteger(entryRange['min']) ||
+      !Number.isInteger(entryRange['max']) ||
+      !isOptionalString(oracleRoll['resultText']) ||
+      !isOptionalString(oracleRoll['resultTextRef']) ||
+      !isNonEmptyString(oracleRoll['resolvedAt']) ||
+      !isOptionalString(oracleRoll['questionContext']) ||
+      !isContentProvenance(oracleRoll['provenance']) ||
+      !isContentProvenance(oracleRoll['tableProvenance'])
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const migrateJournalEntry = (value: unknown): JournalEntry | null => {
   if (!isRecord(value)) return null;
   if (
@@ -212,7 +268,8 @@ const migrateJournalEntry = (value: unknown): JournalEntry | null => {
     : [];
   const snapshots: JournalSnapshot[] = Array.isArray(value['snapshots'])
     ? value['snapshots'].filter(isRecord).flatMap((snapshot) =>
-        (snapshot['type'] === 'roll' || snapshot['type'] === 'oracle') && isRecord(snapshot['roll'])
+        (snapshot['type'] === 'roll' || snapshot['type'] === 'oracle') &&
+        isRollHistorySnapshot(snapshot['roll'])
           ? [
               {
                 type: snapshot['type'],
