@@ -1,0 +1,152 @@
+<section class="onboarding-review" aria-labelledby="onboarding-review-title">
+  <div class="review-card">
+    <p class="section-label">Final review</p>
+    <h2 #heading id="onboarding-review-title" tabindex="-1">{{ copy.title }}</h2>
+    <p class="lede">{{ copy.helper }}</p>
+
+    @if (errors.length) {
+      <section
+        #errorPanel
+        class="error-summary"
+        tabindex="-1"
+        role="alert"
+        aria-labelledby="review-errors-title"
+      >
+        <h3 id="review-errors-title">Setup needs attention</h3>
+        <p>{{ message }}</p>
+        <ul>
+          @for (error of errors; track error.section + error.message) {
+            <li>
+              <a [routerLink]="error.path">Edit {{ error.section }}</a
+              >: {{ error.message }}
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (character(); as item) {
+      <section aria-labelledby="character-review-title">
+        <div class="review-heading">
+          <h3 id="character-review-title">Character</h3>
+          <a routerLink="/character">Edit character</a>
+        </div>
+        <dl>
+          <div>
+            <dt>Name</dt>
+            <dd>{{ item.name }}</dd>
+          </div>
+          <div>
+            <dt>Concept</dt>
+            <dd>{{ item.concept || 'Not added' }}</dd>
+          </div>
+          <div>
+            <dt>Stats</dt>
+            <dd>
+              Edge {{ item.stats.edge }}, Heart {{ item.stats.heart }}, Iron {{ item.stats.iron }},
+              Shadow {{ item.stats.shadow }}, Wits {{ item.stats.wits }}
+            </dd>
+          </div>
+          <div>
+            <dt>Tracks</dt>
+            <dd>
+              Health {{ item.statusTracks.health }}, Spirit {{ item.statusTracks.spirit }}, Supply
+              {{ item.statusTracks.supply }}
+            </dd>
+          </div>
+          <div>
+            <dt>Momentum</dt>
+            <dd>
+              {{ item.momentum.current }} (reset {{ item.momentum.reset }}, max
+              {{ item.momentum.max }})
+            </dd>
+          </div>
+        </dl>
+      </section>
+    } @else {
+      <section>
+        <div class="review-heading">
+          <h3>Character</h3>
+          <a routerLink="/character">Add character</a>
+        </div>
+        <p>No character is ready yet.</p>
+      </section>
+    }
+
+    @if (firstVow(); as vow) {
+      <section aria-labelledby="vow-review-title">
+        <div class="review-heading">
+          <h3 id="vow-review-title">First vow</h3>
+          <a routerLink="/welcome/first-vow">Edit first vow</a>
+        </div>
+        <dl>
+          <div>
+            <dt>Title</dt>
+            <dd>{{ vow.title }}</dd>
+          </div>
+          <div>
+            <dt>Rank</dt>
+            <dd>{{ rankLabel(vow.rank) }}</dd>
+          </div>
+          <div>
+            <dt>Description</dt>
+            <dd>{{ vow.description || 'Not added' }}</dd>
+          </div>
+        </dl>
+      </section>
+    } @else {
+      <section>
+        <div class="review-heading">
+          <h3>First vow</h3>
+          <a routerLink="/welcome/first-vow">Add first vow</a>
+        </div>
+        <p>No first vow is ready yet.</p>
+      </section>
+    }
+
+    @if (linkedTrack(); as track) {
+      <section aria-labelledby="track-review-title">
+        <div class="review-heading">
+          <h3 id="track-review-title">Linked progress track</h3>
+          <a routerLink="/welcome/first-vow">Edit first vow track</a>
+        </div>
+        <dl>
+          <div>
+            <dt>Title</dt>
+            <dd>{{ track.title }}</dd>
+          </div>
+          <div>
+            <dt>Type</dt>
+            <dd>{{ trackTypeLabel(track) }}</dd>
+          </div>
+          <div>
+            <dt>Rank</dt>
+            <dd>{{ rankLabel(track.rank) }}</dd>
+          </div>
+          <div>
+            <dt>Progress</dt>
+            <dd>{{ track.ticks }} ticks</dd>
+          </div>
+        </dl>
+      </section>
+    } @else {
+      <section>
+        <div class="review-heading">
+          <h3>Linked progress track</h3>
+          <a routerLink="/welcome/first-vow">Repair link</a>
+        </div>
+        <p>No linked vow progress track is ready yet.</p>
+      </section>
+    }
+
+    <div class="form-actions">
+      <a class="secondary" routerLink="/welcome/first-vow">Back</a>
+      <button type="button" (click)="complete()" [disabled]="saving">
+        {{ saving ? 'Saving…' : copy.action }}
+      </button>
+      @if (message && !errors.length) {
+        <p role="status" aria-live="polite">{{ message }}</p>
+      }
+    </div>
+  </div>
+</section>

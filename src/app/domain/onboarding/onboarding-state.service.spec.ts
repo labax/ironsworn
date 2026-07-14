@@ -53,21 +53,24 @@ describe('OnboardingStateService', () => {
 
   it('bypasses onboarding for completed onboarding state', async () => {
     const { service, storage } = setup();
-    writeEnvelope(storage, ONBOARDING_STATUS_STORAGE_KEY, { welcomeCompletedAt: savedAt });
+    writeEnvelope(storage, ONBOARDING_STATUS_STORAGE_KEY, {
+      welcomeCompletedAt: savedAt,
+      completedAt: savedAt,
+    });
     await expect(service.getGateDecision()).resolves.toBe('bypass-onboarding');
   });
 
-  it('bypasses onboarding for a valid active character save', async () => {
+  it('does not bypass onboarding for only a valid active character save', async () => {
     const { service, storage } = setup();
     writeEnvelope(
       storage,
       ACTIVE_CHARACTER_STORAGE_KEY,
       toPersistedActiveCharacter(createMinimalCharacterFixture()),
     );
-    await expect(service.getGateDecision()).resolves.toBe('bypass-onboarding');
+    await expect(service.getGateDecision()).resolves.toBe('show-welcome');
   });
 
-  it('bypasses onboarding for a valid application snapshot', async () => {
+  it('does not bypass onboarding for only a valid application snapshot', async () => {
     const { service, storage } = setup();
     const snapshot: ApplicationStateSnapshot = {
       revision: 4,
@@ -76,10 +79,10 @@ describe('OnboardingStateService', () => {
       rollHistory: [],
     };
     writeEnvelope(storage, APPLICATION_STATE_STORAGE_KEY, snapshot);
-    await expect(service.getGateDecision()).resolves.toBe('bypass-onboarding');
+    await expect(service.getGateDecision()).resolves.toBe('show-welcome');
   });
 
-  it('bypasses onboarding for a valid workspace save', async () => {
+  it('does not bypass onboarding for only a valid workspace save', async () => {
     const { service, storage } = setup();
     writeEnvelope(
       storage,
@@ -96,7 +99,7 @@ describe('OnboardingStateService', () => {
         ],
       }),
     );
-    await expect(service.getGateDecision()).resolves.toBe('bypass-onboarding');
+    await expect(service.getGateDecision()).resolves.toBe('show-welcome');
   });
 
   it('treats corrupt onboarding and play-state records as missing instead of completing onboarding', async () => {

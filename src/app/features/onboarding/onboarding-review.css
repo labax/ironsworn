@@ -1,0 +1,73 @@
+.onboarding-review {
+  padding: 2rem;
+}
+.review-card {
+  max-width: 56rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+.section-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  color: #5f6b7a;
+}
+.lede {
+  font-size: 1.1rem;
+}
+.review-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+section {
+  border: 1px solid #d8dee8;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #fff;
+}
+dl {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+dl div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 1fr;
+  gap: 1rem;
+}
+dt {
+  font-weight: 700;
+}
+dd {
+  margin: 0;
+}
+.error-summary {
+  border-color: #b42318;
+  background: #fff4f2;
+}
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+button,
+.secondary {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+}
+@media (max-width: 42rem) {
+  .onboarding-review {
+    padding: 1rem;
+  }
+  dl div {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  .review-heading {
+    flex-direction: column;
+  }
+}

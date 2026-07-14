@@ -8,6 +8,7 @@ describe('routes', () => {
       '',
       'welcome',
       'welcome/first-vow',
+      'welcome/review',
       'character',
       'moves',
       'trackers',
