@@ -78,6 +78,11 @@ export class OnboardingStateService {
     return 'show-welcome';
   }
 
+  async isInProgress(): Promise<boolean> {
+    const onboarding = await this.loadStatus();
+    return Boolean(onboarding?.inProgressAt && !onboarding.completedAt);
+  }
+
   step(id: OnboardingStepId): OnboardingStep {
     return ONBOARDING_STEPS.find((step) => step.id === id) ?? ONBOARDING_STEPS[0];
   }

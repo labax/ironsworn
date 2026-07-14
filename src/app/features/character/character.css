@@ -55,7 +55,9 @@
 }
 
 .saved-state {
+  align-items: center;
   border-color: rgba(74, 222, 128, 0.35);
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .character-form {

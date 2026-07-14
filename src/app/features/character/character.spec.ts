@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
+import { vi } from 'vitest';
 
 import { BROWSER_STORAGE, createSaveEnvelope, type BrowserStorageLike } from '@app/core/storage';
 import { CharacterDraftService } from '@app/domain/character';
@@ -6,6 +8,7 @@ import {
   ACTIVE_CHARACTER_STORAGE_KEY,
   type PersistedActiveCharacter,
 } from '@app/domain/character/active-character-persistence.service';
+import { ONBOARDING_STATUS_STORAGE_KEY, type OnboardingStatus } from '@app/domain/onboarding';
 
 import { Character } from './character';
 
@@ -33,6 +36,21 @@ describe('Character', () => {
   let service: CharacterDraftService;
   let storage: MemoryStorage;
 
+  const markOnboardingInProgress = () => {
+    storage.setItem(
+      ONBOARDING_STATUS_STORAGE_KEY,
+      JSON.stringify(
+        createSaveEnvelope<OnboardingStatus>(
+          {
+            welcomeCompletedAt: '2026-07-14T00:00:00.000Z',
+            inProgressAt: '2026-07-14T00:00:00.000Z',
+          },
+          { appVersion: 'test' },
+        ),
+      ),
+    );
+  };
+
   const saveDefaultCharacter = () => {
     component['characterForm'].setValue({
       name: 'Kara',
@@ -56,7 +74,7 @@ describe('Character', () => {
 
     await TestBed.configureTestingModule({
       imports: [Character],
-      providers: [{ provide: BROWSER_STORAGE, useValue: storage }],
+      providers: [{ provide: BROWSER_STORAGE, useValue: storage }, provideRouter([])],
     }).compileComponents();
 
     service = TestBed.inject(CharacterDraftService);
@@ -154,6 +172,53 @@ describe('Character', () => {
     });
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Vale is ready.');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('4');
+  });
+
+  it('does not show the onboarding continuation action before a character is saved', async () => {
+    markOnboardingInProgress();
+    await component['refreshOnboardingProgress']();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.textContent).not.toContain('Continue to first vow');
+  });
+
+  it('shows the onboarding continuation action after saving a character during setup', async () => {
+    markOnboardingInProgress();
+    await component['refreshOnboardingProgress']();
+    saveDefaultCharacter();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const continueButton = Array.from(compiled.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Continue to first vow'),
+    );
+
+    expect(continueButton).toBeTruthy();
+    expect(compiled.textContent).toContain('Next setup step: create your first vow.');
+  });
+
+  it('navigates to the first-vow onboarding step without duplicating the saved character', async () => {
+    markOnboardingInProgress();
+    await component['refreshOnboardingProgress']();
+    saveDefaultCharacter();
+    const originalCharacterId = service.character()?.id;
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    await component['continueOnboarding']();
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/welcome/first-vow']);
+    expect(service.character()?.id).toBe(originalCharacterId);
+  });
+
+  it('keeps the normal character screen free of setup-only continuation controls', () => {
+    saveDefaultCharacter();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.textContent).toContain('Kara is ready.');
+    expect(compiled.textContent).not.toContain('Continue to first vow');
   });
 
   it('edits equipment and character notes independently with multiline text and preserves other fields', async () => {
