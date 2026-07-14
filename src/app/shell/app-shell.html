@@ -9,17 +9,41 @@
 
   @if (showUatBanner()) {
     <aside class="uat-banner" aria-label="UAT build notice">
-      UAT build — use test data only. Environment: {{ environmentName() }}; storage:
-      {{ storageMode() }}; content: {{ contentMode() }}.
+      <div class="uat-banner__details">
+        <span class="uat-banner__label">UAT build</span>
+        <span>Use test data only.</span>
+        <span>Environment: {{ environmentName() }}</span>
+        <span>Storage: {{ storageMode() }}</span>
+        <span>Content: {{ contentMode() }}</span>
+      </div>
+      <div
+        class="save-status save-status--banner"
+        [class.save-status--failed]="saveStatus() === 'failed'"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label="Save status"
+      >
+        <span class="save-status__text">Save: {{ saveStatus() }}</span>
+        @if (saveStatus() === 'failed') {
+          <button class="secondary save-status__retry" type="button" (click)="retrySave()">
+            Retry save
+          </button>
+        }
+      </div>
     </aside>
+  } @else if (saveStatus() === 'failed') {
+    <section
+      class="save-status save-status--fallback save-status--failed"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-label="Save status"
+    >
+      <span class="save-status__text">Save: failed</span>
+      <button class="secondary save-status__retry" type="button" (click)="retrySave()">
+        Retry save
+      </button>
+    </section>
   }
-
-  <section class="autosave-status" aria-live="polite" aria-label="Save status">
-    Save status: {{ saveStatus() }}
-    @if (saveStatus() === 'failed') {
-      <button type="button" (click)="retrySave()">Retry save</button>
-    }
-  </section>
 
   <div class="app-body">
     <aside class="navigation-panel">
