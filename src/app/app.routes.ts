@@ -16,6 +16,12 @@ export const routes: Routes = [
     title: 'Welcome | Ironsworn Digital Companion',
   },
   {
+    path: 'welcome/first-vow',
+    loadComponent: () =>
+      import('@app/features/onboarding/onboarding-first-vow').then((m) => m.OnboardingFirstVow),
+    title: 'First vow | Ironsworn Digital Companion',
+  },
+  {
     path: 'character',
     loadComponent: () => import('@app/features/character/character').then((m) => m.Character),
     title: 'Character | Ironsworn Digital Companion',

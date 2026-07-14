@@ -1,0 +1,72 @@
+<section class="first-vow" aria-labelledby="first-vow-title">
+  <form class="first-vow-card" [formGroup]="vowForm" (ngSubmit)="continue()">
+    <p class="section-label">First vow</p>
+    <h2 id="first-vow-title" tabindex="-1">{{ copy.title }}</h2>
+    <p class="lede">{{ copy.helper }}</p>
+
+    <label>
+      Vow title
+      <input
+        #titleInput
+        id="vow-title"
+        type="text"
+        formControlName="title"
+        (input)="persistDraft()"
+        [attr.aria-invalid]="showError('title')"
+        aria-describedby="vow-title-help vow-title-error"
+      />
+      <span id="vow-title-help" class="helper-text">{{ copy.titleHelp }}</span>
+      @if (showError('title')) {
+        <span id="vow-title-error" class="field-error">{{
+          fieldErrors.title || 'Enter a vow title.'
+        }}</span>
+      }
+    </label>
+
+    <label>
+      Rank
+      <select
+        id="vow-rank"
+        formControlName="rank"
+        (change)="persistDraft()"
+        [attr.aria-invalid]="showError('rank')"
+        aria-describedby="vow-rank-help vow-rank-error"
+      >
+        @for (option of rankOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+      <span id="vow-rank-help" class="helper-text">{{ copy.rankHelp }}</span>
+      @if (showError('rank')) {
+        <span id="vow-rank-error" class="field-error">{{
+          fieldErrors.rank || 'Choose a supported rank.'
+        }}</span>
+      }
+    </label>
+
+    <label>
+      Description
+      <textarea
+        id="vow-description"
+        formControlName="description"
+        rows="3"
+        (input)="persistDraft()"
+        aria-describedby="vow-description-help"
+      ></textarea>
+      <span id="vow-description-help" class="helper-text">{{ copy.optionalHelp }}</span>
+    </label>
+
+    <label>
+      Notes
+      <textarea id="vow-notes" formControlName="notes" rows="4" (input)="persistDraft()"></textarea>
+    </label>
+
+    <div class="form-actions">
+      <button type="button" class="secondary" (click)="back()">Back</button>
+      <button type="submit" [disabled]="saving">Continue</button>
+      @if (formMessage) {
+        <p class="form-message" role="status" aria-live="polite">{{ formMessage }}</p>
+      }
+    </div>
+  </form>
+</section>

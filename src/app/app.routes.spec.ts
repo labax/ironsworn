@@ -7,6 +7,7 @@ describe('routes', () => {
     expect(configuredPaths).toEqual([
       '',
       'welcome',
+      'welcome/first-vow',
       'character',
       'moves',
       'trackers',

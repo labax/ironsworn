@@ -99,6 +99,22 @@
       "releaseStatus": "allowed",
       "reviewStatus": "reviewed",
       "notes": "Project-original onboarding, disclaimer, local-data, and setup helper copy. Does not contain official rules tutorial prose."
+    },
+    {
+      "id": "project-original-onboarding-first-vow-copy",
+      "title": "Project Original Onboarding First Vow Copy",
+      "category": "original",
+      "contentType": "app-helper-text",
+      "source": "project-original",
+      "sourceUrl": null,
+      "license": "project-content-license",
+      "licenseUrl": null,
+      "attributionRequired": false,
+      "attributionText": null,
+      "noticeRef": null,
+      "releaseStatus": "allowed",
+      "reviewStatus": "reviewed",
+      "notes": "Project-original first-vow onboarding helper text. Does not include official examples or generated narrative text."
     }
   ]
 }
