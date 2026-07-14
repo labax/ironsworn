@@ -24,7 +24,11 @@
 
 .character-header h2,
 .form-card h3,
-.card-heading h3 {
+.card-heading h3,
+.status-control-heading h4,
+.bond-card h4,
+.bond-form h4,
+.experience-card h4 {
   margin: 0;
 }
 
@@ -129,9 +133,9 @@ button {
 }
 
 .secondary-button {
-  background: transparent;
+  background: var(--u-sb);
   border: 1px solid var(--u-ab);
-  color: var(--u-aso);
+  color: var(--u-st);
 }
 
 @media (max-width: 42rem) {
@@ -226,10 +230,6 @@ button {
   gap: 0.75rem;
 }
 
-.status-control-heading h4 {
-  margin: 0;
-}
-
 .status-control-heading strong {
   color: var(--u-pb);
   font-size: 1.75rem;
@@ -244,17 +244,21 @@ button {
 
 .track-button {
   border-radius: 0.75rem;
+  font-size: 1.25rem;
+  line-height: 1;
   min-height: 3rem;
   padding: 0.5rem;
 }
 
-.track-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
+.status-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  text-align: center;
 }
 
-.status-input {
-  text-align: center;
+.status-input::-webkit-inner-spin-button,
+.status-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
 }
 
 .override-toggle {
@@ -393,11 +397,6 @@ button {
   gap: 1rem;
 }
 
-.bond-card h4,
-.bond-form h4 {
-  margin: 0;
-}
-
 .bond-actions {
   display: flex;
   flex-wrap: wrap;
@@ -511,10 +510,6 @@ button {
   display: grid;
   gap: 0.75rem;
   padding: 1rem;
-}
-
-.experience-card h4 {
-  margin: 0;
 }
 
 .available-card output {
