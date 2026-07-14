@@ -11,7 +11,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.8rem;
-  color: #5f6b7a;
+  color: var(--u-m);
 }
 .lede {
   font-size: 1.1rem;
@@ -23,10 +23,10 @@
   align-items: baseline;
 }
 section {
-  border: 1px solid #d8dee8;
+  border: 1px solid var(--u-b);
   border-radius: 0.75rem;
   padding: 1rem;
-  background: #fff;
+  background: var(--u-s);
 }
 dl {
   display: grid;
@@ -45,8 +45,8 @@ dd {
   margin: 0;
 }
 .error-summary {
-  border-color: #b42318;
-  background: #fff4f2;
+  border-color: var(--u-d);
+  background: var(--u-s) 4f2;
 }
 .form-actions {
   display: flex;
@@ -120,7 +120,7 @@ h2:focus-visible,
 .error-summary:focus-visible,
 a:focus-visible,
 button:focus-visible {
-  outline: 3px solid var(--shell-accent-strong, #315a7d);
+  outline: 3px solid var(--shell-accent-strong, var(--u-as));
   outline-offset: 0.2rem;
 }
 
@@ -133,14 +133,14 @@ button,
 
 button.primary,
 .form-actions button:not(.secondary) {
-  border: 1px solid var(--shell-accent-strong, #315a7d);
-  background: var(--shell-accent-strong, #315a7d);
-  color: #fff;
+  border: 1px solid var(--shell-accent-strong, var(--u-as));
+  background: var(--shell-accent-strong, var(--u-as));
+  color: var(--u-s);
 }
 
 .secondary {
-  border: 1px solid var(--shell-border-strong, #aebdcc);
-  color: var(--shell-accent-strong, #315a7d);
+  border: 1px solid var(--shell-border-strong, var(--u-bs));
+  color: var(--shell-accent-strong, var(--u-as));
   text-decoration: none;
 }
 

@@ -11,10 +11,10 @@
 .vow-card,
 .vow-form,
 .vow-discovery {
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid var(--u-b);
   border-radius: 1rem;
-  background: rgba(15, 23, 42, 0.72);
-  box-shadow: 0 1rem 2rem rgba(2, 6, 23, 0.18);
+  background: var(--u-s);
+  box-shadow: var(--u-sh);
 }
 .vows-header,
 .empty-state,
@@ -27,7 +27,7 @@
 .section-label,
 .vow-status {
   margin: 0 0 0.5rem;
-  color: #93c5fd;
+  color: var(--u-as);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -44,7 +44,7 @@
 .error-state p,
 .helper-text,
 .form-message {
-  color: #cbd5e1;
+  color: var(--u-m);
 }
 .vow-form,
 .vow-list {
@@ -78,7 +78,7 @@
   border-width: 2px;
 }
 .vow-card-selected {
-  border-color: rgba(147, 197, 253, 0.75);
+  border-color: var(--u-as);
 }
 .vow-title-block,
 .vow-text,
@@ -95,11 +95,11 @@
 }
 .vow-facts div {
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.24);
+  background: var(--u-ss);
   padding: 0.75rem;
 }
 .vow-facts dt {
-  color: #cbd5e1;
+  color: var(--u-m);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -110,14 +110,14 @@
   overflow-wrap: anywhere;
 }
 .progress-warning {
-  border: 1px solid rgba(251, 191, 36, 0.55);
+  border: 1px solid var(--u-w);
   border-radius: 0.75rem;
-  color: #fde68a;
+  color: var(--u-w);
   margin: 1rem 0 0;
   padding: 0.75rem;
 }
 label {
-  color: #e2e8f0;
+  color: var(--u-m);
   display: grid;
   font-weight: 800;
   gap: 0.35rem;
@@ -125,10 +125,10 @@ label {
 input,
 select,
 textarea {
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  border: 1px solid var(--u-bs);
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.35);
-  color: #f8fafc;
+  background: var(--u-ss);
+  color: var(--u-t);
   font: inherit;
   padding: 0.75rem;
   width: 100%;
@@ -136,28 +136,28 @@ textarea {
 button {
   border: 0;
   border-radius: 999px;
-  background: #bfdbfe;
-  color: #0f172a;
+  background: var(--u-pb);
+  color: var(--u-pt);
   cursor: pointer;
   font: inherit;
   font-weight: 800;
   padding: 0.75rem 1rem;
 }
 button.secondary {
-  background: #e2e8f0;
+  background: var(--u-b);
 }
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(147, 197, 253, 0.7);
+  outline: 3px solid var(--u-f);
   outline-offset: 3px;
 }
 [aria-invalid='true'] {
-  border-color: #fca5a5;
+  border-color: var(--u-d);
 }
 .field-error {
-  color: #fecaca;
+  color: var(--u-d);
   font-size: 0.9rem;
   font-weight: 500;
 }
@@ -179,7 +179,7 @@ textarea:focus-visible {
   }
 }
 .milestone-panel {
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  border-top: 1px solid var(--u-b);
   display: grid;
   gap: 1rem;
   margin-top: 1rem;
@@ -196,13 +196,13 @@ textarea:focus-visible {
 }
 .milestone-record {
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.24);
+  background: var(--u-ss);
   display: grid;
   gap: 0.75rem;
   padding: 0.75rem;
 }
 .milestone-record time {
-  color: #cbd5e1;
+  color: var(--u-m);
   font-size: 0.9rem;
   font-weight: 800;
 }
@@ -216,7 +216,7 @@ textarea:focus-visible {
   gap: 0.5rem;
 }
 button.danger {
-  background: #fecaca;
+  background: var(--u-d);
 }
 @media (max-width: 42rem) {
   .milestone-actions {
@@ -224,7 +224,7 @@ button.danger {
   }
 }
 .outcome-panel {
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  border-top: 1px solid var(--u-b);
   display: grid;
   gap: 1rem;
   margin-top: 1rem;
@@ -235,7 +235,7 @@ button.danger {
 }
 .outcome-record {
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.24);
+  background: var(--u-ss);
   display: grid;
   gap: 0.75rem;
   padding: 0.75rem;
@@ -255,7 +255,7 @@ button.danger {
   }
 }
 .progress-roll-panel {
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  border-top: 1px solid var(--u-b);
   display: grid;
   gap: 1rem;
   margin-top: 1rem;
@@ -267,7 +267,7 @@ button.danger {
 }
 .progress-roll-result {
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.24);
+  background: var(--u-ss);
   display: grid;
   gap: 0.75rem;
   padding: 0.75rem;

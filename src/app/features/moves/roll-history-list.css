@@ -1,10 +1,10 @@
 .history-panel {
   min-width: 0;
-  border: 1px solid #d8d2c4;
+  border: 1px solid var(--u-b);
   border-radius: 1rem;
   margin-top: 1.25rem;
   padding: 1.25rem;
-  background: #fffdf8;
+  background: var(--u-s) df8;
 }
 
 .history-heading,
@@ -25,18 +25,18 @@
 
 .history-order,
 time {
-  color: #5d5548;
+  color: var(--u-m);
   font-size: 0.9rem;
   white-space: nowrap;
 }
 
 .history-empty {
-  border: 1px dashed #cfc6b5;
+  border: 1px dashed var(--u-bs);
   border-radius: 0.8rem;
   margin: 1rem 0 0;
   padding: 1rem;
-  color: #5d5548;
-  background: #fffaf0;
+  color: var(--u-m);
+  background: var(--u-s);
   font-weight: 700;
 }
 
@@ -50,19 +50,19 @@ time {
 
 .history-entry {
   min-width: 0;
-  border: 1px solid #e3dccf;
+  border: 1px solid var(--u-b);
   border-radius: 0.85rem;
   padding: 1rem;
-  background: #fff;
+  background: var(--u-s);
 }
 
 .latest-entry {
-  border-color: #8f7f63;
-  box-shadow: inset 0.25rem 0 0 #8f7f63;
+  border-color: var(--u-a);
+  box-shadow: inset 0.25rem 0 0 var(--u-a);
 }
 
 .entry-kicker {
-  color: #6f6657;
+  color: var(--u-m);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -71,7 +71,7 @@ time {
 
 .latest-label {
   margin-left: 0.35rem;
-  color: #283747;
+  color: var(--u-t);
 }
 
 .history-stats {
@@ -84,12 +84,12 @@ time {
 .history-stats div {
   min-width: 0;
   border-radius: 0.65rem;
-  background: #f8f4eb;
+  background: var(--u-ss);
   padding: 0.65rem;
 }
 
 .history-stats dt {
-  color: #6f6657;
+  color: var(--u-m);
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -97,7 +97,7 @@ time {
 
 .history-stats dd {
   margin: 0.2rem 0 0;
-  color: #283747;
+  color: var(--u-t);
   font-size: 1.05rem;
   font-weight: 800;
   overflow-wrap: anywhere;
@@ -142,9 +142,9 @@ time {
   align-items: end;
   margin-top: 1rem;
   padding: 1rem;
-  border: 1px solid #e3dccf;
+  border: 1px solid var(--u-b);
   border-radius: 0.85rem;
-  background: #fbf7ef;
+  background: var(--u-ss);
 }
 
 .filter-field,
@@ -158,7 +158,7 @@ time {
 .filter-session legend,
 .filter-session label {
   display: block;
-  color: #4f473b;
+  color: var(--u-m);
   font-size: 0.78rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -170,12 +170,12 @@ time {
   width: 100%;
   min-width: 0;
   margin-top: 0.25rem;
-  border: 1px solid #bdb4a6;
+  border: 1px solid var(--u-bs);
   border-radius: 0.55rem;
   padding: 0.55rem 0.65rem;
   min-height: 2.75rem;
-  background: #fff;
-  color: #283747;
+  background: var(--u-s);
+  color: var(--u-t);
   font: inherit;
 }
 
@@ -207,7 +207,7 @@ time {
 
 .filter-session {
   grid-column: 1 / -1;
-  color: #6f6657;
+  color: var(--u-m);
 }
 
 .session-inputs {
@@ -230,11 +230,11 @@ time {
   align-items: center;
   min-height: 2.75rem;
   box-sizing: border-box;
-  border: 1px solid #8f7f63;
+  border: 1px solid var(--u-a);
   border-radius: 999px;
   padding: 0.55rem 0.85rem;
-  background: #fffdf8;
-  color: #283747;
+  background: var(--u-s) df8;
+  color: var(--u-t);
   font-weight: 800;
   cursor: pointer;
 }

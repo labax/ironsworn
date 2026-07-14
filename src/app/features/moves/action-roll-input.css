@@ -1,8 +1,8 @@
 .roll-panel {
-  border: 1px solid #d8d2c4;
+  border: 1px solid var(--u-b);
   border-radius: 1rem;
   padding: 1.25rem;
-  background: #fffaf0;
+  background: var(--u-s);
 }
 
 .roll-heading {
@@ -19,7 +19,7 @@
 }
 
 .section-label {
-  color: #6f6657;
+  color: var(--u-m);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -28,7 +28,7 @@
 
 .character-note,
 .handoff-note {
-  color: #5d5548;
+  color: var(--u-m);
   font-size: 0.95rem;
 }
 
@@ -57,15 +57,15 @@ legend {
 input,
 select {
   width: 100%;
-  border: 1px solid #bcb3a2;
+  border: 1px solid var(--u-bs);
   border-radius: 0.6rem;
   padding: 0.65rem 0.75rem;
   font: inherit;
-  background: #fff;
+  background: var(--u-s);
 }
 
 .mode-toggle {
-  border: 1px solid #e3dccf;
+  border: 1px solid var(--u-b);
   border-radius: 0.75rem;
   padding: 0.8rem;
 }
@@ -83,7 +83,7 @@ select {
 }
 
 .field-error {
-  color: #9b1c1c;
+  color: var(--u-d);
   margin: 0;
   font-size: 0.9rem;
 }
@@ -98,8 +98,8 @@ button {
   border: 0;
   border-radius: 999px;
   padding: 0.75rem 1rem;
-  background: #283747;
-  color: #fff;
+  background: var(--u-t);
+  color: var(--u-s);
   font-weight: 700;
   cursor: pointer;
 }
@@ -111,17 +111,17 @@ button:disabled {
 
 button:focus-visible,
 .momentum-preview:focus-visible {
-  outline: 3px solid #8a5a00;
+  outline: 3px solid var(--u-f);
   outline-offset: 3px;
 }
 
 .secondary-button {
-  background: #e8e0d1;
-  color: #283747;
+  background: var(--u-sb);
+  color: var(--u-t);
 }
 
 .roll-result {
-  border-top: 1px solid #e3dccf;
+  border-top: 1px solid var(--u-b);
   margin-top: 1.25rem;
   padding-top: 1.25rem;
 }
@@ -139,14 +139,14 @@ button:focus-visible,
 }
 
 .result-grid div {
-  border: 1px solid #e3dccf;
+  border: 1px solid var(--u-b);
   border-radius: 0.75rem;
   padding: 0.75rem;
-  background: #fff;
+  background: var(--u-s);
 }
 
 .result-grid dt {
-  color: #6f6657;
+  color: var(--u-m);
   font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -159,7 +159,7 @@ button:focus-visible,
 }
 
 .calculation-summary {
-  color: #5d5548;
+  color: var(--u-m);
   margin: 1rem 0 0;
 }
 
@@ -189,11 +189,11 @@ button:focus-visible,
 }
 
 .momentum-preview {
-  border: 1px solid #bcb3a2;
+  border: 1px solid var(--u-bs);
   border-radius: 0.75rem;
   margin-top: 1rem;
   padding: 1rem;
-  background: #fff;
+  background: var(--u-s);
 }
 
 .preview-heading {

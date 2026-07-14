@@ -9,16 +9,16 @@
 .journal-card,
 .reading-view {
   min-width: 0;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--u-b);
   border-radius: 1rem;
   padding: 1rem;
-  background: #fff;
+  background: var(--u-s);
 }
 .section-label {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
-  color: #475569;
+  color: var(--u-m);
 }
 .journal-layout {
   display: grid;
@@ -47,7 +47,7 @@ textarea,
 select {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #94a3b8;
+  border: 1px solid var(--u-bs);
   border-radius: 0.6rem;
   padding: 0.7rem;
   font: inherit;
@@ -61,7 +61,7 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 button:focus-visible {
-  outline: 3px solid #2563eb;
+  outline: 3px solid var(--u-f);
   outline-offset: 2px;
 }
 button {
@@ -69,28 +69,28 @@ button {
   border-radius: 999px;
   padding: 0.7rem 1rem;
   min-height: 2.75rem;
-  background: #1e3a8a;
-  color: #fff;
+  background: var(--u-pb);
+  color: var(--u-s);
   font-weight: 700;
   cursor: pointer;
 }
 button.secondary {
-  background: #475569;
+  background: var(--u-m);
 }
 .field-error {
   min-height: 1.25rem;
-  color: #b91c1c;
+  color: var(--u-d);
   font-weight: 700;
 }
 .help-text {
-  color: #475569;
+  color: var(--u-m);
   margin: 0;
   overflow-wrap: anywhere;
 }
 .snapshot-preview,
 .snapshot-list {
-  border-inline-start: 0.35rem solid #7c3aed;
-  background: #f5f3ff;
+  border-inline-start: 0.35rem solid var(--u-a);
+  background: var(--u-ss);
   padding: 0.75rem;
   border-radius: 0.5rem;
 }
@@ -126,10 +126,10 @@ button.secondary {
 }
 .session-label {
   font-weight: 700;
-  color: #334155;
+  color: var(--u-t);
 }
 .empty-state {
-  border: 1px dashed #94a3b8;
+  border: 1px dashed var(--u-bs);
   padding: 1rem;
   border-radius: 0.75rem;
 }
@@ -176,15 +176,15 @@ button.secondary {
   padding: 0;
 }
 .journal-card.selected {
-  border-color: #1e3a8a;
-  box-shadow: 0 0 0 3px #dbeafe;
+  border-color: var(--u-pb);
+  box-shadow: 0 0 0 3px var(--u-aso);
 }
 .reading-view {
   display: grid;
   gap: 1rem;
 }
 .entry-prose {
-  border-block: 1px solid #e2e8f0;
+  border-block: 1px solid var(--u-b);
   padding-block: 1rem;
 }
 .entry-prose h4 {
@@ -200,7 +200,7 @@ button.secondary {
 .loading-state,
 .error-state,
 .broken-link {
-  color: #475569;
+  color: var(--u-m);
 }
 .related-links {
   justify-content: flex-start;
@@ -216,20 +216,20 @@ button.secondary {
   box-sizing: border-box;
   align-items: center;
   min-height: 2.75rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--u-b);
   border-radius: 999px;
   padding: 0.45rem 0.7rem;
-  background: #f8fafc;
+  background: var(--u-t);
 }
 .related-links a:focus-visible {
-  outline: 3px solid #2563eb;
+  outline: 3px solid var(--u-f);
   outline-offset: 2px;
 }
 .snapshot-card {
   border: 1px solid #ddd6fe;
   border-radius: 0.75rem;
   padding: 0.75rem;
-  background: #fff;
+  background: var(--u-s);
   overflow-wrap: anywhere;
 }
 .snapshot-card dl {
@@ -264,7 +264,7 @@ button.secondary {
   max-height: calc(100vh - 2rem);
   overflow: auto;
   border-radius: 1rem;
-  background: #fff;
+  background: var(--u-s);
   padding: 1.25rem;
   box-shadow: 0 1.5rem 4rem rgb(15 23 42 / 0.35);
 }
@@ -272,7 +272,7 @@ button.secondary {
   border: 1px solid #f59e0b;
   border-radius: 0.75rem;
   padding: 0.75rem;
-  background: #fffbeb;
+  background: var(--u-s) beb;
 }
 .delete-actions {
   display: flex;
@@ -288,7 +288,7 @@ button.danger {
   border: 1px solid #f59e0b;
   border-radius: 0.75rem;
   padding: 0.75rem;
-  background: #fffbeb;
+  background: var(--u-s) beb;
 }
 @media (max-width: 760px) {
   .delete-actions,
