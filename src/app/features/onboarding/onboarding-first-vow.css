@@ -207,3 +207,52 @@ button:focus-visible {
 .confirm-dialog h3 {
   margin-top: 0;
 }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  min-width: 0;
+}
+
+button,
+a.secondary,
+.primary-action,
+.secondary-action {
+  min-height: 2.75rem;
+  touch-action: manipulation;
+}
+
+.first-vow-card,
+.welcome-card,
+.review-card,
+.notice,
+.review-panel,
+.error-summary,
+section,
+dl,
+dd,
+li,
+p,
+h2,
+h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.confirm-dialog {
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+}

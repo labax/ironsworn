@@ -42,6 +42,7 @@ export class OnboardingFirstVow {
   private readonly titleInput = viewChild<ElementRef<HTMLInputElement>>('titleInput');
   private readonly exitButton = viewChild<ElementRef<HTMLButtonElement>>('exitButton');
   private readonly cancelExitButton = viewChild<ElementRef<HTMLButtonElement>>('cancelExitButton');
+  private readonly reviewPanel = viewChild<ElementRef<HTMLElement>>('reviewPanel');
 
   protected readonly copy = ONBOARDING_FIRST_VOW_COPY;
   protected readonly exitCopy = ONBOARDING_EXIT_COPY;
@@ -56,6 +57,7 @@ export class OnboardingFirstVow {
   });
   protected fieldErrors: Partial<Record<'title' | 'rank', string>> = {};
   protected formMessage = '';
+  protected formMessageTone: 'status' | 'alert' = 'status';
   protected saving = false;
   protected review: FirstVowReview | null = null;
   protected exitConfirmOpen = false;
@@ -84,6 +86,7 @@ export class OnboardingFirstVow {
     if (this.saving || this.exiting) return;
     this.fieldErrors = {};
     this.formMessage = '';
+    this.formMessageTone = 'status';
 
     if (this.review) {
       await this.router.navigate([this.onboarding.nextStep('first-vow').path]);
@@ -119,6 +122,7 @@ export class OnboardingFirstVow {
       this.applyErrors(trackResult.errors);
       this.formMessage =
         'Setup could not link the vow to a progress track. Nothing was saved; try again.';
+      this.formMessageTone = 'alert';
       return;
     }
 
@@ -185,6 +189,8 @@ export class OnboardingFirstVow {
     this.vowForm.disable({ emitEvent: false });
     this.formMessage =
       'Review the vow and linked progress track, then continue. You can change progress during play.';
+    this.formMessageTone = 'status';
+    queueMicrotask(() => this.reviewPanel()?.nativeElement.focus());
   }
 
   private async finish(vowId: string): Promise<void> {
@@ -204,7 +210,8 @@ export class OnboardingFirstVow {
         .map((error) => [error.field, error.message]),
     );
     this.formMessage = errors[0]?.message ?? 'Check the highlighted fields.';
+    this.formMessageTone = 'alert';
     const first = errors[0]?.field === 'rank' ? 'vow-rank' : 'vow-title';
-    document.getElementById(first)?.focus();
+    queueMicrotask(() => document.getElementById(first)?.focus());
   }
 }
