@@ -1,0 +1,27 @@
+{
+  "status": "approved",
+  "approvedBy": "content-release-reviewers",
+  "approvedAt": "2026-07-14T00:00:00Z",
+  "items": [
+    {
+      "id": "manifest-provenance-reviewed",
+      "status": "complete",
+      "evidence": "content/manifest.json entries are reviewed and releaseStatus/reviewStatus are consistent."
+    },
+    {
+      "id": "licensing-review-complete",
+      "status": "complete",
+      "evidence": "docs/licensing/content-provenance.md and docs/licensing/oracle-content-licensing-review.md document release boundaries."
+    },
+    {
+      "id": "public-references-resolve",
+      "status": "complete",
+      "evidence": "npm run validate:content:release resolves public manifestId/contentManifestId/provenanceId references before artifact upload."
+    },
+    {
+      "id": "private-user-content-excluded",
+      "status": "complete",
+      "evidence": "Validator scans bundled content/ and public/ JSON only, excluding runtime saves, journals, and custom user oracle data."
+    }
+  ]
+}

@@ -10,11 +10,13 @@
     "lint": "ng build --configuration development",
     "format": "prettier --write \"src/**/*.{ts,html,css}\" \"*.{json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,css}\" \"*.{json,md}\"",
-    "test:ci": "ng test --watch=false && npm run test:provenance",
+    "test:ci": "ng test --watch=false && npm run test:provenance && npm run test:workflow-gates",
     "validate:content-json": "node scripts/validate-content-json.mjs",
     "build:uat": "ng build --configuration uat && node scripts/copy-spa-fallback.mjs dist/ironsworn/browser",
-    "validate:content": "node scripts/validate-content-manifest.mjs",
-    "test:provenance": "vitest run scripts/validate-content-manifest.test.mjs"
+    "validate:content": "node scripts/validate-content-manifest.mjs --mode development",
+    "test:provenance": "vitest run scripts/validate-content-manifest.test.mjs",
+    "validate:content:release": "node scripts/validate-content-manifest.mjs --mode release --evidence dist/release-evidence/content-provenance-evidence.json",
+    "test:workflow-gates": "vitest run scripts/release-gates.test.mjs"
   },
   "private": true,
   "packageManager": "npm@11.4.2",
