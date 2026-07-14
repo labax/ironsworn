@@ -103,14 +103,22 @@
           <strong id="sheet-title">{{ savedCharacter()?.name }} is ready.</strong>
           <span>{{ savedCharacter()?.concept || 'No concept added.' }}</span>
         </div>
-        <button
-          #editButton
-          type="button"
-          class="secondary-button"
-          (click)="openIdentityStatsEditor()"
-        >
-          Edit identity and stats
-        </button>
+        <div class="saved-actions">
+          @if (canContinueOnboarding()) {
+            <div class="setup-continue" aria-label="Setup continuation">
+              <p class="helper-text">Next setup step: create your first vow.</p>
+              <button type="button" (click)="continueOnboarding()">Continue to first vow</button>
+            </div>
+          }
+          <button
+            #editButton
+            type="button"
+            class="secondary-button"
+            (click)="openIdentityStatsEditor()"
+          >
+            Edit identity and stats
+          </button>
+        </div>
       </div>
 
       <dl class="character-summary" aria-label="Stored character summary">

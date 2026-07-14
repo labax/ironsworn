@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, inject, viewChild } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import {
   AbstractControl,
   NonNullableFormBuilder,
@@ -15,6 +15,8 @@ import {
   buildMomentumPatch,
   validateMomentumState,
 } from '@app/domain/character';
+import { OnboardingStateService } from '@app/domain/onboarding';
+import { Router } from '@angular/router';
 import type {
   AssetReference,
   Bond,
@@ -106,6 +108,8 @@ const defaultCharacterForm: CharacterCreationInput = {
 export class Character {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   protected readonly characterDraft = inject(CharacterDraftService);
+  private readonly onboarding = inject(OnboardingStateService);
+  private readonly router = inject(Router);
   private readonly editButton = viewChild<ElementRef<HTMLButtonElement>>('editButton');
   private readonly editNameInput = viewChild<ElementRef<HTMLInputElement>>('editNameInput');
   private readonly addBondButton = viewChild<ElementRef<HTMLButtonElement>>('addBondButton');
@@ -115,6 +119,10 @@ export class Character {
 
   protected readonly savedCharacter = this.characterDraft.character;
   protected readonly hasCharacter = computed(() => this.savedCharacter() !== null);
+  private readonly onboardingInProgress = signal(false);
+  protected readonly canContinueOnboarding = computed(
+    () => this.hasCharacter() && this.onboardingInProgress(),
+  );
   protected editingIdentityStats = false;
   protected readonly statusTrackOverrides: Record<StatusTrackKey, boolean> = {
     health: false,
@@ -220,10 +228,20 @@ export class Character {
 
   constructor() {
     void this.characterDraft.loadSavedCharacter();
+    void this.refreshOnboardingProgress();
+  }
+
+  private async refreshOnboardingProgress(): Promise<void> {
+    this.onboardingInProgress.set(await this.onboarding.isInProgress());
   }
 
   protected resetForm(): void {
     this.characterForm.reset(defaultCharacterForm);
+  }
+
+  protected async continueOnboarding(): Promise<void> {
+    if (!this.canContinueOnboarding()) return;
+    await this.router.navigate([this.onboarding.nextStep('character').path]);
   }
 
   protected saveCharacter(): void {
