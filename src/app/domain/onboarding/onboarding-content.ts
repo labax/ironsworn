@@ -29,6 +29,13 @@ export const ONBOARDING_WELCOME_COPY = {
   ],
 } as const;
 
+export const ONBOARDING_REVIEW_COPY_PROVENANCE = {
+  ...PROJECT_ORIGINAL_PROVENANCE,
+  sourceId: 'project-original-onboarding-review-copy',
+  title: 'Project-original onboarding review copy',
+  manifestId: 'project-original-onboarding-review-copy',
+} as const;
+
 export const ONBOARDING_FIRST_VOW_COPY = {
   title: 'Name your first vow',
   helper: 'Start with only the essentials. You can edit the details later from Vows.',
@@ -36,4 +43,13 @@ export const ONBOARDING_FIRST_VOW_COPY = {
   rankHelp: 'Choose the scope that fits your table; progress can be handled later.',
   optionalHelp: 'Optional. Add only the context you want to keep now.',
   provenance: ONBOARDING_FIRST_VOW_COPY_PROVENANCE,
+} as const;
+
+export const ONBOARDING_REVIEW_COPY = {
+  title: 'Review and begin play',
+  helper:
+    'Confirm your character, starting tracks, first vow, and linked progress track before entering the workspace.',
+  action: 'Finish setup',
+  success: 'Setup saved. Opening your play workspace.',
+  provenance: ONBOARDING_REVIEW_COPY_PROVENANCE,
 } as const;

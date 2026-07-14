@@ -73,7 +73,7 @@ export class OnboardingFirstVow {
     this.formMessage = '';
 
     if (this.review) {
-      await this.finish(this.review.vow.id);
+      await this.router.navigate([this.onboarding.nextStep('first-vow').path]);
       return;
     }
 

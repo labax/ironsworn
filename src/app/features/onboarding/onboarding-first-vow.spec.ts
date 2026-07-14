@@ -46,7 +46,7 @@ describe('OnboardingFirstVow', () => {
             markFirstVowCommitted: vi.fn((id) => (committedId = id)),
             completeFirstVow,
             previousStep: () => ({ id: 'character', path: '/character' }),
-            nextStep: () => ({ id: 'done', path: '/moves' }),
+            nextStep: () => ({ id: 'review', path: '/welcome/review' }),
           },
         },
       ],
@@ -100,8 +100,8 @@ describe('OnboardingFirstVow', () => {
     });
     expect(createProgressTrackForVow).toHaveBeenCalledTimes(1);
     expect(createProgressTrackForVow).toHaveBeenCalledWith({ vowId: 'vow-first' });
-    expect(completeFirstVow).toHaveBeenCalledWith('vow-first');
-    expect(navigate).toHaveBeenCalledWith(['/moves']);
+    expect(completeFirstVow).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(['/welcome/review']);
   });
 
   it('shows required title validation and preserves entered fields', async () => {
@@ -213,7 +213,7 @@ describe('OnboardingFirstVow', () => {
     expect(navigate).not.toHaveBeenCalled();
 
     await fixture.componentInstance['continue']();
-    expect(navigate).toHaveBeenCalledWith(['/moves']);
+    expect(navigate).toHaveBeenCalledWith(['/welcome/review']);
   });
 
   it('rolls back the created vow when linked track creation fails', async () => {
