@@ -46,7 +46,7 @@ dd {
 }
 .error-summary {
   border-color: var(--u-d);
-  background: var(--u-s) 4f2;
+  background: var(--u-ds);
 }
 .form-actions {
   display: flex;
@@ -145,8 +145,9 @@ button.primary,
 }
 
 button:disabled {
+  background: var(--u-db);
+  color: var(--u-dt);
   cursor: wait;
-  opacity: 0.65;
 }
 
 @media (max-width: 42rem) {

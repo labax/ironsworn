@@ -105,8 +105,9 @@ button {
 }
 
 button:disabled {
+  background: var(--u-db);
+  color: var(--u-dt);
   cursor: not-allowed;
-  opacity: 0.65;
 }
 
 button:focus-visible,
@@ -220,12 +221,12 @@ button:focus-visible,
 }
 
 .momentum-applied {
-  border: 1px solid #6b8f71;
+  border: 1px solid var(--u-ok);
   border-radius: 0.75rem;
   margin: 1rem 0 0;
   padding: 0.85rem;
-  background: #eef7ee;
-  color: #214829;
+  background: var(--ui-color-success-soft);
+  color: var(--u-ok);
   font-weight: 700;
 }
 

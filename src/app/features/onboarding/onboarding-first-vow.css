@@ -100,8 +100,9 @@ button.secondary:focus-visible {
 }
 
 button:disabled {
+  background: var(--u-db);
+  color: var(--u-dt);
   cursor: wait;
-  opacity: 0.65;
 }
 
 @media (max-width: 34rem) {

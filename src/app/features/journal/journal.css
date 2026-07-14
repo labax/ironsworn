@@ -272,7 +272,7 @@ button.secondary {
   border: 1px solid #f59e0b;
   border-radius: 0.75rem;
   padding: 0.75rem;
-  background: var(--u-s) beb;
+  background: var(--u-ws);
 }
 .delete-actions {
   display: flex;
@@ -282,13 +282,15 @@ button.secondary {
   margin-block-start: 1rem;
 }
 button.danger {
-  background: #991b1b;
+  border: 1px solid var(--u-d);
+  background: var(--u-ds);
+  color: var(--u-d);
 }
 .delete-feedback {
   border: 1px solid #f59e0b;
   border-radius: 0.75rem;
   padding: 0.75rem;
-  background: var(--u-s) beb;
+  background: var(--u-ws);
 }
 @media (max-width: 760px) {
   .delete-actions,

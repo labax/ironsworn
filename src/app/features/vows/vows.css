@@ -144,7 +144,9 @@ button {
   padding: 0.75rem 1rem;
 }
 button.secondary {
-  background: var(--u-b);
+  border: 1px solid var(--u-ab);
+  background: var(--u-sb);
+  color: var(--u-st);
 }
 button:focus-visible,
 input:focus-visible,
@@ -216,7 +218,9 @@ textarea:focus-visible {
   gap: 0.5rem;
 }
 button.danger {
-  background: var(--u-d);
+  border: 1px solid var(--u-d);
+  background: var(--u-ds);
+  color: var(--u-d);
 }
 @media (max-width: 42rem) {
   .milestone-actions {
@@ -304,8 +308,9 @@ button.danger {
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 button:disabled {
+  background: var(--u-db);
+  color: var(--u-dt);
   cursor: not-allowed;
-  opacity: 0.65;
 }
 * {
   box-sizing: border-box;
