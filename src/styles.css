@@ -1,1 +1,366 @@
-/* You can add global styles to this file, and also import other style files */
+/* Shared visual system for routed MVP views. Component styles consume these tokens through inheritance. */
+:root {
+  color-scheme: light;
+  --ui-color-background: #f6f7f9;
+  --ui-color-surface: #ffffff;
+  --ui-color-surface-subtle: #eef2f6;
+  --ui-color-surface-raised: #ffffff;
+  --ui-color-text: #17202a;
+  --ui-color-text-muted: #526172;
+  --ui-color-border: #d8e0e8;
+  --ui-color-border-strong: #aebdcc;
+  --ui-color-accent: #476f95;
+  --ui-color-accent-strong: #315a7d;
+  --ui-color-accent-soft: #dceaf5;
+  --ui-color-success: #2f7d4f;
+  --ui-color-success-soft: #dff3e7;
+  --ui-color-warning: #9a6a00;
+  --ui-color-warning-soft: #fff4d6;
+  --ui-color-danger: #b42318;
+  --ui-color-danger-soft: #fff0ed;
+  --ui-color-focus: #2563eb;
+  --ui-action-primary-bg: var(--ui-color-accent-strong);
+  --ui-action-primary-text: #ffffff;
+  --ui-action-primary-hover-bg: #274d6d;
+  --ui-action-secondary-bg: var(--ui-color-surface);
+  --ui-action-secondary-text: var(--ui-color-accent-strong);
+  --ui-action-secondary-border: var(--ui-color-border-strong);
+  --ui-action-destructive-bg: var(--ui-color-danger-soft);
+  --ui-action-destructive-text: var(--ui-color-danger);
+  --ui-space-1: 0.25rem;
+  --ui-space-2: 0.5rem;
+  --ui-space-3: 0.75rem;
+  --ui-space-4: 1rem;
+  --ui-space-5: 1.25rem;
+  --ui-space-6: 1.5rem;
+  --ui-space-8: 2rem;
+  --ui-space-fluid-page: clamp(1rem, 4vw, 3rem);
+  --ui-font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ui-font-size-label: 0.8rem;
+  --ui-font-size-helper: 0.9rem;
+  --ui-font-size-body: 1rem;
+  --ui-font-size-lede: clamp(1.05rem, 2.5vw, 1.3rem);
+  --ui-font-size-title: clamp(2rem, 6vw, 4rem);
+  --ui-line-body: 1.65;
+  --ui-font-weight-label: 800;
+  --ui-font-weight-action: 800;
+  --ui-control-min-height: 2.75rem;
+  --ui-control-padding-block: 0.7rem;
+  --ui-control-padding-inline: 1rem;
+  --ui-control-compact-padding-inline: 0.75rem;
+  --ui-radius-sm: 0.5rem;
+  --ui-radius-md: 0.75rem;
+  --ui-radius-lg: 1rem;
+  --ui-radius-xl: 1.25rem;
+  --ui-radius-pill: 999px;
+  --ui-shadow-sm: 0 0.25rem 0.75rem rgb(15 23 42 / 0.08);
+  --ui-shadow-md: 0 1rem 2.5rem rgb(15 23 42 / 0.1);
+  --ui-focus-ring: 0 0 0 3px color-mix(in srgb, var(--ui-color-focus) 30%, transparent);
+
+  --shell-background: var(--ui-color-background);
+  --shell-panel: var(--ui-color-surface);
+  --shell-panel-soft: var(--ui-color-surface-subtle);
+  --shell-text: var(--ui-color-text);
+  --shell-text-muted: var(--ui-color-text-muted);
+  --shell-border: var(--ui-color-border);
+  --shell-border-strong: var(--ui-color-border-strong);
+  --shell-accent: var(--ui-color-accent);
+  --shell-accent-strong: var(--ui-color-accent-strong);
+  --shell-accent-soft: var(--ui-color-accent-soft);
+
+  --u-bg: var(--ui-color-background);
+  --u-s: var(--ui-color-surface);
+  --u-ss: var(--ui-color-surface-subtle);
+  --u-t: var(--ui-color-text);
+  --u-m: var(--ui-color-text-muted);
+  --u-b: var(--ui-color-border);
+  --u-bs: var(--ui-color-border-strong);
+  --u-a: var(--ui-color-accent);
+  --u-as: var(--ui-color-accent-strong);
+  --u-aso: var(--ui-color-accent-soft);
+  --u-ok: var(--ui-color-success);
+  --u-w: var(--ui-color-warning);
+  --u-ws: var(--ui-color-warning-soft);
+  --u-d: var(--ui-color-danger);
+  --u-ds: var(--ui-color-danger-soft);
+  --u-f: var(--ui-color-focus);
+  --u-pb: var(--ui-action-primary-bg);
+  --u-pt: var(--ui-action-primary-text);
+  --u-ab: var(--ui-action-secondary-border);
+  --u-sb: var(--ui-action-secondary-bg);
+  --u-st: var(--ui-action-secondary-text);
+  --u-sh: var(--ui-shadow-sm);
+  --u-shm: var(--ui-shadow-md);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --ui-color-background: #121820;
+    --ui-color-surface: #1b2430;
+    --ui-color-surface-subtle: #222e3b;
+    --ui-color-surface-raised: #263241;
+    --ui-color-text: #f3f7fb;
+    --ui-color-text-muted: #b8c5d4;
+    --ui-color-border: #354354;
+    --ui-color-border-strong: #58697c;
+    --ui-color-accent: #8ab4da;
+    --ui-color-accent-strong: #b8d7f2;
+    --ui-color-accent-soft: #243d54;
+    --ui-color-success: #86efac;
+    --ui-color-success-soft: #183525;
+    --ui-color-warning: #fde68a;
+    --ui-color-warning-soft: #3a2d12;
+    --ui-color-danger: #fca5a5;
+    --ui-color-danger-soft: #3b1f22;
+    --ui-color-focus: #93c5fd;
+    --ui-action-primary-bg: #bfdbfe;
+    --ui-action-primary-text: #0f172a;
+    --ui-action-primary-hover-bg: #dbeafe;
+    --ui-action-secondary-bg: transparent;
+    --ui-action-secondary-text: #dbeafe;
+    --ui-action-secondary-border: #7da4c6;
+  }
+}
+
+html {
+  min-width: 320px;
+  background: var(--ui-color-background);
+  color: var(--ui-color-text);
+  font-family: var(--ui-font-family);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.ui-panel {
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-md);
+}
+
+.ui-section-label {
+  color: var(--ui-color-accent-strong);
+  font-size: var(--ui-font-size-label);
+  font-weight: var(--ui-font-weight-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ui-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-3);
+}
+
+/* Issue #183 shared visual-system migration: keep feature CSS layout-focused while inheriting global tokens. */
+:host {
+  color: var(--ui-color-text);
+}
+.section-label,
+.kicker,
+.entry-kicker,
+.track-status,
+.vow-status,
+.availability {
+  color: var(--ui-color-accent-strong);
+  font-size: var(--ui-font-size-label);
+  font-weight: var(--ui-font-weight-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.character-header,
+.form-card,
+.empty-state,
+.saved-state,
+.status-controls,
+.status-control-card,
+.hero,
+.placeholder-page,
+.journal-header,
+.journal-editor,
+.journal-list,
+.journal-card,
+.reading-view,
+.roll-panel,
+.history-panel,
+.history-entry,
+.history-filters,
+.momentum-preview,
+.first-vow-card,
+.welcome-card,
+.review-card,
+.review-panel,
+.oracles-header,
+.state-card,
+.oracle-nav,
+.oracle-detail,
+.oracle-list-button,
+.trackers-header,
+.track-card,
+.track-form,
+.vows-header,
+.error-state,
+.vow-card,
+.vow-form,
+.vow-discovery {
+  border-color: var(--ui-color-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  box-shadow: var(--ui-shadow-sm);
+}
+.status-control-card,
+.character-summary div,
+.status-list div,
+.result-grid div,
+.history-stats div,
+.oracle-facts div,
+.track-facts div,
+.vow-facts div,
+.milestone-record,
+.snapshot-preview,
+.snapshot-list {
+  border-color: var(--ui-color-border);
+  background: var(--ui-color-surface-subtle);
+  color: var(--ui-color-text);
+}
+p,
+.lede,
+.description,
+.help-text,
+.helper-text,
+.form-message,
+.character-note,
+.handoff-note,
+.calculation-summary,
+.table-description,
+.category-line,
+.track-notes,
+.empty-body,
+.loading-state,
+.broken-link,
+time,
+dt {
+  color: var(--ui-color-text-muted);
+}
+label,
+legend {
+  color: var(--ui-color-text);
+}
+input,
+select,
+textarea {
+  box-sizing: border-box;
+  min-height: var(--ui-control-min-height);
+  border: 1px solid var(--ui-color-border-strong);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  font: inherit;
+  padding: var(--ui-control-padding-block) var(--ui-control-padding-inline);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--ui-color-text-muted);
+}
+input:disabled,
+select:disabled,
+textarea:disabled,
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+button,
+.primary-action,
+.secondary-action,
+a.secondary,
+.clear-filters,
+.related-links a {
+  align-items: center;
+  justify-content: center;
+  min-height: var(--ui-control-min-height);
+  border: 1px solid var(--ui-action-primary-bg);
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-action-primary-bg);
+  color: var(--ui-action-primary-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: var(--ui-font-weight-action);
+  gap: var(--ui-space-2);
+  padding: var(--ui-control-padding-block) var(--ui-control-padding-inline);
+  text-decoration: none;
+  touch-action: manipulation;
+}
+button:hover:not(:disabled),
+.primary-action:hover,
+.secondary-action:hover,
+a.secondary:hover,
+.related-links a:hover {
+  filter: brightness(0.96);
+}
+button.secondary,
+.secondary-button,
+.secondary-action,
+a.secondary,
+.clear-filters,
+.related-links a {
+  border-color: var(--ui-action-secondary-border);
+  background: var(--ui-action-secondary-bg);
+  color: var(--ui-action-secondary-text);
+}
+button.danger {
+  border-color: var(--ui-color-danger);
+  background: var(--ui-action-destructive-bg);
+  color: var(--ui-action-destructive-text);
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  border-color: var(--ui-color-focus);
+  outline: 3px solid var(--ui-color-focus);
+  outline-offset: 2px;
+}
+[aria-invalid='true'] {
+  border-color: var(--ui-color-danger);
+}
+.field-error,
+.error-state,
+.error-summary {
+  color: var(--ui-color-danger);
+}
+.field-warning,
+.progress-warning,
+.notice,
+.history-empty {
+  border-color: var(--ui-color-warning);
+  background: var(--ui-color-warning-soft);
+  color: var(--ui-color-warning);
+}
+.saved-state {
+  border-color: var(--ui-color-success);
+}
+@media (max-width: 42rem) {
+  .form-actions > button,
+  .roll-actions > button,
+  .welcome-actions > *,
+  .journal-actions button,
+  .editor-heading button,
+  .card-actions button {
+    width: 100%;
+  }
+}

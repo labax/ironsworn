@@ -1,27 +1,9 @@
 :host {
-  --shell-background: #f6f7f9;
-  --shell-panel: #ffffff;
-  --shell-panel-soft: #eef2f6;
-  --shell-text: #17202a;
-  --shell-text-muted: #526172;
-  --shell-border: #d8e0e8;
-  --shell-border-strong: #aebdcc;
-  --shell-accent: #476f95;
-  --shell-accent-strong: #315a7d;
-  --shell-accent-soft: #dceaf5;
-
   display: block;
   min-height: 100dvh;
-  background: var(--shell-background);
-  color: var(--shell-text);
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  background: var(--u-bg);
+  color: var(--u-t);
+  font-family: var(--ui-font-family);
 }
 
 .app-shell {
@@ -34,16 +16,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.25rem clamp(1rem, 4vw, 3rem);
-  border-bottom: 1px solid var(--shell-border);
-  background: var(--shell-panel);
+  gap: var(--ui-space-4);
+  padding: var(--ui-space-5) var(--ui-space-fluid-page);
+  border-bottom: 1px solid var(--u-b);
+  background: var(--u-s);
 }
 
 .eyebrow {
   margin: 0 0 0.25rem;
-  color: var(--shell-text-muted);
-  font-size: 0.8rem;
+  color: var(--u-m);
+  font-size: var(--ui-font-size-label);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -55,16 +37,16 @@ h1 {
 
 .version {
   flex: 0 0 auto;
-  border: 1px solid var(--shell-border);
+  border: 1px solid var(--u-b);
   border-radius: 999px;
-  padding: 0.35rem 0.75rem;
-  color: var(--shell-text-muted);
+  padding: 0.35rem var(--ui-space-3);
+  color: var(--u-m);
 }
 
 .app-body {
   display: grid;
-  gap: clamp(1rem, 3vw, 2rem);
-  padding: clamp(1rem, 4vw, 3rem);
+  gap: clamp(var(--ui-space-4), 3vw, 2rem);
+  padding: var(--ui-space-fluid-page);
 }
 
 .navigation-panel,
@@ -77,12 +59,12 @@ h1 {
 }
 
 .uat-banner {
-  margin: 1rem clamp(1rem, 4vw, 3rem) 0;
-  border: 1px solid #c99530;
-  border-radius: 0.75rem;
-  background: #fff4d6;
-  color: #5d4308;
-  padding: 0.75rem 1rem;
+  margin: var(--ui-space-4) var(--ui-space-fluid-page) 0;
+  border: 1px solid var(--u-w);
+  border-radius: var(--ui-space-3);
+  background: var(--u-ws);
+  color: var(--u-w);
+  padding: var(--ui-space-3) var(--ui-space-4);
   font-weight: 700;
 }
 
@@ -90,15 +72,15 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 1rem clamp(1rem, 4vw, 3rem);
-  border-top: 1px solid var(--shell-border);
-  background: var(--shell-panel);
-  color: var(--shell-text-muted);
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4) var(--ui-space-fluid-page);
+  border-top: 1px solid var(--u-b);
+  background: var(--u-s);
+  color: var(--u-m);
 }
 
 .app-footer a {
-  color: var(--shell-accent-strong);
+  color: var(--u-as);
   font-weight: 700;
 }
 
@@ -110,21 +92,6 @@ h1 {
 
   .navigation-panel {
     position: sticky;
-    top: 1rem;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :host {
-    --shell-background: #121820;
-    --shell-panel: #1b2430;
-    --shell-panel-soft: #222e3b;
-    --shell-text: #f3f7fb;
-    --shell-text-muted: #b8c5d4;
-    --shell-border: #354354;
-    --shell-border-strong: #58697c;
-    --shell-accent: #8ab4da;
-    --shell-accent-strong: #b8d7f2;
-    --shell-accent-soft: #243d54;
+    top: var(--ui-space-4);
   }
 }

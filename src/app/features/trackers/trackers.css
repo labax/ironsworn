@@ -10,10 +10,10 @@
 .trackers-header,
 .empty-state,
 .track-card {
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid var(--u-b);
   border-radius: 1rem;
-  background: rgba(15, 23, 42, 0.72);
-  box-shadow: 0 1rem 2rem rgba(2, 6, 23, 0.18);
+  background: var(--u-s);
+  box-shadow: var(--u-sh);
 }
 
 .trackers-header,
@@ -25,7 +25,7 @@
 .section-label,
 .track-status {
   margin: 0 0 0.5rem;
-  color: #93c5fd;
+  color: var(--u-as);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -40,13 +40,13 @@
 
 .trackers-header p:last-child,
 .empty-state p {
-  color: #cbd5e1;
+  color: var(--u-m);
   margin: 0.5rem 0 0;
 }
 
 .empty-state {
   align-items: center;
-  border-color: rgba(251, 191, 36, 0.35);
+  border-color: var(--u-w);
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -65,7 +65,7 @@
 }
 
 .track-card-selected {
-  border-color: rgba(147, 197, 253, 0.75);
+  border-color: var(--u-as);
 }
 
 .track-card-heading {
@@ -91,12 +91,12 @@
 
 .track-facts div {
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.24);
+  background: var(--u-ss);
   padding: 0.75rem;
 }
 
 .track-facts dt {
-  color: #cbd5e1;
+  color: var(--u-m);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -108,15 +108,15 @@
 }
 
 .track-notes {
-  color: #cbd5e1;
+  color: var(--u-m);
   margin: 1rem 0 0;
 }
 
 button {
   border: 0;
   border-radius: 999px;
-  background: #bfdbfe;
-  color: #0f172a;
+  background: var(--u-pb);
+  color: var(--u-pt);
   cursor: pointer;
   font: inherit;
   font-weight: 800;
@@ -124,7 +124,7 @@ button {
 }
 
 button:focus-visible {
-  outline: 3px solid rgba(147, 197, 253, 0.7);
+  outline: 3px solid var(--u-f);
   outline-offset: 3px;
 }
 
@@ -140,10 +140,10 @@ button:focus-visible {
 }
 
 .track-form {
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid var(--u-b);
   border-radius: 1rem;
-  background: rgba(15, 23, 42, 0.72);
-  box-shadow: 0 1rem 2rem rgba(2, 6, 23, 0.18);
+  background: var(--u-s);
+  box-shadow: var(--u-sh);
   display: grid;
   gap: 1rem;
   padding: 1.25rem;
@@ -156,7 +156,7 @@ button:focus-visible {
 }
 
 label {
-  color: #e2e8f0;
+  color: var(--u-m);
   display: grid;
   font-weight: 800;
   gap: 0.35rem;
@@ -165,10 +165,10 @@ label {
 input,
 select,
 textarea {
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  border: 1px solid var(--u-bs);
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.35);
-  color: #f8fafc;
+  background: var(--u-ss);
+  color: var(--u-t);
   font: inherit;
   padding: 0.75rem;
   width: 100%;
@@ -177,25 +177,25 @@ textarea {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(147, 197, 253, 0.7);
+  outline: 3px solid var(--u-f);
   outline-offset: 2px;
 }
 
 [aria-invalid='true'] {
-  border-color: #fca5a5;
+  border-color: var(--u-d);
 }
 
 .helper-text,
 .field-error,
 .form-message {
-  color: #cbd5e1;
+  color: var(--u-m);
   font-size: 0.9rem;
   font-weight: 500;
   margin: 0;
 }
 
 .field-error {
-  color: #fecaca;
+  color: var(--u-d);
 }
 
 .form-actions {
@@ -214,7 +214,7 @@ textarea:focus-visible {
 
 .progress-box {
   align-items: center;
-  border: 1px solid rgba(191, 219, 254, 0.65);
+  border: 1px solid var(--u-ab);
   border-radius: 0.35rem;
   display: inline-flex;
   font-weight: 900;
@@ -224,8 +224,8 @@ textarea:focus-visible {
 }
 
 .progress-box-filled {
-  background: #bfdbfe;
-  color: #0f172a;
+  background: var(--u-pb);
+  color: var(--u-pt);
 }
 
 .progress-controls {
@@ -259,9 +259,9 @@ textarea:focus-visible {
 }
 
 .progress-roll-result {
-  border: 1px solid rgba(147, 197, 253, 0.35);
+  border: 1px solid var(--u-b);
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.2);
+  background: var(--u-ss);
   margin-top: 1rem;
   padding: 1rem;
 }
@@ -294,7 +294,7 @@ textarea:focus-visible {
 }
 
 .view-switcher button[aria-pressed='true'] {
-  outline: 2px solid #f8fafc;
+  outline: 2px solid var(--u-t);
   outline-offset: 2px;
 }
 

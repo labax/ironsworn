@@ -11,17 +11,17 @@
 .state-card,
 .oracle-nav,
 .oracle-detail {
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid var(--u-b);
   border-radius: 1rem;
-  background: rgba(15, 23, 42, 0.72);
-  box-shadow: 0 1rem 2rem rgba(2, 6, 23, 0.18);
+  background: var(--u-s);
+  box-shadow: var(--u-sh);
   padding: 1.25rem;
 }
 
 .section-label,
 .availability {
   margin: 0 0 0.5rem;
-  color: #93c5fd;
+  color: var(--u-as);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -41,11 +41,11 @@
 .oracle-detail p,
 .table-description,
 .category-line {
-  color: #cbd5e1;
+  color: var(--u-m);
 }
 
 .state-card-error {
-  border-color: rgba(248, 113, 113, 0.6);
+  border-color: var(--u-d);
 }
 
 .oracle-workspace {
@@ -76,9 +76,9 @@
 }
 
 .oracle-list-button {
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid var(--u-b);
   border-radius: 0.85rem;
-  background: rgba(2, 6, 23, 0.24);
+  background: var(--u-ss);
   color: inherit;
   cursor: pointer;
   display: grid;
@@ -92,13 +92,13 @@
 .oracle-list-button:focus-visible,
 button:focus-visible,
 summary:focus-visible {
-  outline: 3px solid #bfdbfe;
+  outline: 3px solid var(--u-pb);
   outline-offset: 3px;
 }
 
 .oracle-list-button-selected {
-  border-color: #bfdbfe;
-  background: rgba(59, 130, 246, 0.22);
+  border-color: var(--u-pb);
+  background: var(--u-aso);
 }
 
 .table-name {
@@ -124,12 +124,12 @@ summary:focus-visible {
 
 .oracle-facts div {
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.24);
+  background: var(--u-ss);
   padding: 0.75rem;
 }
 
 .oracle-facts dt {
-  color: #cbd5e1;
+  color: var(--u-m);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -143,8 +143,8 @@ summary:focus-visible {
 button {
   border: 0;
   border-radius: 999px;
-  background: #bfdbfe;
-  color: #0f172a;
+  background: var(--u-pb);
+  color: var(--u-pt);
   cursor: pointer;
   font-weight: 800;
   padding: 0.65rem 1rem;
@@ -173,7 +173,7 @@ summary {
 }
 
 .oracle-filter-grid label {
-  color: #cbd5e1;
+  color: var(--u-m);
   font-size: 0.8rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -181,9 +181,9 @@ summary {
 
 .oracle-filter-grid input,
 .oracle-filter-grid select {
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  border: 1px solid var(--u-bs);
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.34);
+  background: var(--u-ss);
   color: inherit;
   font: inherit;
   padding: 0.7rem 0.85rem;
@@ -192,7 +192,7 @@ summary {
 
 .oracle-filter-grid input:focus-visible,
 .oracle-filter-grid select:focus-visible {
-  outline: 3px solid #bfdbfe;
+  outline: 3px solid var(--u-pb);
   outline-offset: 3px;
 }
 
@@ -206,7 +206,7 @@ summary {
 
 .oracle-filter-actions p,
 .no-results p {
-  color: #cbd5e1;
+  color: var(--u-m);
   margin: 0;
 }
 
@@ -235,7 +235,7 @@ button:disabled {
 
 .oracle-context-field label,
 .oracle-result-context-label {
-  color: #cbd5e1;
+  color: var(--u-m);
   font-size: 0.8rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -246,9 +246,9 @@ button:disabled {
 }
 
 .oracle-context-field textarea {
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  border: 1px solid var(--u-bs);
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.34);
+  background: var(--u-ss);
   color: inherit;
   font: inherit;
   max-width: 100%;
@@ -259,7 +259,7 @@ button:disabled {
 }
 
 .oracle-context-field textarea:focus-visible {
-  outline: 3px solid #bfdbfe;
+  outline: 3px solid var(--u-pb);
   outline-offset: 3px;
 }
 
@@ -271,7 +271,7 @@ button:disabled {
 }
 
 .oracle-result-context {
-  border-left: 3px solid rgba(191, 219, 254, 0.8);
+  border-left: 3px solid var(--u-as);
   padding-left: 0.75rem;
   white-space: pre-wrap;
 }
@@ -313,7 +313,7 @@ button:disabled {
 }
 
 .oracle-result-header time {
-  color: #cbd5e1;
+  color: var(--u-m);
   font-size: 0.9rem;
   font-weight: 700;
   text-align: right;
@@ -327,9 +327,9 @@ button:disabled {
 .oracle-result-entry,
 .oracle-result-context-block,
 .oracle-result-review div {
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  border: 1px solid var(--u-b);
   border-radius: 0.85rem;
-  background: rgba(2, 6, 23, 0.28);
+  background: var(--u-ss);
   padding: 0.85rem;
 }
 
@@ -347,7 +347,7 @@ button:disabled {
 
 .oracle-result-label,
 .oracle-result-context-label {
-  color: #cbd5e1;
+  color: var(--u-m);
   display: block;
   font-size: 0.75rem;
   font-weight: 800;
@@ -366,7 +366,7 @@ button:disabled {
 }
 
 .oracle-result-review dt {
-  color: #cbd5e1;
+  color: var(--u-m);
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -410,7 +410,7 @@ button:disabled {
 .state-card label,
 .entry-row label,
 .range-row label {
-  color: #cbd5e1;
+  color: var(--u-m);
   font-size: 0.8rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -420,9 +420,9 @@ button:disabled {
 .state-card textarea,
 .entry-row input,
 .range-row input {
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  border: 1px solid var(--u-bs);
   border-radius: 0.75rem;
-  background: rgba(2, 6, 23, 0.34);
+  background: var(--u-ss);
   color: inherit;
   font: inherit;
   max-width: 100%;
@@ -433,7 +433,7 @@ button:disabled {
 
 .state-card input:focus-visible,
 .state-card textarea:focus-visible {
-  outline: 3px solid #bfdbfe;
+  outline: 3px solid var(--u-pb);
   outline-offset: 3px;
 }
 
@@ -450,7 +450,7 @@ button:disabled {
 
 .entry-row {
   align-items: end;
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  border-top: 1px solid var(--u-b);
   grid-template-columns: minmax(4.5rem, 0.5fr) minmax(4.5rem, 0.5fr) minmax(10rem, 2fr) auto;
   padding: 1rem 0;
 }
