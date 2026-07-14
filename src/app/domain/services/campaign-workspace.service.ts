@@ -323,10 +323,25 @@ export class CampaignWorkspaceService {
     });
   }
 
+  resetInMemoryState(): void {
+    this.progressTracksState.set([]);
+    this.selectedProgressTrackIdState.set(null);
+    this.vowsState.set([]);
+    this.selectedVowIdState.set(null);
+    this.customOracleTablesState.set([]);
+    this.selectedCustomOracleTableIdState.set(null);
+    this.journalEntriesState.set([]);
+    this.selectedJournalEntryIdState.set(null);
+    this.loadStatusState.set('idle');
+  }
+
   private restorePersistedWorkspace(
     workspace: PersistedCampaignWorkspace | null | undefined,
   ): void {
-    if (!workspace) return;
+    if (!workspace) {
+      this.resetInMemoryState();
+      return;
+    }
     this.progressTracksState.set(
       workspace.progressTracks.map((track) => cloneProgressTrack(track)),
     );
