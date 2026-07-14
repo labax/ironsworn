@@ -12,9 +12,9 @@
   --ui-color-accent: #476f95;
   --ui-color-accent-strong: #315a7d;
   --ui-color-accent-soft: #dceaf5;
-  --ui-color-success: #2f7d4f;
+  --ui-color-success: #287044;
   --ui-color-success-soft: #dff3e7;
-  --ui-color-warning: #9a6a00;
+  --ui-color-warning: #805600;
   --ui-color-warning-soft: #fff4d6;
   --ui-color-danger: #b42318;
   --ui-color-danger-soft: #fff0ed;
@@ -27,6 +27,8 @@
   --ui-action-secondary-border: var(--ui-color-border-strong);
   --ui-action-destructive-bg: var(--ui-color-danger-soft);
   --ui-action-destructive-text: var(--ui-color-danger);
+  --ui-action-disabled-bg: var(--ui-color-surface-subtle);
+  --ui-action-disabled-text: #5d6876;
   --ui-space-1: 0.25rem;
   --ui-space-2: 0.5rem;
   --ui-space-3: 0.75rem;
@@ -90,6 +92,8 @@
   --u-ab: var(--ui-action-secondary-border);
   --u-sb: var(--ui-action-secondary-bg);
   --u-st: var(--ui-action-secondary-text);
+  --u-db: var(--ui-action-disabled-bg);
+  --u-dt: var(--ui-action-disabled-text);
   --u-sh: var(--ui-shadow-sm);
   --u-shm: var(--ui-shadow-md);
 }
@@ -118,9 +122,11 @@
     --ui-action-primary-bg: #bfdbfe;
     --ui-action-primary-text: #0f172a;
     --ui-action-primary-hover-bg: #dbeafe;
-    --ui-action-secondary-bg: transparent;
+    --ui-action-secondary-bg: var(--ui-color-surface);
     --ui-action-secondary-text: #dbeafe;
     --ui-action-secondary-border: #7da4c6;
+    --ui-action-disabled-bg: #2a3543;
+    --ui-action-disabled-text: #c5d0dc;
   }
 }
 
@@ -275,10 +281,17 @@ textarea::placeholder {
 }
 input:disabled,
 select:disabled,
-textarea:disabled,
-button:disabled {
+textarea:disabled {
+  border-color: var(--ui-color-border);
+  background: var(--ui-action-disabled-bg);
+  color: var(--ui-action-disabled-text);
   cursor: not-allowed;
-  opacity: 0.65;
+}
+button:disabled {
+  border-color: var(--ui-action-disabled-bg);
+  background: var(--ui-action-disabled-bg);
+  color: var(--ui-action-disabled-text);
+  cursor: not-allowed;
 }
 button,
 .primary-action,
