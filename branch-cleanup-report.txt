@@ -1,0 +1,12 @@
+Repository: labax/ironsworn
+Cleanup run: 2026-07-14T19:24:20Z
+Kept: main
+
+Deleted branches:
+- none
+
+Failed deletions:
+- none
+
+Remaining branches:
+- main
