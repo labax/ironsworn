@@ -7,6 +7,13 @@ export const ONBOARDING_COPY_PROVENANCE = {
   manifestId: 'project-original-onboarding-welcome-copy',
 } as const;
 
+export const ONBOARDING_FIRST_VOW_COPY_PROVENANCE = {
+  ...PROJECT_ORIGINAL_PROVENANCE,
+  sourceId: 'project-original-onboarding-first-vow-copy',
+  title: 'Project-original onboarding first vow copy',
+  manifestId: 'project-original-onboarding-first-vow-copy',
+} as const;
+
 export const ONBOARDING_WELCOME_COPY = {
   title: 'Welcome to your campaign workspace',
   scope:
@@ -20,4 +27,13 @@ export const ONBOARDING_WELCOME_COPY = {
     'Add vows, tracks, and notes as play begins.',
     'Use the workspace tools at your own pace.',
   ],
+} as const;
+
+export const ONBOARDING_FIRST_VOW_COPY = {
+  title: 'Name your first vow',
+  helper: 'Start with only the essentials. You can edit the details later from Vows.',
+  titleHelp: 'Use your own words for the promise your character is making.',
+  rankHelp: 'Choose the scope that fits your table; progress can be handled later.',
+  optionalHelp: 'Optional. Add only the context you want to keep now.',
+  provenance: ONBOARDING_FIRST_VOW_COPY_PROVENANCE,
 } as const;
