@@ -27,7 +27,14 @@
       <button type="button" class="primary-action" [disabled]="completing" (click)="startSetup()">
         Start setup
       </button>
-      <a class="secondary-action" routerLink="/moves">Skip for now</a>
+      <button
+        type="button"
+        class="secondary-action"
+        [disabled]="completing || skipping"
+        (click)="skipForNow()"
+      >
+        Skip for now
+      </button>
     </div>
   </div>
 </section>

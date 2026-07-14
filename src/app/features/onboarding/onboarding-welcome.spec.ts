@@ -10,16 +10,18 @@ describe('OnboardingWelcome', () => {
   let fixture: ComponentFixture<OnboardingWelcome>;
   let completeWelcome: ReturnType<typeof vi.fn>;
   let navigate: ReturnType<typeof vi.fn>;
+  let skipForNow: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     completeWelcome = vi.fn().mockResolvedValue({ success: true });
+    skipForNow = vi.fn().mockResolvedValue({ success: true });
     navigate = vi.fn().mockResolvedValue(true);
 
     await TestBed.configureTestingModule({
       imports: [OnboardingWelcome],
       providers: [
         provideRouter([]),
-        { provide: OnboardingStateService, useValue: { completeWelcome } },
+        { provide: OnboardingStateService, useValue: { completeWelcome, skipForNow } },
       ],
     }).compileComponents();
 
@@ -38,11 +40,10 @@ describe('OnboardingWelcome', () => {
 
   it('offers accessible start and skip controls with responsive action classes', () => {
     const start = fixture.debugElement.query(By.css('button.primary-action'));
-    const skip = fixture.debugElement.query(By.css('a.secondary-action'));
+    const skip = fixture.debugElement.query(By.css('button.secondary-action'));
 
     expect(start.nativeElement.textContent.trim()).toBe('Start setup');
     expect(skip.nativeElement.textContent.trim()).toBe('Skip for now');
-    expect(skip.nativeElement.getAttribute('href')).toBe('/moves');
     expect(fixture.nativeElement.querySelector('.welcome-actions')).toBeTruthy();
   });
 
@@ -54,9 +55,13 @@ describe('OnboardingWelcome', () => {
     expect(navigate).toHaveBeenCalledWith(['/character']);
   });
 
-  it('does not mark onboarding complete when skip is available', () => {
-    const skip = fixture.debugElement.query(By.css('a.secondary-action'));
-    skip.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+  it('skips for now without marking welcome complete and navigates to the workspace', async () => {
+    const skip = fixture.debugElement.query(By.css('button.secondary-action'));
+    skip.nativeElement.click();
+    await fixture.whenStable();
+
+    expect(skipForNow).toHaveBeenCalled();
     expect(completeWelcome).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(['/moves']);
   });
 });

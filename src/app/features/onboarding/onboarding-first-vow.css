@@ -185,3 +185,25 @@ button:focus-visible {
   outline: 3px solid var(--shell-accent-strong, #315a7d);
   outline-offset: 0.2rem;
 }
+
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(15 23 42 / 0.45);
+}
+
+.confirm-dialog {
+  width: min(100%, 32rem);
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 1.5rem 3rem rgb(15 23 42 / 0.25);
+}
+
+.confirm-dialog h3 {
+  margin-top: 0;
+}

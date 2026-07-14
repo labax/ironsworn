@@ -2,7 +2,11 @@ import { Component, ElementRef, inject, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { ONBOARDING_FIRST_VOW_COPY, OnboardingStateService } from '@app/domain/onboarding';
+import {
+  ONBOARDING_EXIT_COPY,
+  ONBOARDING_FIRST_VOW_COPY,
+  OnboardingStateService,
+} from '@app/domain/onboarding';
 import {
   CHALLENGE_RANK_LABELS,
   CHALLENGE_RANKS,
@@ -36,8 +40,11 @@ export class OnboardingFirstVow {
   private readonly onboarding = inject(OnboardingStateService);
   private readonly router = inject(Router);
   private readonly titleInput = viewChild<ElementRef<HTMLInputElement>>('titleInput');
+  private readonly exitButton = viewChild<ElementRef<HTMLButtonElement>>('exitButton');
+  private readonly cancelExitButton = viewChild<ElementRef<HTMLButtonElement>>('cancelExitButton');
 
   protected readonly copy = ONBOARDING_FIRST_VOW_COPY;
+  protected readonly exitCopy = ONBOARDING_EXIT_COPY;
   protected readonly rankOptions: readonly SelectOption<ChallengeRank>[] = CHALLENGE_RANKS.map(
     (rank) => ({ value: rank, label: CHALLENGE_RANK_LABELS[rank] }),
   );
@@ -51,6 +58,8 @@ export class OnboardingFirstVow {
   protected formMessage = '';
   protected saving = false;
   protected review: FirstVowReview | null = null;
+  protected exitConfirmOpen = false;
+  protected exiting = false;
 
   constructor() {
     const draft = this.onboarding.firstVowDraft();
@@ -62,13 +71,17 @@ export class OnboardingFirstVow {
     this.onboarding.updateFirstVowDraft(this.vowForm.getRawValue());
   }
 
+  protected hasDirtyDraft(): boolean {
+    return !this.review && this.vowForm.dirty;
+  }
+
   protected async back(): Promise<void> {
     this.persistDraft();
     await this.router.navigate([this.onboarding.previousStep('first-vow').path]);
   }
 
   protected async continue(): Promise<void> {
-    if (this.saving) return;
+    if (this.saving || this.exiting) return;
     this.fieldErrors = {};
     this.formMessage = '';
 
@@ -113,6 +126,26 @@ export class OnboardingFirstVow {
     this.setReview(trackResult);
   }
 
+  protected async exitSetup(): Promise<void> {
+    if (this.saving || this.exiting) return;
+    if (this.hasDirtyDraft()) {
+      this.exitConfirmOpen = true;
+      queueMicrotask(() => this.cancelExitButton()?.nativeElement.focus());
+      return;
+    }
+    await this.finishExit(false);
+  }
+
+  protected cancelExit(): void {
+    this.exitConfirmOpen = false;
+    queueMicrotask(() => this.exitButton()?.nativeElement.focus());
+  }
+
+  protected async confirmExitDiscard(): Promise<void> {
+    if (this.exiting) return;
+    await this.finishExit(true);
+  }
+
   protected trackTypeLabel(track: ProgressTrack): string {
     return PROGRESS_TRACK_TYPE_LABELS[track.type];
   }
@@ -127,6 +160,13 @@ export class OnboardingFirstVow {
       Boolean(this.fieldErrors[controlName]) ||
       (control.invalid && (control.touched || control.dirty))
     );
+  }
+
+  private async finishExit(discardDraft: boolean): Promise<void> {
+    this.exiting = true;
+    if (discardDraft) this.onboarding.clearFirstVowDraft();
+    await this.onboarding.exitSetup();
+    await this.router.navigate(['/moves']);
   }
 
   private async prepareReview(vowId: string): Promise<void> {
