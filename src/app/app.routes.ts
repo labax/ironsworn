@@ -1,10 +1,19 @@
 import { Routes } from '@angular/router';
 
+import { firstRunWelcomeGuard } from '@app/domain/onboarding';
+
 export const routes: Routes = [
   {
     path: '',
+    canActivate: [firstRunWelcomeGuard],
     loadComponent: () => import('@app/features/home/home').then((m) => m.Home),
     title: 'Home | Ironsworn Digital Companion',
+  },
+  {
+    path: 'welcome',
+    loadComponent: () =>
+      import('@app/features/onboarding/onboarding-welcome').then((m) => m.OnboardingWelcome),
+    title: 'Welcome | Ironsworn Digital Companion',
   },
   {
     path: 'character',
