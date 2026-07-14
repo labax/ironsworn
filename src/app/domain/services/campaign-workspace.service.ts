@@ -926,13 +926,29 @@ export class CampaignWorkspaceService {
       };
     }
     if (existingVow.progressTrackId) {
+      const linkedTrack = this.progressTracksState().find(
+        (track) => track.id === existingVow.progressTrackId,
+      );
+      if (
+        linkedTrack &&
+        linkedTrack.type === 'vow' &&
+        linkedTrack.rank === existingVow.rank &&
+        linkedTrack.ticks === 0
+      ) {
+        this.selectedVowIdState.set(existingVow.id);
+        this.selectedProgressTrackIdState.set(linkedTrack.id);
+        return { ok: true, vow: cloneVow(existingVow), track: cloneProgressTrack(linkedTrack) };
+      }
+
       return {
         ok: false,
         errors: [
           {
-            code: 'conflict',
+            code: linkedTrack ? 'conflict' : 'broken_link',
             field: 'progressTrackId',
-            message: 'This vow already has a linked track. Unlink it first.',
+            message: linkedTrack
+              ? 'This vow already has a linked track that does not match the vow setup.'
+              : 'This vow has a missing progress track link. Repair the link before continuing.',
           },
         ],
       };
