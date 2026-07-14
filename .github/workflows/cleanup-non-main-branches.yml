@@ -1,5 +1,6 @@
 name: One-time non-main branch cleanup
 
+# Triggered once to remove all branches except main.
 on:
   push:
     branches:
