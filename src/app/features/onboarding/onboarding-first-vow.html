@@ -91,11 +91,53 @@
     }
 
     <div class="form-actions">
-      <button type="button" class="secondary" (click)="back()" [disabled]="saving">Back</button>
-      <button type="submit" [disabled]="saving">{{ review ? 'Continue' : 'Create track' }}</button>
+      <button type="button" class="secondary" (click)="back()" [disabled]="saving || exiting">
+        Back
+      </button>
+      <button
+        #exitButton
+        type="button"
+        class="secondary"
+        (click)="exitSetup()"
+        [disabled]="saving || exiting"
+      >
+        Exit setup
+      </button>
+      <button type="submit" [disabled]="saving || exiting">
+        {{ review ? 'Continue setup' : 'Create track' }}
+      </button>
       @if (formMessage) {
         <p class="form-message" role="status" aria-live="polite">{{ formMessage }}</p>
       }
     </div>
   </form>
+
+  @if (exitConfirmOpen) {
+    <div
+      class="confirm-backdrop"
+      role="presentation"
+      (click)="cancelExit()"
+      (keydown.escape)="cancelExit()"
+    >
+      <section
+        class="confirm-dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="exit-confirm-title"
+        aria-describedby="exit-confirm-message"
+        (click)="$event.stopPropagation()"
+      >
+        <h3 id="exit-confirm-title">{{ exitCopy.title }}</h3>
+        <p id="exit-confirm-message">{{ exitCopy.message }}</p>
+        <div class="form-actions">
+          <button #cancelExitButton type="button" class="secondary" (click)="cancelExit()">
+            {{ exitCopy.cancel }}
+          </button>
+          <button type="button" (click)="confirmExitDiscard()" [disabled]="exiting">
+            {{ exitCopy.confirm }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
 </section>

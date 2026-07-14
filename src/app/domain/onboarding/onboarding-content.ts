@@ -45,6 +45,14 @@ export const ONBOARDING_FIRST_VOW_COPY = {
   provenance: ONBOARDING_FIRST_VOW_COPY_PROVENANCE,
 } as const;
 
+export const ONBOARDING_EXIT_COPY = {
+  title: 'Discard setup draft?',
+  message:
+    'This leaves saved records in place, but unsaved setup text on this step will be discarded.',
+  confirm: 'Discard draft and exit',
+  cancel: 'Continue setup',
+} as const;
+
 export const ONBOARDING_REVIEW_COPY = {
   title: 'Review and begin play',
   helper:

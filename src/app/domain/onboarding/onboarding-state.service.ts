@@ -34,6 +34,8 @@ export interface FirstVowOnboardingDraft {
 
 export interface OnboardingStatus {
   readonly welcomeCompletedAt?: string;
+  readonly skippedAt?: string;
+  readonly inProgressAt?: string;
   readonly completedAt?: string;
   readonly firstVowCompletedAt?: string;
   readonly firstVowId?: string;
@@ -95,7 +97,33 @@ export class OnboardingStateService {
   }
 
   async completeWelcome(): Promise<SaveResult> {
-    return this.saveStatus({ welcomeCompletedAt: new Date().toISOString() });
+    const current = (await this.loadStatus()) ?? {};
+    return this.saveStatus({
+      ...current,
+      welcomeCompletedAt: current.welcomeCompletedAt ?? new Date().toISOString(),
+      inProgressAt: current.inProgressAt ?? new Date().toISOString(),
+    });
+  }
+
+  async skipForNow(): Promise<SaveResult> {
+    const current = (await this.loadStatus()) ?? {};
+    return this.saveStatus({
+      ...current,
+      skippedAt: current.skippedAt ?? new Date().toISOString(),
+    });
+  }
+
+  async exitSetup(): Promise<SaveResult> {
+    const current = (await this.loadStatus()) ?? {};
+    return this.saveStatus({
+      ...current,
+      inProgressAt: current.inProgressAt ?? new Date().toISOString(),
+      skippedAt: new Date().toISOString(),
+    });
+  }
+
+  clearFirstVowDraft(): void {
+    this.firstVowDraftState = null;
   }
 
   async completeFirstVow(vowId: string): Promise<SaveResult> {
@@ -258,6 +286,8 @@ const isOnboardingStatus = (value: unknown): value is OnboardingStatus => {
   const status = value as OnboardingStatus;
   return (
     (status.completedAt === undefined || typeof status.completedAt === 'string') &&
+    (status.skippedAt === undefined || typeof status.skippedAt === 'string') &&
+    (status.inProgressAt === undefined || typeof status.inProgressAt === 'string') &&
     (status.welcomeCompletedAt === undefined || typeof status.welcomeCompletedAt === 'string') &&
     (status.firstVowCompletedAt === undefined || typeof status.firstVowCompletedAt === 'string') &&
     (status.firstVowId === undefined || typeof status.firstVowId === 'string')

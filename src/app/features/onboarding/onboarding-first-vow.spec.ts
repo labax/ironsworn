@@ -27,6 +27,8 @@ describe('OnboardingFirstVow', () => {
   let draft: unknown;
   let committedId: string | null;
   let completeFirstVow: ReturnType<typeof vi.fn>;
+  let exitSetup: ReturnType<typeof vi.fn>;
+  let clearFirstVowDraft: ReturnType<typeof vi.fn>;
 
   const create = async () => {
     await TestBed.configureTestingModule({
@@ -45,6 +47,8 @@ describe('OnboardingFirstVow', () => {
             firstVowCommittedId: () => committedId,
             markFirstVowCommitted: vi.fn((id) => (committedId = id)),
             completeFirstVow,
+            exitSetup,
+            clearFirstVowDraft,
             previousStep: () => ({ id: 'character', path: '/character' }),
             nextStep: () => ({ id: 'review', path: '/welcome/review' }),
           },
@@ -76,6 +80,8 @@ describe('OnboardingFirstVow', () => {
     draft = null;
     committedId = null;
     completeFirstVow = vi.fn().mockResolvedValue({ success: true });
+    exitSetup = vi.fn().mockResolvedValue({ success: true });
+    clearFirstVowDraft = vi.fn(() => (draft = null));
   });
 
   it('creates a valid first vow once with selected rank and optional user fields', async () => {
@@ -233,6 +239,43 @@ describe('OnboardingFirstVow', () => {
 
     expect(deleteVow).toHaveBeenCalledWith('vow-first');
     expect(completeFirstVow).not.toHaveBeenCalled();
+  });
+
+  it('exits a clean first-vow step without confirmation and preserves committed records', async () => {
+    await create();
+
+    await fixture.componentInstance['exitSetup']();
+
+    expect(exitSetup).toHaveBeenCalledTimes(1);
+    expect(clearFirstVowDraft).not.toHaveBeenCalled();
+    expect(saveVow).not.toHaveBeenCalled();
+    expect(deleteVow).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(['/moves']);
+  });
+
+  it('requires confirmation before discarding a dirty first-vow draft and cancel keeps the draft', async () => {
+    await create();
+    fixture.componentInstance['vowForm'].controls.title.setValue('A user-authored draft');
+    fixture.componentInstance['vowForm'].markAsDirty();
+
+    await fixture.componentInstance['exitSetup']();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['exitConfirmOpen']).toBe(true);
+    expect(exitSetup).not.toHaveBeenCalled();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Discard setup draft?');
+
+    fixture.componentInstance['cancelExit']();
+    expect(fixture.componentInstance['exitConfirmOpen']).toBe(false);
+    expect(fixture.componentInstance['vowForm'].controls.title.value).toBe('A user-authored draft');
+
+    await fixture.componentInstance['exitSetup']();
+    await fixture.componentInstance['confirmExitDiscard']();
+
+    expect(clearFirstVowDraft).toHaveBeenCalledTimes(1);
+    expect(exitSetup).toHaveBeenCalledTimes(1);
+    expect(deleteVow).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(['/moves']);
   });
 
   it('keeps responsive and keyboard-friendly structure with focused, labelled fields', async () => {

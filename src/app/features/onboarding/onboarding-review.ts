@@ -31,6 +31,7 @@ export class OnboardingReview {
   protected readonly vows = this.workspace.vows;
   protected readonly tracks = this.workspace.progressTracks;
   protected saving = false;
+  protected completed = false;
   protected message = '';
   protected errors: readonly { section: string; message: string; path: string }[] = [];
 
@@ -56,8 +57,15 @@ export class OnboardingReview {
     return PROGRESS_TRACK_TYPE_LABELS[track.type];
   }
 
+  protected async exitSetup(): Promise<void> {
+    if (this.saving || this.completed) return;
+    this.saving = true;
+    await this.onboarding.exitSetup();
+    await this.router.navigate(['/moves']);
+  }
+
   protected async complete(): Promise<void> {
-    if (this.saving) return;
+    if (this.saving || this.completed) return;
     this.saving = true;
     this.message = '';
     this.errors = [];
@@ -75,6 +83,7 @@ export class OnboardingReview {
       return;
     }
 
+    this.completed = true;
     this.message = this.copy.success;
     await this.router.navigate(['/moves']);
   }

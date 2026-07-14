@@ -34,12 +34,14 @@ describe('OnboardingReview', () => {
   let fixture: ComponentFixture<OnboardingReview>;
   let completeOnboardingTransaction: ReturnType<typeof vi.fn>;
   let navigate: ReturnType<typeof vi.fn>;
+  let exitSetup: ReturnType<typeof vi.fn>;
 
   const create = async (
     options: { complete?: unknown; vows?: unknown[]; tracks?: unknown[] } = {},
   ) => {
     completeOnboardingTransaction = vi.fn().mockResolvedValue(options.complete ?? { ok: true });
     navigate = vi.fn().mockResolvedValue(true);
+    exitSetup = vi.fn().mockResolvedValue({ success: true });
     await TestBed.configureTestingModule({
       imports: [OnboardingReview],
       providers: [
@@ -52,7 +54,7 @@ describe('OnboardingReview', () => {
             progressTracks: () => options.tracks ?? [track],
           },
         },
-        { provide: OnboardingStateService, useValue: { completeOnboardingTransaction } },
+        { provide: OnboardingStateService, useValue: { completeOnboardingTransaction, exitSetup } },
       ],
     }).compileComponents();
     TestBed.inject(Router).navigate = navigate as unknown as Router['navigate'];
@@ -76,7 +78,7 @@ describe('OnboardingReview', () => {
     await fixture.componentInstance['complete']();
     await fixture.componentInstance['complete']();
 
-    expect(completeOnboardingTransaction).toHaveBeenCalledTimes(2);
+    expect(completeOnboardingTransaction).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith(['/moves']);
   });
 
@@ -93,7 +95,7 @@ describe('OnboardingReview', () => {
     });
 
     (fixture.nativeElement as HTMLElement)
-      .querySelector('button')
+      .querySelector('button:not(.secondary)')
       ?.dispatchEvent(new Event('click'));
     await fixture.whenStable();
     fixture.detectChanges();
@@ -115,6 +117,8 @@ describe('OnboardingReview', () => {
     expect(element.querySelector('#onboarding-review-title')?.getAttribute('tabindex')).toBe('-1');
     expect(element.querySelector('a[href="/character"]')?.textContent).toContain('Edit character');
     expect(element.querySelector('a[href="/welcome/first-vow"]')?.textContent).toContain('Edit');
-    expect(element.querySelector('button')?.textContent).toContain('Finish setup');
+    expect(element.querySelector('button:not(.secondary)')?.textContent).toContain(
+      'Complete setup',
+    );
   });
 });

@@ -141,8 +141,11 @@
 
     <div class="form-actions">
       <a class="secondary" routerLink="/welcome/first-vow">Back</a>
+      <button type="button" class="secondary" (click)="exitSetup()" [disabled]="saving">
+        Exit setup
+      </button>
       <button type="button" (click)="complete()" [disabled]="saving">
-        {{ saving ? 'Saving…' : copy.action }}
+        {{ saving ? 'Saving…' : 'Complete setup' }}
       </button>
       @if (message && !errors.length) {
         <p role="status" aria-live="polite">{{ message }}</p>
