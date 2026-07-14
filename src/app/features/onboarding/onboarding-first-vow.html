@@ -61,9 +61,38 @@
       <textarea id="vow-notes" formControlName="notes" rows="4" (input)="persistDraft()"></textarea>
     </label>
 
+    @if (review; as item) {
+      <section class="review-panel" aria-labelledby="first-vow-review-title" tabindex="-1">
+        <h3 id="first-vow-review-title">Review your first vow track</h3>
+        <dl>
+          <div>
+            <dt>Vow</dt>
+            <dd>{{ item.vow.title }}</dd>
+          </div>
+          <div>
+            <dt>Rank</dt>
+            <dd>{{ rankLabel(item.vow.rank) }}</dd>
+          </div>
+          <div>
+            <dt>Track type</dt>
+            <dd>{{ trackTypeLabel(item.track) }}</dd>
+          </div>
+          <div>
+            <dt>Progress</dt>
+            <dd>{{ item.track.ticks }} ticks</dd>
+          </div>
+          <div>
+            <dt>Link</dt>
+            <dd>Vow and progress track are linked.</dd>
+          </div>
+        </dl>
+        <p class="helper-text">Progress starts at zero and can be changed during play.</p>
+      </section>
+    }
+
     <div class="form-actions">
-      <button type="button" class="secondary" (click)="back()">Back</button>
-      <button type="submit" [disabled]="saving">Continue</button>
+      <button type="button" class="secondary" (click)="back()" [disabled]="saving">Back</button>
+      <button type="submit" [disabled]="saving">{{ review ? 'Continue' : 'Create track' }}</button>
       @if (formMessage) {
         <p class="form-message" role="status" aria-live="polite">{{ formMessage }}</p>
       }

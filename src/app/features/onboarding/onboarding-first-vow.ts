@@ -3,13 +3,25 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 
 import { ONBOARDING_FIRST_VOW_COPY, OnboardingStateService } from '@app/domain/onboarding';
-import { CHALLENGE_RANK_LABELS, CHALLENGE_RANKS, type ChallengeRank } from '@app/domain/progress';
+import {
+  CHALLENGE_RANK_LABELS,
+  CHALLENGE_RANKS,
+  PROGRESS_TRACK_TYPE_LABELS,
+  type ChallengeRank,
+} from '@app/domain/progress';
+import type { ProgressTrack } from '@app/domain/progress';
+import type { Vow } from '@app/domain/vows';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
 import type { ValidationError } from '@app/rules/validation';
 
 interface SelectOption<T extends string> {
   readonly value: T;
   readonly label: string;
+}
+
+interface FirstVowReview {
+  readonly vow: Vow;
+  readonly track: ProgressTrack;
 }
 
 @Component({
@@ -38,6 +50,7 @@ export class OnboardingFirstVow {
   protected fieldErrors: Partial<Record<'title' | 'rank', string>> = {};
   protected formMessage = '';
   protected saving = false;
+  protected review: FirstVowReview | null = null;
 
   constructor() {
     const draft = this.onboarding.firstVowDraft();
@@ -56,15 +69,21 @@ export class OnboardingFirstVow {
 
   protected async continue(): Promise<void> {
     if (this.saving) return;
-    this.persistDraft();
     this.fieldErrors = {};
     this.formMessage = '';
+
+    if (this.review) {
+      await this.finish(this.review.vow.id);
+      return;
+    }
+
+    this.persistDraft();
     if (this.vowForm.invalid) this.vowForm.markAllAsTouched();
 
     const draft = this.vowForm.getRawValue();
     const existingId = this.onboarding.firstVowCommittedId();
     if (existingId) {
-      await this.finish(existingId);
+      await this.prepareReview(existingId);
       return;
     }
     if (this.vowForm.invalid) {
@@ -73,14 +92,33 @@ export class OnboardingFirstVow {
     }
 
     this.saving = true;
-    const result = this.workspace.saveVow({ ...draft, status: 'active' });
-    this.saving = false;
-    if (!result.ok) {
-      this.applyErrors(result.errors);
+    const vowResult = this.workspace.saveVow({ ...draft, status: 'active' });
+    if (!vowResult.ok) {
+      this.saving = false;
+      this.applyErrors(vowResult.errors);
       return;
     }
-    this.onboarding.markFirstVowCommitted(result.vow.id);
-    await this.finish(result.vow.id);
+
+    const trackResult = this.workspace.createProgressTrackForVow({ vowId: vowResult.vow.id });
+    this.saving = false;
+    if (!trackResult.ok) {
+      this.workspace.deleteVow(vowResult.vow.id);
+      this.applyErrors(trackResult.errors);
+      this.formMessage =
+        'Setup could not link the vow to a progress track. Nothing was saved; try again.';
+      return;
+    }
+
+    this.onboarding.markFirstVowCommitted(trackResult.vow.id);
+    this.setReview(trackResult);
+  }
+
+  protected trackTypeLabel(track: ProgressTrack): string {
+    return PROGRESS_TRACK_TYPE_LABELS[track.type];
+  }
+
+  protected rankLabel(rank: ChallengeRank): string {
+    return CHALLENGE_RANK_LABELS[rank];
   }
 
   protected showError(controlName: 'title' | 'rank'): boolean {
@@ -89,6 +127,24 @@ export class OnboardingFirstVow {
       Boolean(this.fieldErrors[controlName]) ||
       (control.invalid && (control.touched || control.dirty))
     );
+  }
+
+  private async prepareReview(vowId: string): Promise<void> {
+    this.saving = true;
+    const result = this.workspace.createProgressTrackForVow({ vowId });
+    this.saving = false;
+    if (!result.ok) {
+      this.applyErrors(result.errors);
+      return;
+    }
+    this.setReview(result);
+  }
+
+  private setReview(review: FirstVowReview): void {
+    this.review = review;
+    this.vowForm.disable({ emitEvent: false });
+    this.formMessage =
+      'Review the vow and linked progress track, then continue. You can change progress during play.';
   }
 
   private async finish(vowId: string): Promise<void> {

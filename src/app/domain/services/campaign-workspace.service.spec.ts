@@ -279,6 +279,12 @@ describe('CampaignWorkspaceService vow progress track links', () => {
     expect(service.progressTracks()).toHaveLength(1);
     expect(service.vows()[0]).toMatchObject({ id: vow.id, progressTrackId: created.track.id });
 
+    const revisited = service.createProgressTrackForVow({ vowId: vow.id });
+
+    expect(revisited.ok).toBe(true);
+    expect(service.progressTracks()).toHaveLength(1);
+    if (revisited.ok) expect(revisited.track.id).toBe(created.track.id);
+
     const unlinked = service.unlinkVowProgressTrack(vow.id);
 
     expect(unlinked.ok).toBe(true);
@@ -286,6 +292,26 @@ describe('CampaignWorkspaceService vow progress track links', () => {
     expect(service.progressTracks()).toHaveLength(1);
     expect(service.progressTracks()[0]).toMatchObject({ id: created.track.id, title: vow.title });
   });
+
+  it('rejects invalid existing vow-track links during onboarding track creation', () => {
+    const vow = vowFixture({ id: 'vow-bad-link', progressTrackId: 'track-bad-link' });
+    const track = createDefaultProgressTrack({
+      id: 'track-bad-link',
+      createdAt: '2026-07-03T00:00:00.000Z',
+      title: 'Different rank track',
+      type: 'vow',
+      rank: 'epic',
+    });
+    service.setVows([vow]);
+    service.setProgressTracks([track]);
+
+    const result = service.createProgressTrackForVow({ vowId: vow.id });
+
+    expect(result).toMatchObject({ ok: false, errors: [{ code: 'conflict' }] });
+    expect(service.progressTracks()).toHaveLength(1);
+    expect(service.vows()[0].progressTrackId).toBe('track-bad-link');
+  });
+
   it('resolves a vow progress roll with stable vow and track snapshots without mutating state', () => {
     const vow = vowFixture({
       id: 'vow-roll',

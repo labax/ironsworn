@@ -149,3 +149,39 @@ button:focus-visible {
   outline: 3px solid var(--shell-accent-strong, #315a7d);
   outline-offset: 0.2rem;
 }
+
+.review-panel {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--shell-border-strong, #aebdcc);
+  border-radius: 1rem;
+  background: var(--shell-accent-soft, #dceaf5);
+  padding: 1rem;
+}
+
+.review-panel dl {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.review-panel dl > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.review-panel dt {
+  color: var(--shell-text-muted, #526172);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.review-panel dd {
+  margin: 0;
+}
+
+.review-panel:focus-visible {
+  outline: 3px solid var(--shell-accent-strong, #315a7d);
+  outline-offset: 0.2rem;
+}

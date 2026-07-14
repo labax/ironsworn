@@ -3,6 +3,7 @@ import { provideRouter, Router } from '@angular/router';
 
 import { OnboardingStateService } from '@app/domain/onboarding';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
+import { createDefaultProgressTrack } from '@app/domain/progress';
 import { createDefaultVow } from '@app/domain/vows';
 import { OnboardingFirstVow } from './onboarding-first-vow';
 
@@ -19,6 +20,8 @@ const makeVow = (id = 'vow-first') =>
 describe('OnboardingFirstVow', () => {
   let fixture: ComponentFixture<OnboardingFirstVow>;
   let saveVow: ReturnType<typeof vi.fn>;
+  let createProgressTrackForVow: ReturnType<typeof vi.fn>;
+  let deleteVow: ReturnType<typeof vi.fn>;
   let vows: ReturnType<typeof vi.fn>;
   let navigate: ReturnType<typeof vi.fn>;
   let draft: unknown;
@@ -32,7 +35,7 @@ describe('OnboardingFirstVow', () => {
         provideRouter([]),
         {
           provide: CampaignWorkspaceService,
-          useValue: { saveVow, vows },
+          useValue: { saveVow, createProgressTrackForVow, deleteVow, vows },
         },
         {
           provide: OnboardingStateService,
@@ -56,7 +59,18 @@ describe('OnboardingFirstVow', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     const vow = makeVow();
+    const track = createDefaultProgressTrack({
+      id: 'track-first',
+      createdAt: '2026-07-14T00:00:00.000Z',
+      title: vow.title,
+      type: 'vow',
+      rank: vow.rank,
+    });
     saveVow = vi.fn().mockReturnValue({ ok: true, vow });
+    createProgressTrackForVow = vi
+      .fn()
+      .mockReturnValue({ ok: true, vow: { ...vow, progressTrackId: track.id }, track });
+    deleteVow = vi.fn().mockReturnValue({ ok: true, vow });
     vows = vi.fn().mockReturnValue([]);
     navigate = vi.fn().mockResolvedValue(true);
     draft = null;
@@ -84,6 +98,8 @@ describe('OnboardingFirstVow', () => {
       notes: 'User-authored note.',
       status: 'active',
     });
+    expect(createProgressTrackForVow).toHaveBeenCalledTimes(1);
+    expect(createProgressTrackForVow).toHaveBeenCalledWith({ vowId: 'vow-first' });
     expect(completeFirstVow).toHaveBeenCalledWith('vow-first');
     expect(navigate).toHaveBeenCalledWith(['/moves']);
   });
@@ -170,7 +186,53 @@ describe('OnboardingFirstVow', () => {
     await fixture.componentInstance['continue']();
 
     expect(saveVow).not.toHaveBeenCalled();
-    expect(completeFirstVow).toHaveBeenCalledWith('vow-existing');
+    expect(createProgressTrackForVow).toHaveBeenCalledWith({ vowId: 'vow-existing' });
+    expect(completeFirstVow).not.toHaveBeenCalled();
+  });
+
+  it('renders the linked zero-progress review before final navigation without exposing ids', async () => {
+    await create();
+    fixture.componentInstance['vowForm'].setValue({
+      title: 'Guard the ford',
+      description: 'User-authored context.',
+      rank: 'dangerous',
+      notes: 'User-authored note.',
+    });
+
+    await fixture.componentInstance['continue']();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Review your first vow track');
+    expect(text).toContain('Guard the ford');
+    expect(text).toContain('Dangerous');
+    expect(text).toContain('Vow');
+    expect(text).toContain('0 ticks');
+    expect(text).toContain('Vow and progress track are linked.');
+    expect(text).not.toContain('track-first');
+    expect(navigate).not.toHaveBeenCalled();
+
+    await fixture.componentInstance['continue']();
+    expect(navigate).toHaveBeenCalledWith(['/moves']);
+  });
+
+  it('rolls back the created vow when linked track creation fails', async () => {
+    createProgressTrackForVow = vi.fn().mockReturnValue({
+      ok: false,
+      errors: [{ code: 'unsupported_rank', field: 'rank', message: 'Choose a supported rank.' }],
+    });
+    await create();
+    fixture.componentInstance['vowForm'].setValue({
+      title: 'Guard the ford',
+      description: '',
+      rank: 'dangerous',
+      notes: '',
+    });
+
+    await fixture.componentInstance['continue']();
+
+    expect(deleteVow).toHaveBeenCalledWith('vow-first');
+    expect(completeFirstVow).not.toHaveBeenCalled();
   });
 
   it('keeps responsive and keyboard-friendly structure with focused, labelled fields', async () => {
@@ -181,7 +243,7 @@ describe('OnboardingFirstVow', () => {
     expect(element.querySelector('#vow-title')?.getAttribute('aria-describedby')).toContain(
       'vow-title-help',
     );
-    expect(element.querySelector('button[type="submit"]')?.textContent).toContain('Continue');
+    expect(element.querySelector('button[type="submit"]')?.textContent).toContain('Create track');
     expect(element.querySelector('button.secondary')?.textContent).toContain('Back');
   });
 });
