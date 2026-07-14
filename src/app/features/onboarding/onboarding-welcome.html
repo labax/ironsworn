@@ -1,0 +1,33 @@
+<section class="onboarding" aria-labelledby="welcome-title">
+  <div class="welcome-card">
+    <p class="section-label">First run</p>
+    <h2 id="welcome-title" #welcomeTitle tabindex="-1">{{ copy.title }}</h2>
+    <p class="lede">{{ copy.scope }}</p>
+
+    <section class="notice" aria-labelledby="disclaimer-title">
+      <h3 id="disclaimer-title">Unofficial companion</h3>
+      <p>{{ copy.disclaimer }}</p>
+    </section>
+
+    <section aria-labelledby="data-title">
+      <h3 id="data-title">Local data</h3>
+      <p>{{ copy.localData }}</p>
+    </section>
+
+    <section aria-labelledby="setup-title">
+      <h3 id="setup-title">Setup can be short</h3>
+      <ul>
+        @for (item of copy.checklist; track item) {
+          <li>{{ item }}</li>
+        }
+      </ul>
+    </section>
+
+    <div class="welcome-actions" aria-label="Onboarding actions">
+      <button type="button" class="primary-action" [disabled]="completing" (click)="startSetup()">
+        Start setup
+      </button>
+      <a class="secondary-action" routerLink="/moves">Skip for now</a>
+    </div>
+  </div>
+</section>

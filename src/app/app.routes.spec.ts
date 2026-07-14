@@ -6,6 +6,7 @@ describe('routes', () => {
 
     expect(configuredPaths).toEqual([
       '',
+      'welcome',
       'character',
       'moves',
       'trackers',
@@ -16,6 +17,10 @@ describe('routes', () => {
       'about',
       '**',
     ]);
+  });
+
+  it('guards the home route with the first-run welcome decision', () => {
+    expect(routes[0]?.canActivate?.length).toBe(1);
   });
 
   it('lazy-loads components for each visible route', () => {

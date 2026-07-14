@@ -1,0 +1,118 @@
+.onboarding {
+  display: grid;
+  min-height: min(44rem, 100%);
+  place-items: center;
+}
+
+.welcome-card {
+  width: min(100%, 52rem);
+  display: grid;
+  gap: 1.25rem;
+  border: 1px solid var(--shell-border, #d8e0e8);
+  border-radius: 1.25rem;
+  background: var(--shell-panel, #fff);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  box-shadow: 0 1rem 2.5rem rgb(23 32 42 / 0.08);
+}
+
+.section-label {
+  margin: 0;
+  color: var(--shell-text-muted, #526172);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h2,
+h3,
+p {
+  margin-block: 0;
+}
+
+h2 {
+  font-size: clamp(2rem, 7vw, 4rem);
+  line-height: 1;
+}
+
+h2:focus-visible {
+  outline: 3px solid var(--shell-accent-strong, #315a7d);
+  outline-offset: 0.35rem;
+}
+
+.lede {
+  max-width: 42rem;
+  color: var(--shell-text-muted, #526172);
+  font-size: clamp(1.05rem, 2.5vw, 1.3rem);
+  line-height: 1.55;
+}
+
+.notice {
+  border-inline-start: 0.35rem solid var(--shell-accent, #476f95);
+  border-radius: 0.75rem;
+  background: var(--shell-accent-soft, #dceaf5);
+  padding: 1rem;
+}
+
+section:not(.onboarding) {
+  display: grid;
+  gap: 0.5rem;
+}
+
+ul {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+}
+
+li + li {
+  margin-block-start: 0.35rem;
+}
+
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.primary-action,
+.secondary-action {
+  border-radius: 999px;
+  padding: 0.8rem 1.2rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.primary-action {
+  border: 1px solid var(--shell-accent-strong, #315a7d);
+  background: var(--shell-accent-strong, #315a7d);
+  color: #fff;
+}
+
+.secondary-action {
+  border: 1px solid var(--shell-border-strong, #aebdcc);
+  color: var(--shell-accent-strong, #315a7d);
+}
+
+.primary-action:focus-visible,
+.secondary-action:focus-visible {
+  outline: 3px solid var(--shell-accent-strong, #315a7d);
+  outline-offset: 0.2rem;
+}
+
+.primary-action:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 34rem) {
+  .welcome-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primary-action,
+  .secondary-action {
+    text-align: center;
+  }
+}

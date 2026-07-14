@@ -83,6 +83,22 @@
       "releaseStatus": "allowed",
       "reviewStatus": "reviewed",
       "notes": "Project-original oracle helper content created for the app; contains no official game prose."
+    },
+    {
+      "id": "project-original-onboarding-welcome-copy",
+      "title": "Project Original Onboarding Welcome Copy",
+      "category": "original",
+      "contentType": "app-helper-text",
+      "source": "project-original",
+      "sourceUrl": null,
+      "license": "project-content-license",
+      "licenseUrl": null,
+      "attributionRequired": false,
+      "attributionText": null,
+      "noticeRef": null,
+      "releaseStatus": "allowed",
+      "reviewStatus": "reviewed",
+      "notes": "Project-original onboarding, disclaimer, local-data, and setup helper copy. Does not contain official rules tutorial prose."
     }
   ]
 }
