@@ -1,8 +1,8 @@
 <section class="onboarding-review" aria-labelledby="onboarding-review-title">
-  <div class="review-card">
-    <p class="section-label">Final review</p>
+  <div class="review-card" aria-describedby="review-step review-progress">
+    <p class="section-label" id="review-step">Step 4 of 4 · Final review</p>
     <h2 #heading id="onboarding-review-title" tabindex="-1">{{ copy.title }}</h2>
-    <p class="lede">{{ copy.helper }}</p>
+    <p class="lede" id="review-progress">{{ copy.helper }}</p>
 
     @if (errors.length) {
       <section
@@ -144,7 +144,13 @@
       <button type="button" class="secondary" (click)="exitSetup()" [disabled]="saving">
         Exit setup
       </button>
-      <button type="button" (click)="complete()" [disabled]="saving">
+      <button
+        type="button"
+        class="primary"
+        (click)="complete()"
+        [disabled]="saving"
+        aria-describedby="review-progress"
+      >
         {{ saving ? 'Saving…' : 'Complete setup' }}
       </button>
       @if (message && !errors.length) {

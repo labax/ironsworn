@@ -1,8 +1,8 @@
 <section class="onboarding" aria-labelledby="welcome-title">
-  <div class="welcome-card">
-    <p class="section-label">First run</p>
+  <div class="welcome-card" aria-describedby="welcome-step welcome-progress">
+    <p class="section-label" id="welcome-step">Step 1 of 4 · First run</p>
     <h2 id="welcome-title" #welcomeTitle tabindex="-1">{{ copy.title }}</h2>
-    <p class="lede">{{ copy.scope }}</p>
+    <p class="lede" id="welcome-progress">{{ copy.scope }}</p>
 
     <section class="notice" aria-labelledby="disclaimer-title">
       <h3 id="disclaimer-title">Unofficial companion</h3>

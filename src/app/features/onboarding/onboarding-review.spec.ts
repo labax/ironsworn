@@ -121,4 +121,26 @@ describe('OnboardingReview', () => {
       'Complete setup',
     );
   });
+
+  it('labels progress, exposes alert summaries, and keeps one stable primary completion action', async () => {
+    await create({
+      complete: {
+        ok: false,
+        message: 'Complete the highlighted setup sections, then try again.',
+        errors: [{ section: 'character', message: 'Character needs a name.' }],
+      },
+    });
+
+    await fixture.componentInstance['complete']();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('.review-card')?.getAttribute('aria-describedby')).toContain(
+      'review-step',
+    );
+    expect(fixture.componentInstance['errors'].length).toBe(1);
+    expect(element.querySelectorAll('button.primary').length).toBe(1);
+  });
 });

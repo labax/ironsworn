@@ -1,8 +1,13 @@
 <section class="first-vow" aria-labelledby="first-vow-title">
-  <form class="first-vow-card" [formGroup]="vowForm" (ngSubmit)="continue()">
-    <p class="section-label">First vow</p>
+  <form
+    class="first-vow-card"
+    [formGroup]="vowForm"
+    (ngSubmit)="continue()"
+    aria-describedby="first-vow-step first-vow-progress"
+  >
+    <p class="section-label" id="first-vow-step">Step 3 of 4 · First vow</p>
     <h2 id="first-vow-title" tabindex="-1">{{ copy.title }}</h2>
-    <p class="lede">{{ copy.helper }}</p>
+    <p class="lede" id="first-vow-progress">{{ copy.helper }}</p>
 
     <label>
       Vow title
@@ -62,7 +67,14 @@
     </label>
 
     @if (review; as item) {
-      <section class="review-panel" aria-labelledby="first-vow-review-title" tabindex="-1">
+      <section
+        #reviewPanel
+        class="review-panel"
+        aria-labelledby="first-vow-review-title"
+        tabindex="-1"
+        role="status"
+        aria-live="polite"
+      >
         <h3 id="first-vow-review-title">Review your first vow track</h3>
         <dl>
           <div>
@@ -107,7 +119,9 @@
         {{ review ? 'Continue' : 'Review setup' }}
       </button>
       @if (formMessage) {
-        <p class="form-message" role="status" aria-live="polite">{{ formMessage }}</p>
+        <p class="form-message" [attr.role]="formMessageTone" aria-live="polite">
+          {{ formMessage }}
+        </p>
       }
     </div>
   </form>

@@ -71,3 +71,91 @@ button,
     flex-direction: column;
   }
 }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  min-width: 0;
+}
+
+button,
+a.secondary,
+.primary-action,
+.secondary-action {
+  min-height: 2.75rem;
+  touch-action: manipulation;
+}
+
+.first-vow-card,
+.welcome-card,
+.review-card,
+.notice,
+.review-panel,
+.error-summary,
+section,
+dl,
+dd,
+li,
+p,
+h2,
+h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+h2:focus-visible,
+.error-summary:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--shell-accent-strong, #315a7d);
+  outline-offset: 0.2rem;
+}
+
+button,
+.secondary {
+  border-radius: 999px;
+  font-weight: 800;
+  text-align: center;
+}
+
+button.primary,
+.form-actions button:not(.secondary) {
+  border: 1px solid var(--shell-accent-strong, #315a7d);
+  background: var(--shell-accent-strong, #315a7d);
+  color: #fff;
+}
+
+.secondary {
+  border: 1px solid var(--shell-border-strong, #aebdcc);
+  color: var(--shell-accent-strong, #315a7d);
+  text-decoration: none;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 42rem) {
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .form-actions > * {
+    width: 100%;
+  }
+}

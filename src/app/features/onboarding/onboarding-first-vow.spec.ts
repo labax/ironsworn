@@ -282,11 +282,50 @@ describe('OnboardingFirstVow', () => {
     await create();
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector('.first-vow-card')).toBeTruthy();
-    expect(element.querySelector('form')?.getAttribute('aria-labelledby')).toBeNull();
+    expect(element.querySelector('form')?.getAttribute('aria-describedby')).toContain(
+      'first-vow-step',
+    );
     expect(element.querySelector('#vow-title')?.getAttribute('aria-describedby')).toContain(
       'vow-title-help',
     );
     expect(element.querySelector('button[type="submit"]')?.textContent).toContain('Review setup');
     expect(element.querySelector('button.secondary')?.textContent).toContain('Back');
+  });
+
+  it('announces validation failures and focuses the invalid control', async () => {
+    await create();
+    fixture.componentInstance['vowForm'].setValue({
+      title: ' ',
+      description: '',
+      rank: 'troublesome',
+      notes: '',
+    });
+
+    await fixture.componentInstance['continue']();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const message = (fixture.nativeElement as HTMLElement).querySelector('.form-message');
+    expect(message?.getAttribute('role')).toBe('alert');
+    expect(document.activeElement?.id).toBe('vow-title');
+  });
+
+  it('moves focus to the generated review panel and keeps one primary submit action', async () => {
+    await create();
+    fixture.componentInstance['vowForm'].setValue({
+      title: 'A'.repeat(160),
+      description: 'Long user-authored description '.repeat(20),
+      rank: 'dangerous',
+      notes: 'Long user-authored notes '.repeat(20),
+    });
+
+    await fixture.componentInstance['continue']();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('.review-panel')?.getAttribute('role')).toBe('status');
+    expect(element.querySelector('.review-panel')?.getAttribute('tabindex')).toBe('-1');
+    expect(element.querySelectorAll('button[type="submit"]').length).toBe(1);
   });
 });
