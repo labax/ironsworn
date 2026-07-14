@@ -82,6 +82,7 @@ export class CharacterDraftService {
       snapshot: () => this.activeCharacterState.activeCharacter(),
       restore: (character) => {
         if (character) this.activeCharacterState.setActiveCharacter(character);
+        else this.activeCharacterState.clearActiveCharacter();
       },
     });
   }

@@ -143,6 +143,11 @@ export class OnboardingStateService {
     this.firstVowDraftState = null;
   }
 
+  resetInMemoryState(): void {
+    this.firstVowDraftState = null;
+    this.firstVowCommittedIdState = null;
+  }
+
   async completeFirstVow(vowId: string): Promise<SaveResult> {
     const current = (await this.loadStatus()) ?? {};
     return this.saveStatus({

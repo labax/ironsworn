@@ -1,0 +1,59 @@
+@import '../placeholder-page.css';
+
+.danger-zone {
+  border: 2px solid var(--color-danger, #b42318);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-top: 2rem;
+  background: color-mix(in srgb, var(--color-danger, #b42318) 8%, transparent);
+}
+
+.danger-zone h3 {
+  margin-top: 0;
+}
+
+.destructive-button {
+  background: #b42318;
+  border-color: #b42318;
+  color: #fff;
+}
+
+.destructive-button:disabled,
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.reset-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 0.55);
+}
+
+.reset-dialog {
+  width: min(42rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #1f2933);
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.35);
+}
+
+.reset-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 40rem) {
+  .reset-dialog-actions > button {
+    width: 100%;
+  }
+}

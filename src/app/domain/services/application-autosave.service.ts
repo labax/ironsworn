@@ -96,6 +96,7 @@ export class ApplicationAutosaveService {
   private inFlightRevision = 0;
   private pendingAfterInFlight = false;
   private initialized = false;
+  private resetInProgress = false;
 
   readonly saveStatus = this.saveStatusState.asReadonly();
   readonly lastSaveResult = this.lastSaveResultState.asReadonly();
@@ -123,8 +124,29 @@ export class ApplicationAutosaveService {
     this.saveStatusState.set('saved');
   }
 
+  beginReset(): void {
+    this.resetInProgress = true;
+    this.clearDebounce();
+    this.pendingAfterInFlight = false;
+  }
+
+  completeResetToEmptyState(): void {
+    this.clearDebounce();
+    this.pendingAfterInFlight = false;
+    this.currentRevision = 0;
+    this.lastSavedRevision = 0;
+    this.inFlightRevision = 0;
+    this.lastSaveResultState.set({ success: true });
+    this.lastErrorState.set(null);
+    this.saveStatusState.set('idle');
+  }
+
+  endReset(): void {
+    this.resetInProgress = false;
+  }
+
   markCommittedChange(_domain: ApplicationStateDomain): void {
-    if (!this.initialized) return;
+    if (!this.initialized || this.resetInProgress) return;
     this.currentRevision += 1;
     this.pendingAfterInFlight = this.inFlightRevision > 0;
     this.schedule();
@@ -157,6 +179,7 @@ export class ApplicationAutosaveService {
 
   async flush(): Promise<SaveResult> {
     this.clearDebounce();
+    if (this.resetInProgress) return { success: true };
     if (this.inFlightRevision) {
       this.pendingAfterInFlight = true;
       return { success: true };
@@ -195,6 +218,7 @@ export class ApplicationAutosaveService {
   }
 
   private async writeCurrentSnapshot(): Promise<SaveResult> {
+    if (this.resetInProgress) return { success: true };
     const snapshot = this.createSnapshot();
     const revision = snapshot.revision;
     this.inFlightRevision = revision;
@@ -217,7 +241,10 @@ export class ApplicationAutosaveService {
       this.saveStatusState.set(result.success ? 'saved' : 'failed');
     }
     this.inFlightRevision = 0;
-    if (this.pendingAfterInFlight || this.currentRevision > this.lastSavedRevision) {
+    if (
+      !this.resetInProgress &&
+      (this.pendingAfterInFlight || this.currentRevision > this.lastSavedRevision)
+    ) {
       this.pendingAfterInFlight = false;
       void this.flush();
     }

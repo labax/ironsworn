@@ -102,4 +102,91 @@
       }
     </div>
   }
+
+  <section class="danger-zone" aria-labelledby="danger-zone-title">
+    <h3 id="danger-zone-title">Danger zone</h3>
+    <p class="description">
+      Reset this browser back to first-run setup by removing only Ironsworn-owned local records.
+      Unrelated same-origin browser storage and downloaded backup files are preserved.
+    </p>
+    <button
+      #resetButton
+      type="button"
+      class="destructive-button"
+      [disabled]="resetStatus() === 'resetting'"
+      (click)="openResetDialog()"
+    >
+      Reset application
+    </button>
+    @if (resetMessage() && !resetDialogOpen()) {
+      <div class="empty-state" [attr.role]="resetStatus() === 'failed' ? 'alert' : 'status'">
+        {{ resetMessage() }}
+      </div>
+    }
+  </section>
+
+  @if (resetDialogOpen()) {
+    <div class="reset-dialog-backdrop" (click)="closeResetDialog()">
+      <section
+        #resetDialog
+        class="reset-dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="reset-dialog-title"
+        aria-describedby="reset-dialog-description"
+        tabindex="-1"
+        (keydown)="onResetDialogKeydown($event)"
+        (click)="$event.stopPropagation()"
+      >
+        <h3 id="reset-dialog-title">Reset application?</h3>
+        <p id="reset-dialog-description">
+          This permanently removes local character, campaign, vows, tracks, journal, roll history,
+          custom oracles, onboarding state, drafts, and settings owned by this app from this
+          browser. This cannot be undone unless you export a backup first.
+        </p>
+        <p class="section-label">Registered local keys</p>
+        <ul>
+          @for (registration of registeredResetKeys; track registration.key) {
+            <li>{{ registration.key }} ({{ registration.status }})</li>
+          }
+        </ul>
+        @if (resetMessage()) {
+          <div class="empty-state" [attr.role]="resetStatus() === 'failed' ? 'alert' : 'status'">
+            {{ resetMessage() }}
+            @if (resetFailedKeys().length > 0) {
+              <ul>
+                @for (key of resetFailedKeys(); track key) {
+                  <li>{{ key }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+        <div class="reset-dialog-actions">
+          <button
+            type="button"
+            [disabled]="resetStatus() === 'resetting'"
+            (click)="closeResetDialog()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            [disabled]="resetStatus() === 'resetting'"
+            (click)="exportBackupBeforeReset()"
+          >
+            Export backup first
+          </button>
+          <button
+            type="button"
+            class="destructive-button"
+            [disabled]="resetStatus() === 'resetting'"
+            (click)="confirmResetApplication()"
+          >
+            Reset application
+          </button>
+        </div>
+      </section>
+    </div>
+  }
 </section>
