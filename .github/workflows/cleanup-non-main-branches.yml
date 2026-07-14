@@ -1,6 +1,5 @@
 name: One-time non-main branch cleanup
 
-# Triggered once to remove all branches except main.
 on:
   push:
     branches:
@@ -15,7 +14,13 @@ jobs:
   delete-branches:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete every branch except main
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Delete every branch except main and record the result
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -26,6 +31,7 @@ jobs:
             gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name'
           )
 
+          deleted=()
           failures=()
 
           for branch in "${branches[@]}"; do
@@ -35,14 +41,46 @@ jobs:
             fi
 
             echo "Deleting branch: $branch"
-            if ! gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/$branch"; then
+            if gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/$branch"; then
+              deleted+=("$branch")
+            else
               failures+=("$branch")
             fi
           done
 
+          mapfile -t remaining < <(
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name'
+          )
+
+          {
+            echo "Repository: ${GITHUB_REPOSITORY}"
+            echo "Cleanup run: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "Kept: main"
+            echo
+            echo "Deleted branches:"
+            if (( ${#deleted[@]} == 0 )); then
+              echo "- none"
+            else
+              printf -- '- %s\n' "${deleted[@]}"
+            fi
+            echo
+            echo "Failed deletions:"
+            if (( ${#failures[@]} == 0 )); then
+              echo "- none"
+            else
+              printf -- '- %s\n' "${failures[@]}"
+            fi
+            echo
+            echo "Remaining branches:"
+            printf -- '- %s\n' "${remaining[@]}"
+          } > branch-cleanup-report.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add branch-cleanup-report.txt
+          git commit -m "chore: record branch cleanup result"
+          git push origin HEAD:main
+
           if (( ${#failures[@]} > 0 )); then
-            printf 'Failed to delete: %s\n' "${failures[@]}" >&2
             exit 1
           fi
-
-          echo "Branch cleanup completed."
