@@ -540,6 +540,48 @@ describe('Character', () => {
     expect(compiled.querySelector('button[aria-label="Increase Supply"]')).toBeTruthy();
   });
 
+  it('keeps every custom stepper input as a directly editable number field', () => {
+    saveDefaultCharacter();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const stepperInputIds = [
+      'health-status-input',
+      'spirit-status-input',
+      'supply-status-input',
+      'momentum-current-input',
+      'experience-earned-input',
+      'experience-spent-input',
+    ];
+
+    for (const id of stepperInputIds) {
+      const input = compiled.querySelector<HTMLInputElement>(`#${id}`);
+
+      expect(input).toBeTruthy();
+      expect(input?.type).toBe('number');
+      expect(input?.classList.contains('status-input')).toBe(true);
+      expect(input?.closest('.track-actions')).toBeTruthy();
+      expect(input?.closest('.track-actions')?.querySelectorAll('.track-button')).toHaveLength(2);
+    }
+  });
+
+  it('preserves Arrow Up and Arrow Down keyboard controls on custom stepper inputs', () => {
+    saveDefaultCharacter();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const health = compiled.querySelector<HTMLInputElement>('#health-status-input')!;
+    const momentum = compiled.querySelector<HTMLInputElement>('#momentum-current-input')!;
+    const earned = compiled.querySelector<HTMLInputElement>('#experience-earned-input')!;
+
+    health.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    momentum.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    earned.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(service.character()?.statusTracks.health).toBe(4);
+    expect(service.character()?.momentum.current).toBe(3);
+    expect(service.character()?.experience.earned).toBe(1);
+  });
+
   it('keeps prominent status controls before secondary character sections in the stacked sheet order', () => {
     saveDefaultCharacter();
 
