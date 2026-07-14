@@ -18,7 +18,7 @@
           @for (error of errors; track error.section + error.message) {
             <li>
               <a [routerLink]="error.path">Edit {{ error.section }}</a
-              >: {{ error.message }}
+              >: {{ error.kind === 'validation' ? 'Validation' : 'System' }} — {{ error.message }}
             </li>
           }
         </ul>

@@ -29,6 +29,7 @@ describe('OnboardingFirstVow', () => {
   let completeFirstVow: ReturnType<typeof vi.fn>;
   let exitSetup: ReturnType<typeof vi.fn>;
   let clearFirstVowDraft: ReturnType<typeof vi.fn>;
+  let validateFirstVowDraft: ReturnType<typeof vi.fn>;
 
   const create = async () => {
     await TestBed.configureTestingModule({
@@ -49,6 +50,7 @@ describe('OnboardingFirstVow', () => {
             completeFirstVow,
             exitSetup,
             clearFirstVowDraft,
+            validateFirstVowDraft,
             previousStep: () => ({ id: 'character', path: '/character' }),
             nextStep: () => ({ id: 'review', path: '/welcome/review' }),
           },
@@ -82,6 +84,7 @@ describe('OnboardingFirstVow', () => {
     completeFirstVow = vi.fn().mockResolvedValue({ success: true });
     exitSetup = vi.fn().mockResolvedValue({ success: true });
     clearFirstVowDraft = vi.fn(() => (draft = null));
+    validateFirstVowDraft = vi.fn().mockReturnValue({ ok: true });
   });
 
   it('creates a valid first vow once with selected rank and optional user fields', async () => {
@@ -106,7 +109,7 @@ describe('OnboardingFirstVow', () => {
     });
     expect(createProgressTrackForVow).toHaveBeenCalledTimes(1);
     expect(createProgressTrackForVow).toHaveBeenCalledWith({ vowId: 'vow-first' });
-    expect(completeFirstVow).not.toHaveBeenCalled();
+    expect(completeFirstVow).toHaveBeenCalledWith('vow-first');
     expect(navigate).toHaveBeenCalledWith(['/welcome/review']);
   });
 
@@ -219,10 +222,11 @@ describe('OnboardingFirstVow', () => {
     expect(navigate).not.toHaveBeenCalled();
 
     await fixture.componentInstance['continue']();
+    expect(completeFirstVow).toHaveBeenCalledWith('vow-first');
     expect(navigate).toHaveBeenCalledWith(['/welcome/review']);
   });
 
-  it('rolls back the created vow when linked track creation fails', async () => {
+  it('preserves the created vow and draft when linked track creation fails', async () => {
     createProgressTrackForVow = vi.fn().mockReturnValue({
       ok: false,
       errors: [{ code: 'unsupported_rank', field: 'rank', message: 'Choose a supported rank.' }],
@@ -237,7 +241,8 @@ describe('OnboardingFirstVow', () => {
 
     await fixture.componentInstance['continue']();
 
-    expect(deleteVow).toHaveBeenCalledWith('vow-first');
+    expect(deleteVow).not.toHaveBeenCalled();
+    expect(committedId).toBe('vow-first');
     expect(completeFirstVow).not.toHaveBeenCalled();
   });
 
