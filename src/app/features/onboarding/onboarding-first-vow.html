@@ -104,7 +104,7 @@
         Exit setup
       </button>
       <button type="submit" [disabled]="saving || exiting">
-        {{ review ? 'Continue setup' : 'Create track' }}
+        {{ review ? 'Continue' : 'Review setup' }}
       </button>
       @if (formMessage) {
         <p class="form-message" role="status" aria-live="polite">{{ formMessage }}</p>

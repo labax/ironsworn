@@ -2,7 +2,7 @@
   "$schema": "./manifest.schema.json",
   "schemaVersion": "0.1.0",
   "generatedFor": "Ironsworn Digital Companion",
-  "lastReviewedAt": null,
+  "lastReviewedAt": "2026-07-14",
   "entries": [
     {
       "id": "example-original-helper-text",
@@ -98,7 +98,13 @@
       "noticeRef": null,
       "releaseStatus": "allowed",
       "reviewStatus": "reviewed",
-      "notes": "Project-original onboarding, disclaimer, local-data, and setup helper copy. Does not contain official rules tutorial prose."
+      "notes": "Project-original onboarding, disclaimer, local-data, and setup helper copy. Does not contain official rules tutorial prose.",
+      "files": [
+        "../src/app/domain/onboarding/onboarding-content.ts",
+        "../src/app/features/onboarding/onboarding-welcome.html",
+        "../src/app/features/onboarding/onboarding-welcome.spec.ts",
+        "../docs/licensing/onboarding-copy-review.md"
+      ]
     },
     {
       "id": "project-original-onboarding-first-vow-copy",
@@ -114,7 +120,60 @@
       "noticeRef": null,
       "releaseStatus": "allowed",
       "reviewStatus": "reviewed",
-      "notes": "Project-original first-vow onboarding helper text. Does not include official examples or generated narrative text."
+      "notes": "Project-original first-vow onboarding helper text. Does not include official examples or generated narrative text.",
+      "files": [
+        "../src/app/domain/onboarding/onboarding-content.ts",
+        "../src/app/features/onboarding/onboarding-first-vow.html",
+        "../src/app/features/onboarding/onboarding-first-vow.ts",
+        "../src/app/features/onboarding/onboarding-first-vow.spec.ts",
+        "../docs/licensing/onboarding-copy-review.md"
+      ]
+    },
+    {
+      "id": "project-original-onboarding-character-copy",
+      "title": "Project Original Onboarding Character Copy",
+      "contentType": "app-helper-text",
+      "category": "original",
+      "source": "project-original",
+      "sourceUrl": null,
+      "license": "project-content-license",
+      "licenseUrl": null,
+      "attributionRequired": false,
+      "attributionText": null,
+      "noticeRef": null,
+      "releaseStatus": "allowed",
+      "reviewStatus": "reviewed",
+      "notes": "Project-original character setup labels, helpers, validation, status track, Momentum, and local-save messages reviewed for onboarding. Does not include official examples or tutorial prose.",
+      "files": [
+        "../src/app/features/character/character.html",
+        "../src/app/features/character/character.ts",
+        "../src/app/features/character/character.spec.ts",
+        "../docs/licensing/onboarding-copy-review.md"
+      ]
+    },
+    {
+      "id": "project-original-onboarding-review-copy",
+      "title": "Project Original Onboarding Review Copy",
+      "contentType": "app-helper-text",
+      "category": "original",
+      "source": "project-original",
+      "sourceUrl": null,
+      "license": "project-content-license",
+      "licenseUrl": null,
+      "attributionRequired": false,
+      "attributionText": null,
+      "noticeRef": null,
+      "releaseStatus": "allowed",
+      "reviewStatus": "reviewed",
+      "notes": "Project-original final review, completion, validation, save-error, and action-label copy reviewed for onboarding. Does not include official rules tutorial prose.",
+      "files": [
+        "../src/app/domain/onboarding/onboarding-content.ts",
+        "../src/app/domain/onboarding/onboarding-state.service.ts",
+        "../src/app/features/onboarding/onboarding-review.html",
+        "../src/app/features/onboarding/onboarding-review.ts",
+        "../src/app/features/onboarding/onboarding-review.spec.ts",
+        "../docs/licensing/onboarding-copy-review.md"
+      ]
     }
   ]
 }

@@ -286,7 +286,7 @@ describe('OnboardingFirstVow', () => {
     expect(element.querySelector('#vow-title')?.getAttribute('aria-describedby')).toContain(
       'vow-title-help',
     );
-    expect(element.querySelector('button[type="submit"]')?.textContent).toContain('Create track');
+    expect(element.querySelector('button[type="submit"]')?.textContent).toContain('Review setup');
     expect(element.querySelector('button.secondary')?.textContent).toContain('Back');
   });
 });

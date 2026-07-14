@@ -57,7 +57,7 @@ export const ONBOARDING_REVIEW_COPY = {
   title: 'Review and begin play',
   helper:
     'Confirm your character, starting tracks, first vow, and linked progress track before entering the workspace.',
-  action: 'Finish setup',
+  action: 'Complete setup',
   success: 'Setup saved. Opening your play workspace.',
   provenance: ONBOARDING_REVIEW_COPY_PROVENANCE,
 } as const;
