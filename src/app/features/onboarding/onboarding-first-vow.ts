@@ -79,7 +79,7 @@ export class OnboardingFirstVow {
 
   protected async back(): Promise<void> {
     this.persistDraft();
-    await this.router.navigate([this.onboarding.previousStep('first-vow').path]);
+    await this.navigateOrReport(this.onboarding.previousStep('first-vow').path);
   }
 
   protected async continue(): Promise<void> {
@@ -89,7 +89,7 @@ export class OnboardingFirstVow {
     this.formMessageTone = 'status';
 
     if (this.review) {
-      await this.router.navigate([this.onboarding.nextStep('first-vow').path]);
+      await this.finish(this.review.vow.id);
       return;
     }
 
@@ -102,8 +102,13 @@ export class OnboardingFirstVow {
       await this.prepareReview(existingId);
       return;
     }
-    if (this.vowForm.invalid) {
-      this.applyErrors([{ code: 'required', field: 'title', message: 'Enter a vow title.' }]);
+    const draftValidation = this.onboarding.validateFirstVowDraft(draft);
+    if (this.vowForm.invalid || !draftValidation.ok) {
+      this.applyErrors(
+        draftValidation.ok
+          ? [{ code: 'required', field: 'title', message: 'Enter a vow title.' }]
+          : draftValidation.errors,
+      );
       return;
     }
 
@@ -118,10 +123,10 @@ export class OnboardingFirstVow {
     const trackResult = this.workspace.createProgressTrackForVow({ vowId: vowResult.vow.id });
     this.saving = false;
     if (!trackResult.ok) {
-      this.workspace.deleteVow(vowResult.vow.id);
+      this.onboarding.markFirstVowCommitted(vowResult.vow.id);
       this.applyErrors(trackResult.errors);
       this.formMessage =
-        'Setup could not link the vow to a progress track. Nothing was saved; try again.';
+        'The vow was saved, but its progress track could not be linked. Fix the issue and retry; your draft remains available.';
       this.formMessageTone = 'alert';
       return;
     }
@@ -170,7 +175,7 @@ export class OnboardingFirstVow {
     this.exiting = true;
     if (discardDraft) this.onboarding.clearFirstVowDraft();
     await this.onboarding.exitSetup();
-    await this.router.navigate(['/moves']);
+    await this.navigateOrReport('/moves');
   }
 
   private async prepareReview(vowId: string): Promise<void> {
@@ -200,7 +205,21 @@ export class OnboardingFirstVow {
         'Your vow was saved, but setup status could not be updated. Try Continue again.';
       return;
     }
-    await this.router.navigate([this.onboarding.nextStep('first-vow').path]);
+    await this.navigateOrReport(this.onboarding.nextStep('first-vow').path);
+  }
+
+  private async navigateOrReport(path: string): Promise<void> {
+    try {
+      const navigated = await this.router.navigate([path]);
+      if (!navigated) {
+        this.formMessage =
+          'Navigation did not complete. Your setup data is still saved; try again.';
+        this.formMessageTone = 'alert';
+      }
+    } catch {
+      this.formMessage = 'Navigation failed. Your setup data is still saved; try again.';
+      this.formMessageTone = 'alert';
+    }
   }
 
   private applyErrors(errors: readonly ValidationError[]): void {

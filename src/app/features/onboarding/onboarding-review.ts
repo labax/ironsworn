@@ -33,7 +33,8 @@ export class OnboardingReview {
   protected saving = false;
   protected completed = false;
   protected message = '';
-  protected errors: readonly { section: string; message: string; path: string }[] = [];
+  protected errors: readonly { section: string; message: string; path: string; kind: string }[] =
+    [];
 
   constructor() {
     queueMicrotask(() => this.heading()?.nativeElement.focus());
@@ -61,7 +62,8 @@ export class OnboardingReview {
     if (this.saving || this.completed) return;
     this.saving = true;
     await this.onboarding.exitSetup();
-    await this.router.navigate(['/moves']);
+    await this.navigateOrReport('/moves');
+    this.saving = false;
   }
 
   protected async complete(): Promise<void> {
@@ -77,6 +79,7 @@ export class OnboardingReview {
         section: error.section,
         message: error.message,
         path: error.section === 'character' ? '/character' : '/welcome/first-vow',
+        kind: error.kind,
       }));
       this.message = result.message;
       queueMicrotask(() => this.errorPanel()?.nativeElement.focus());
@@ -85,6 +88,23 @@ export class OnboardingReview {
 
     this.completed = true;
     this.message = this.copy.success;
-    await this.router.navigate(['/moves']);
+    await this.navigateOrReport('/moves');
+  }
+
+  private async navigateOrReport(path: string): Promise<void> {
+    try {
+      const navigated = await this.router.navigate([path]);
+      if (!navigated) {
+        this.completed = false;
+        this.message = 'Navigation did not complete. Your setup data is still saved; try again.';
+        this.errors = [{ section: 'navigation', message: this.message, path, kind: 'navigation' }];
+        queueMicrotask(() => this.errorPanel()?.nativeElement.focus());
+      }
+    } catch {
+      this.completed = false;
+      this.message = 'Navigation failed. Your setup data is still saved; try again.';
+      this.errors = [{ section: 'navigation', message: this.message, path, kind: 'navigation' }];
+      queueMicrotask(() => this.errorPanel()?.nativeElement.focus());
+    }
   }
 }

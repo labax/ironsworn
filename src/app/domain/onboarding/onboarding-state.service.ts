@@ -13,7 +13,10 @@ import {
 } from '@app/domain/character';
 import { ApplicationAutosaveService } from '@app/domain/services/application-autosave.service';
 import { CampaignWorkspaceService } from '@app/domain/services/campaign-workspace.service';
-import { isChallengeRank, isValidProgressTicks, type ChallengeRank } from '@app/domain/progress';
+import { isChallengeRank, type ChallengeRank } from '@app/domain/progress';
+import { validateProgressTrackForCommit } from '@app/domain/progress/progress-track.validation';
+import { validateVowDetails } from '@app/domain/vows/vow.validation';
+import type { ValidationError } from '@app/rules/validation';
 import { environment } from '@environments/environment';
 
 export const ONBOARDING_STATUS_STORAGE_KEY = 'ironsworn.onboardingStatus';
@@ -30,6 +33,15 @@ export interface FirstVowOnboardingDraft {
   readonly description: string;
   readonly rank: ChallengeRank;
   readonly notes: string;
+}
+
+export type OnboardingErrorKind = 'validation' | 'storage' | 'navigation' | 'unexpected';
+
+export interface OnboardingSectionError {
+  readonly section: 'character' | 'first vow' | 'progress track' | 'save' | 'navigation';
+  readonly message: string;
+  readonly kind: OnboardingErrorKind;
+  readonly field?: string;
 }
 
 export interface OnboardingStatus {
@@ -135,15 +147,19 @@ export class OnboardingStateService {
     });
   }
 
+  validateFirstVowDraft(
+    draft: FirstVowOnboardingDraft,
+  ): { readonly ok: true } | { readonly ok: false; readonly errors: readonly ValidationError[] } {
+    const result = validateVowDetails({ ...draft, status: 'active' });
+    return result.ok ? { ok: true } : { ok: false, errors: result.errors };
+  }
+
   async completeOnboardingTransaction(): Promise<
     | { readonly ok: true }
     | {
         readonly ok: false;
         readonly message: string;
-        readonly errors: readonly {
-          section: 'character' | 'first vow' | 'progress track' | 'save';
-          message: string;
-        }[];
+        readonly errors: readonly OnboardingSectionError[];
       }
   > {
     const validation = this.validateCompleteOnboardingState();
@@ -160,13 +176,34 @@ export class OnboardingStateService {
       return {
         ok: false,
         message: 'Setup could not be saved. Your review is still here; fix storage and try again.',
-        errors: [{ section: 'save', message: flush.error.message }],
+        errors: [
+          {
+            section: 'save',
+            kind: storageErrorKind(flush.error.code),
+            message: flush.error.message,
+          },
+        ],
       };
     }
 
     const current = (await this.loadStatus()) ?? {};
     if (current.completedAt) return { ok: true };
-    const vow = this.workspace.vows().find((candidate) => candidate.status === 'active')!;
+    const vow = this.firstVowCommittedIdState
+      ? this.workspace.vows().find((candidate) => candidate.id === this.firstVowCommittedIdState)
+      : this.workspace.vows().find((candidate) => candidate.status === 'active');
+    if (!vow) {
+      return {
+        ok: false,
+        message: 'Complete the highlighted setup sections, then try again.',
+        errors: [
+          {
+            section: 'first vow',
+            kind: 'validation',
+            message: 'Create a first vow before finishing setup.',
+          },
+        ],
+      };
+    }
     const statusSave = await this.saveStatus({
       ...current,
       welcomeCompletedAt: current.welcomeCompletedAt ?? new Date().toISOString(),
@@ -178,88 +215,118 @@ export class OnboardingStateService {
       return {
         ok: false,
         message: 'Setup saved, but completion status could not be recorded. Try again.',
-        errors: [{ section: 'save', message: statusSave.error.message }],
+        errors: [
+          {
+            section: 'save',
+            kind: storageErrorKind(statusSave.error.code),
+            message: statusSave.error.message,
+          },
+        ],
       };
     }
     return { ok: true };
   }
 
-  validateCompleteOnboardingState(): readonly {
-    section: 'character' | 'first vow' | 'progress track';
-    message: string;
-  }[] {
-    const errors: { section: 'character' | 'first vow' | 'progress track'; message: string }[] = [];
+  validateCompleteOnboardingState(): readonly OnboardingSectionError[] {
+    const errors: OnboardingSectionError[] = [];
+    const validation = (
+      section: OnboardingSectionError['section'],
+      message: string,
+      field?: string,
+    ): OnboardingSectionError => ({
+      section,
+      kind: 'validation',
+      message,
+      field,
+    });
     const character = this.activeCharacter.activeCharacter();
     if (!character)
-      errors.push({ section: 'character', message: 'Create a character before finishing setup.' });
+      errors.push(validation('character', 'Create a character before finishing setup.'));
     else {
       if (!character.name.trim())
-        errors.push({ section: 'character', message: 'Character needs a name.' });
+        errors.push(validation('character', 'Character needs a name.', 'name'));
       if (!isValidStats(character.stats))
-        errors.push({
-          section: 'character',
-          message: 'Character stats must use supported whole-number values.',
-        });
+        errors.push(
+          validation(
+            'character',
+            'Character stats must use supported whole-number values.',
+            'stats',
+          ),
+        );
       if (!isValidStatusTracks(character.statusTracks))
-        errors.push({
-          section: 'character',
-          message: 'Health, Spirit, and Supply must be supported values.',
-        });
+        errors.push(
+          validation(
+            'character',
+            'Health, Spirit, and Supply must be supported values.',
+            'statusTracks',
+          ),
+        );
       if (!isValidMomentum(character.momentum))
-        errors.push({
-          section: 'character',
-          message: 'Momentum must be within the supported range.',
-        });
+        errors.push(
+          validation('character', 'Momentum must be within the supported range.', 'momentum'),
+        );
     }
 
     const activeVows = this.workspace.vows().filter((vow) => vow.status === 'active');
-    const vow = activeVows[0];
-    if (!vow)
-      errors.push({ section: 'first vow', message: 'Create a first vow before finishing setup.' });
+    const vow = this.firstVowCommittedIdState
+      ? activeVows.find((candidate) => candidate.id === this.firstVowCommittedIdState)
+      : activeVows[0];
+    if (!vow) errors.push(validation('first vow', 'Create a first vow before finishing setup.'));
     else {
       if (!vow.title.trim())
-        errors.push({ section: 'first vow', message: 'First vow needs a title.' });
+        errors.push(validation('first vow', 'First vow needs a title.', 'title'));
       if (!isChallengeRank(vow.rank))
-        errors.push({ section: 'first vow', message: 'First vow rank is not supported.' });
+        errors.push(validation('first vow', 'First vow rank is not supported.', 'rank'));
       if (!vow.progressTrackId)
-        errors.push({
-          section: 'progress track',
-          message: 'First vow must be linked to one progress track.',
-        });
+        errors.push(
+          validation(
+            'progress track',
+            'First vow must be linked to one progress track.',
+            'progressTrackId',
+          ),
+        );
     }
 
     const track = vow?.progressTrackId
       ? this.workspace.progressTracks().find((candidate) => candidate.id === vow.progressTrackId)
       : null;
     if (vow?.progressTrackId && !track)
-      errors.push({
-        section: 'progress track',
-        message: 'The linked vow progress track is missing.',
-      });
+      errors.push(
+        validation(
+          'progress track',
+          'The linked vow progress track is missing.',
+          'progressTrackId',
+        ),
+      );
     if (vow && track) {
       if (track.type !== 'vow')
-        errors.push({
-          section: 'progress track',
-          message: 'The linked progress track must be a vow track.',
-        });
+        errors.push(
+          validation('progress track', 'The linked progress track must be a vow track.', 'type'),
+        );
       if (track.rank !== vow.rank)
-        errors.push({
-          section: 'progress track',
-          message: 'The linked progress track rank must match the vow.',
-        });
-      if (!isValidProgressTicks(track.ticks))
-        errors.push({
-          section: 'progress track',
-          message: 'The linked progress track has invalid progress.',
-        });
+        errors.push(
+          validation(
+            'progress track',
+            'The linked progress track rank must match the vow.',
+            'rank',
+          ),
+        );
+      const trackValidation = validateProgressTrackForCommit(track);
+      if (!trackValidation.ok)
+        trackValidation.errors.forEach((error) =>
+          errors.push(validation('progress track', error.message, error.field)),
+        );
       const duplicateLinks = this.workspace
         .vows()
         .filter((candidate) => candidate.progressTrackId === track.id);
       if (duplicateLinks.length !== 1)
-        errors.push({
-          section: 'progress track',
-          message: 'The linked progress track must belong to exactly one vow.',
-        });
+        errors.push(
+          validation(
+            'progress track',
+            'The linked progress track must belong to exactly one vow.',
+            'progressTrackId',
+          ),
+        );
     }
     return errors;
   }
@@ -293,3 +360,6 @@ const isOnboardingStatus = (value: unknown): value is OnboardingStatus => {
     (status.firstVowId === undefined || typeof status.firstVowId === 'string')
   );
 };
+
+const storageErrorKind = (code: string): OnboardingErrorKind =>
+  code === 'migration-failed' || code === 'malformed-data' ? 'storage' : 'storage';
