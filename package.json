@@ -17,7 +17,9 @@
     "test:provenance": "vitest run scripts/validate-content-manifest.test.mjs",
     "validate:content:release": "node scripts/validate-content-manifest.mjs --mode release --evidence dist/release-evidence/content-provenance-evidence.json",
     "test:workflow-gates": "vitest run scripts/release-gates.test.mjs",
-    "test:contrast": "vitest run scripts/contrast-tokens.test.mjs"
+    "test:contrast": "vitest run scripts/contrast-tokens.test.mjs",
+    "deploy": "npm run build && wrangler deploy",
+    "preview": "npm run build && wrangler dev"
   },
   "private": true,
   "packageManager": "npm@11.4.2",
@@ -38,6 +40,7 @@
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
-    "vitest": "^4.0.8"
+    "vitest": "^4.0.8",
+    "wrangler": "^4.112.0"
   }
 }
